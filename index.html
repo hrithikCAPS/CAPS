@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAPS Update Dashboard — ConsultAdd Public Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    /* ── Landing hero ── */
+    .lp-hero {
+      background: linear-gradient(135deg, #0F2444 0%, #1B3A6B 50%, #1A5272 100%);
+      border-radius: 16px;
+      padding: 44px 48px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .lp-hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(126,200,227,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .lp-hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: 30%;
+      width: 400px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(30,94,168,.22) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .lp-hero__left { flex: 1; min-width: 0; position: relative; z-index: 1; }
+    .lp-hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px; padding: 4px 14px;
+      font-size: .7rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: rgba(255,255,255,.85);
+      margin-bottom: 14px;
+    }
+    .lp-hero__eyebrow::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: #7EC8E3; animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .lp-hero__title {
+      font-size: 2.1rem; font-weight: 800; line-height: 1.15;
+      letter-spacing: -.02em; margin-bottom: 12px;
+    }
+    .lp-hero__title span { color: #7EC8E3; }
+    .lp-hero__sub {
+      font-size: .95rem; color: rgba(255,255,255,.62);
+      max-width: 480px; line-height: 1.6; margin-bottom: 26px;
+    }
+    .lp-hero__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: #1B3A6B;
+      font-weight: 700; font-size: .88rem;
+      padding: 11px 22px; border-radius: 10px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,.18);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .lp-hero__cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.24); }
+    .lp-hero__right {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .lp-stat {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16);
+      border-radius: 12px; padding: 16px 20px; min-width: 130px;
+    }
+    .lp-stat__lbl { font-size: .65rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: rgba(255,255,255,.5); margin-bottom: 6px; }
+    .lp-stat__val { font-size: 1.65rem; font-weight: 800; color: #fff; line-height: 1; }
+    .lp-stat__sub { font-size: .7rem; color: rgba(255,255,255,.45); margin-top: 4px; }
+
+    /* ── Section label ── */
+    .lp-section-lbl {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--ca-gray-500);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .lp-section-lbl::after {
+      content: ''; flex: 1; height: 1px; background: var(--ca-gray-200);
+    }
+
+    /* ── Dashboard cards grid ── */
+    .lp-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .lp-card {
+      background: var(--ca-white);
+      border: 1px solid var(--ca-gray-200);
+      border-radius: 14px;
+      padding: 22px 20px 20px;
+      text-decoration: none;
+      color: inherit;
+      display: flex; flex-direction: column;
+      transition: all .18s ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      position: relative; overflow: hidden;
+    }
+    .lp-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .lp-card:hover {
+      box-shadow: 0 8px 28px rgba(0,0,0,.1);
+      border-color: transparent;
+      transform: translateY(-3px);
+    }
+    .lp-card:hover .lp-card__arrow { opacity: 1; transform: translateX(2px); }
+
+    /* colour accents */
+    .lp-card.c-blue::before    { background: linear-gradient(90deg,#1E5EA8,#2770C8); }
+    .lp-card.c-teal::before    { background: linear-gradient(90deg,#1D6F5A,#25896F); }
+    .lp-card.c-indigo::before  { background: linear-gradient(90deg,#3730A3,#5B4FD9); }
+    .lp-card.c-amber::before   { background: linear-gradient(90deg,#92400E,#B45309); }
+    .lp-card.c-slate::before   { background: linear-gradient(90deg,#334155,#475569); }
+
+    .lp-card.c-blue:hover    { border-color: #1E5EA8; }
+    .lp-card.c-teal:hover    { border-color: #1D6F5A; }
+    .lp-card.c-indigo:hover  { border-color: #3730A3; }
+    .lp-card.c-amber:hover   { border-color: #92400E; }
+    .lp-card.c-slate:hover   { border-color: #334155; }
+
+    .lp-card__icon {
+      width: 42px; height: 42px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; margin-bottom: 16px; flex-shrink: 0;
+    }
+    .c-blue   .lp-card__icon { background: #E5EEF9; }
+    .c-teal   .lp-card__icon { background: #E4F4EF; }
+    .c-indigo .lp-card__icon { background: #EEF0FB; }
+    .c-amber  .lp-card__icon { background: #FEF3C7; }
+    .c-slate  .lp-card__icon { background: #F1F5F9; }
+
+    .lp-card__title {
+      font-size: .97rem; font-weight: 700;
+      color: var(--ca-gray-900); margin-bottom: 8px; line-height: 1.3;
+    }
+    .lp-card__desc {
+      font-size: .8rem; color: var(--ca-gray-500);
+      line-height: 1.55; flex: 1;
+    }
+    .lp-card__tags {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px;
+    }
+    .lp-card__tag {
+      font-size: .66rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: var(--ca-gray-100);
+      color: var(--ca-gray-500);
+    }
+    .lp-card__arrow {
+      position: absolute; bottom: 18px; right: 18px;
+      font-size: .85rem; color: var(--ca-gray-300);
+      opacity: 0; transition: all .18s;
+    }
+
+    /* ── Last updated banner ── */
+    .lp-footer {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 14px;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: 10px; font-size: .8rem; color: var(--ca-gray-500);
+      margin-bottom: 8px;
+    }
+    .lp-footer strong { color: var(--ca-gray-700); }
+    .lp-footer .dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; }
+
+    @media(max-width:1100px){ .lp-grid { grid-template-columns: repeat(3,1fr); } }
+    @media(max-width:768px){
+      .lp-hero { flex-direction: column; padding: 28px 24px; }
+      .lp-hero__right { grid-template-columns: 1fr 1fr; width: 100%; }
+      .lp-hero__title { font-size: 1.6rem; }
+      .lp-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<main class="ca-main">
+
+  <!-- HERO -->
+  <div class="lp-hero">
+    <div class="lp-hero__left">
+      <div class="lp-hero__eyebrow">Live RFP Intelligence</div>
+      <div class="lp-hero__title">CAPS Update<br><span>Dashboard</span></div>
+      <div class="lp-hero__sub">Real-time insights from your HubSpot RFP pipeline — track bids, forecast awards, analyse interview outcomes, and plan delivery capacity.</div>
+      <a href="rfp-overview.html" class="lp-hero__cta">
+        Open RFP Overview →
+      </a>
+    </div>
+    <div class="lp-hero__right" id="hero-stats">
+      <div class="lp-stat">
+        <div class="lp-stat__lbl">Total RFPs</div>
+        <div class="lp-stat__val" id="stat-total">—</div>
+        <div class="lp-stat__sub">Oct 2025 onwards</div>
+      </div>
+      <div class="lp-stat">
+        <div class="lp-stat__lbl">Active Pipeline</div>
+        <div class="lp-stat__val" id="stat-active">—</div>
+        <div class="lp-stat__sub">submitted / interview / IA</div>
+      </div>
+      <div class="lp-stat">
+        <div class="lp-stat__lbl">Intent to Award</div>
+        <div class="lp-stat__val" id="stat-ia">—</div>
+        <div class="lp-stat__sub">near-certain awards</div>
+      </div>
+      <div class="lp-stat">
+        <div class="lp-stat__lbl">Data as of</div>
+        <div class="lp-stat__val" style="font-size:1rem;margin-top:4px" id="stat-date">—</div>
+        <div class="lp-stat__sub">last HubSpot pull</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARDS -->
+  <div class="lp-section-lbl">Dashboards</div>
+  <div class="lp-grid">
+
+    <a href="rfp-overview.html" class="lp-card c-blue">
+      <div class="lp-card__icon">📊</div>
+      <div class="lp-card__title">RFP Overview</div>
+      <div class="lp-card__desc">Total RFPs, pipeline value, stage breakdown, monthly submissions, owner distribution, and service category split.</div>
+      <div class="lp-card__tags">
+        <span class="lp-card__tag">Pipeline</span>
+        <span class="lp-card__tag">Stages</span>
+        <span class="lp-card__tag">Owners</span>
+      </div>
+      <span class="lp-card__arrow">→</span>
+    </a>
+
+    <a href="awards.html" class="lp-card c-teal">
+      <div class="lp-card__icon">🏆</div>
+      <div class="lp-card__title">Awards</div>
+      <div class="lp-card__desc">All closed-won and intent-to-award contracts — filterable by category and stage, with award timelines and values.</div>
+      <div class="lp-card__tags">
+        <span class="lp-card__tag">Closed Won</span>
+        <span class="lp-card__tag">IA Deals</span>
+        <span class="lp-card__tag">Values</span>
+      </div>
+      <span class="lp-card__arrow">→</span>
+    </a>
+
+    <a href="predictions.html" class="lp-card c-indigo">
+      <div class="lp-card__icon">🔮</div>
+      <div class="lp-card__title">Predictions</div>
+      <div class="lp-card__desc">3-month delivery forecast using IA pipeline, interview win rates, and rolling monthly award averages. Includes recruiter keyword cloud per category.</div>
+      <div class="lp-card__tags">
+        <span class="lp-card__tag">Forecast</span>
+        <span class="lp-card__tag">Keywords</span>
+        <span class="lp-card__tag">Rolling Avg</span>
+      </div>
+      <span class="lp-card__arrow">→</span>
+    </a>
+
+    <a href="interviews.html" class="lp-card c-amber">
+      <div class="lp-card__icon">🎯</div>
+      <div class="lp-card__title">Interviews</div>
+      <div class="lp-card__desc">Track oral presentations, BAFOs, and interview-to-win conversion rates. See upcoming interviews and historical outcomes by category.</div>
+      <div class="lp-card__tags">
+        <span class="lp-card__tag">BAFO</span>
+        <span class="lp-card__tag">Win Rate</span>
+        <span class="lp-card__tag">Schedule</span>
+      </div>
+      <span class="lp-card__arrow">→</span>
+    </a>
+
+    <a href="state-analysis.html" class="lp-card c-slate">
+      <div class="lp-card__icon">📍</div>
+      <div class="lp-card__title">State Analysis</div>
+      <div class="lp-card__desc">Geographic breakdown of bids and awards by US state — identify high-activity markets and win rate patterns across regions.</div>
+      <div class="lp-card__tags">
+        <span class="lp-card__tag">Geographic</span>
+        <span class="lp-card__tag">States</span>
+        <span class="lp-card__tag">Markets</span>
+      </div>
+      <span class="lp-card__arrow">→</span>
+    </a>
+
+
+  </div>
+
+  <!-- LAST UPDATED -->
+  <div class="lp-footer">
+    <div class="dot"></div>
+    Data last updated: <strong id="footer-date">Loading…</strong>
+    &nbsp;·&nbsp; Pull fresh data anytime by running <code style="background:#F1F5F9;padding:1px 6px;border-radius:4px;font-size:.78rem">refresh-data.py</code>
+  </div>
+
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+  CAPS.renderHeader('Home');
+
+  /* ── Populate hero stats from embedded data ── */
+  (async () => {
+    try {
+      const data = await CAPS.loadData();
+      const active = data.filter(d => ['Submitted','Interview','Intent to Award'].includes(d.stage));
+      const ia     = data.filter(d => d.stage === 'Intent to Award');
+      const lu     = CAPS.getLastUpdated();
+
+      document.getElementById('stat-total').textContent  = data.length.toLocaleString();
+      document.getElementById('stat-active').textContent = active.length.toLocaleString();
+      document.getElementById('stat-ia').textContent     = ia.length.toLocaleString();
+
+      if (lu) {
+        // Show month + year only
+        const parts = lu.split(' ');
+        document.getElementById('stat-date').textContent = parts.slice(0,2).join(' ');
+        document.getElementById('footer-date').textContent = lu;
+      }
+    } catch(e) {
+      console.warn('Stats load error:', e);
+    }
+  })();
+</script>
+</body>
+</html>

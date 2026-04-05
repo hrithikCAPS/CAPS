@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interviews — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    .chart-container { position: relative; width: 100%; }
+    .chart-container.h280 { height: 300px; }
+    .chart-container.h320 { height: 340px; }
+    .chart-container.h360 { height: 380px; }
+    .chart-container.h400 { height: 420px; }
+
+    /* ── Filter bar ── */
+    .ca-filter-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); padding: 12px 18px;
+      margin-bottom: 20px; box-shadow: var(--shadow-sm); flex-wrap: wrap;
+    }
+    .ca-filter-bar__label { font-size: 0.85rem; font-weight: 600; color: var(--ca-gray-700); white-space: nowrap; }
+    .ca-filter-bar select {
+      padding: 7px 12px; border: 1px solid var(--ca-gray-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.85rem; color: var(--ca-gray-700);
+      background: var(--ca-white); cursor: pointer;
+    }
+    .ca-filter-bar select:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.12); outline: none; }
+    #gf-cat { min-width: 210px; }
+    #gf-year { min-width: 120px; }
+    .ca-filter-bar__sep { width: 1px; height: 22px; background: var(--ca-gray-200); margin: 0 4px; }
+    .ca-filter-bar__count { font-size: 0.8rem; color: var(--ca-gray-500); margin-left: auto; }
+    .ca-filter-bar__count strong { color: var(--ca-blue); font-weight: 700; }
+
+    /* ── Section label ── */
+    .ca-section-label {
+      font-size: 1.05rem; font-weight: 700; color: var(--ca-navy);
+      margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ca-light-blue);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ca-section-badge {
+      font-size: 0.72rem; font-weight: 700; padding: 2px 9px; border-radius: 12px;
+      background: var(--ca-gray-100); color: var(--ca-gray-500);
+    }
+    .ca-section-badge.worst { background: #FEE2E2; color: #991B1B; }
+    .ca-section-badge.best  { background: #D1FAE5; color: #065F46; }
+
+    /* ── Funnel ── */
+    .iv-funnel-row {
+      display: flex; align-items: stretch;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm);
+    }
+    .iv-funnel-step {
+      flex: 1; padding: 20px 16px; text-align: center;
+      border-right: 1px solid var(--ca-gray-200); position: relative;
+    }
+    .iv-funnel-step:last-child { border-right: none; }
+    .iv-funnel-step::after {
+      content: '→'; position: absolute; right: -10px; top: 50%;
+      transform: translateY(-50%); color: var(--ca-gray-300); font-size: 1.1rem; z-index: 1;
+    }
+    .iv-funnel-step:last-child::after { display: none; }
+    .iv-funnel-lbl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ca-gray-500); margin-bottom: 6px; }
+    .iv-funnel-val { font-size: 1.65rem; font-weight: 800; color: var(--ca-gray-900); line-height: 1; }
+    .iv-funnel-sub { font-size: 0.72rem; color: var(--ca-gray-400); margin-top: 4px; }
+    .iv-funnel-pct { font-size: 0.78rem; font-weight: 700; margin-top: 7px; padding: 2px 9px; border-radius: 20px; display: inline-block; }
+    .iv-funnel-pct.good  { background: var(--ca-green-bg);  color: var(--ca-green); }
+    .iv-funnel-pct.amber { background: var(--ca-yellow-bg); color: var(--ca-yellow); }
+    .iv-funnel-pct.red   { background: var(--ca-red-bg);    color: var(--ca-red); }
+
+    /* ── Avg Monthly callout ── */
+    .iv-avg-strip {
+      display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .iv-avg-card {
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); padding: 16px 22px;
+      box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 16px; flex: 1; min-width: 200px;
+    }
+    .iv-avg-card__icon { font-size: 1.6rem; }
+    .iv-avg-card__lbl  { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ca-gray-500); margin-bottom: 3px; }
+    .iv-avg-card__val  { font-size: 1.5rem; font-weight: 800; color: var(--ca-navy); line-height: 1; }
+    .iv-avg-card__sub  { font-size: 0.75rem; color: var(--ca-gray-400); margin-top: 3px; }
+
+    /* ── Tables ── */
+    .ca-table-scroll { overflow-x: auto; }
+    .iv-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .iv-table thead th {
+      background: var(--ca-gray-50); color: var(--ca-gray-500); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap; position: sticky; top: 0; z-index: 1;
+    }
+    .iv-table thead th.right { text-align: right; }
+    .iv-table thead th.iv-tbl-sort { cursor: pointer; user-select: none; }
+    .iv-table thead th.iv-tbl-sort:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .iv-table thead th.sort-active { color: var(--ca-blue); background: rgba(46,80,144,0.06); }
+    .iv-table tbody tr { border-bottom: 1px solid var(--ca-gray-100); transition: background 0.12s; }
+    .iv-table tbody tr:hover { background: var(--ca-gray-50); }
+    .iv-table tbody td { padding: 10px 14px; color: var(--ca-gray-700); vertical-align: middle; }
+    .iv-table tbody td.right { text-align: right; font-family: 'SF Mono','Fira Code',monospace; font-size: 0.82rem; }
+    .iv-table tbody td.center { text-align: center; }
+    .deal-name-cell { font-weight: 600; color: var(--ca-gray-900); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .text-cell { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.82rem; }
+    .ca-link { color: var(--ca-blue); text-decoration: none; font-weight: 600; font-size: 0.82rem; }
+    .ca-link:hover { text-decoration: underline; }
+    .ca-empty { text-align: center; padding: 52px 20px; color: var(--ca-gray-500); }
+
+    /* ── Upcoming tag ── */
+    .upcoming-days {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+    }
+    .upcoming-days.soon   { background: #FEF9C3; color: #854D0E; }
+    .upcoming-days.week   { background: #DBEAFE; color: #1E40AF; }
+    .upcoming-days.future { background: #F0FDF4; color: #166534; }
+
+    /* ── Category stats table ── */
+    .cat-stat-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .cat-stat-table thead th {
+      background: var(--ca-gray-50); color: var(--ca-gray-500); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    .cat-stat-table thead th:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .cat-stat-table thead th.sort-active { color: var(--ca-blue); background: rgba(46,80,144,0.06); }
+    .cat-stat-table thead th.right { text-align: right; }
+    .cat-stat-table tbody tr { border-bottom: 1px solid var(--ca-gray-100); transition: background 0.12s; }
+    .cat-stat-table tbody tr:hover { background: var(--ca-gray-50); }
+    .cat-stat-table tbody tr.worst-row { background: #FFF5F5; }
+    .cat-stat-table tbody tr.worst-row:hover { background: #FEE2E2; }
+    .cat-stat-table tbody tr.best-row  { background: #F0FDF4; }
+    .cat-stat-table tbody tr.best-row:hover  { background: #DCFCE7; }
+    .cat-stat-table tbody td { padding: 10px 14px; color: var(--ca-gray-700); vertical-align: middle; }
+    .cat-stat-table tbody td.right { text-align: right; font-variant-numeric: tabular-nums; }
+    .sort-arrows { display: inline-flex; flex-direction: column; margin-left: 4px; gap: 1px; vertical-align: middle; }
+    .sort-arrows .arr { font-size: 0.58rem; opacity: 0.3; line-height: 1; }
+    .sort-arrows .arr.on { opacity: 1; color: var(--ca-blue); }
+
+    /* ── Win rate mini bar ── */
+    .wr-cell { display: flex; align-items: center; gap: 8px; }
+    .wr-track { flex: 1; height: 6px; background: var(--ca-gray-200); border-radius: 3px; min-width: 60px; }
+    .wr-fill  { height: 100%; border-radius: 3px; }
+    .wr-fill.good  { background: var(--ca-green); }
+    .wr-fill.amber { background: var(--ca-yellow); }
+    .wr-fill.red   { background: var(--ca-red); }
+    .wr-fill.none  { background: var(--ca-gray-300); }
+    .wr-pct { font-size: 0.82rem; font-weight: 700; min-width: 38px; text-align: right; }
+    .wr-pct.good  { color: var(--ca-green); }
+    .wr-pct.amber { color: var(--ca-yellow); }
+    .wr-pct.red   { color: var(--ca-red); }
+    .wr-pct.none  { color: var(--ca-gray-400); }
+
+    /* ── Table tabs ── */
+    .iv-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .iv-tab {
+      padding: 6px 16px; border-radius: var(--radius-md); font-size: 0.84rem;
+      font-weight: 600; cursor: pointer; border: 1px solid var(--ca-gray-200);
+      background: var(--ca-white); color: var(--ca-gray-500);
+      font-family: var(--font-family); transition: all 0.15s;
+    }
+    .iv-tab:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .iv-tab.active { background: var(--ca-navy); color: #fff; border-color: var(--ca-navy); }
+    .iv-tab.active.t-interview { background: #D97706; border-color: #D97706; }
+    .iv-tab.active.t-bafo      { background: #BE123C; border-color: #BE123C; }
+
+    /* Info button styles are in dashboard.css (shared) */
+
+    /* ── Controls row ── */
+    .ca-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 4px 2px 10px; }
+  </style>
+</head>
+<body>
+
+<main class="ca-main" id="dashboard">
+  <div class="ca-loading">
+    <div class="ca-loading__spinner"></div>
+    <div class="ca-loading__text">Loading interview data...</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+  CAPS.renderHeader('Interviews');
+
+  Chart.register(ChartDataLabels);
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size   = 12;
+  Chart.defaults.color       = '#667085';
+  Chart.defaults.plugins.legend.labels.usePointStyle   = true;
+  Chart.defaults.plugins.legend.labels.pointStyleWidth = 10;
+  Chart.defaults.plugins.datalabels = { display: false };
+
+  const C = {
+    navy:    '#1B2F5E', blue:   '#2D60C4', green:  '#059669',
+    red:     '#DC2626', yellow: '#D97706', orange: '#C05621',
+    crimson: '#BE123C', purple: '#6D28D9',
+    blueA:  'rgba(45,96,196,0.82)',  greenA: 'rgba(5,150,105,0.82)',
+    redA:   'rgba(220,38,38,0.72)',  yellowA:'rgba(217,119,6,0.82)',
+    crimsonA:'rgba(190,18,60,0.82)',
+  };
+
+  let allCharts = [];
+  function destroyCharts() { allCharts.forEach(c => c.destroy()); allCharts = []; }
+
+  /* ── Date helpers ── */
+  function mKey(dt) {
+    if (!dt) return null;
+    const d = dt instanceof Date ? dt : new Date(dt);
+    if (isNaN(d)) return null;
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+  function mLabel(ym) {
+    const [y,m] = ym.split('-');
+    return ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m]+' '+y;
+  }
+  function fmtDate(v) {
+    if (!v) return '—';
+    const d = v instanceof Date ? v : new Date(v);
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  }
+  function trunc(s,n){ return s&&s.length>n?s.slice(0,n)+'…':(s||'—'); }
+  function daysFromNow(dt) {
+    if (!dt) return null;
+    const d = dt instanceof Date ? dt : new Date(dt);
+    if (isNaN(d)) return null;
+    return Math.ceil((d - new Date()) / 86400000);
+  }
+
+  /* ── Filter state ── */
+  let activeCat  = '';
+  let activeYear = '';
+  let activeTab  = 'all';  // for all-shortlisted table
+  let catSort    = 'total'; catSortDir = 'desc';
+  let allSort    = 'ivdate'; let allSortDir = 'desc'; // for all-shortlisted table
+
+  async function render() {
+    const allData = await CAPS.loadData();
+    destroyCharts();
+
+    const TODAY    = new Date();
+    const OCT_2025 = new Date('2025-10-01');
+
+    /* ── Year options (from interview date OR bid closing date) ── */
+    const yearSet = new Set();
+    allData.forEach(d => {
+      const ref = d.interviewDate || d.bafoDate || d.bidClosingDate || d.submissionDate;
+      if (!ref) return;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      yearSet.add(dt.getFullYear());
+    });
+    const allYears = [...yearSet].filter(y => y >= 2025).sort((a,b) => b-a);
+
+    /* ── Base pool: shortlisted deals (Oct 2025+) ── */
+    let base = allData.filter(d => {
+      const ref = d.bidClosingDate || d.submissionDate;
+      if (!ref) return false;
+      return (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025;
+    });
+
+    /* ── Year filter: filter by interview date year ── */
+    if (activeYear) {
+      base = base.filter(d => {
+        const ref = d.interviewDate || d.bafoDate || d.bidClosingDate || d.submissionDate;
+        return ref && new Date(ref).getFullYear() == activeYear;
+      });
+    }
+
+    /* ── Category options ── */
+    const catMap = {};
+    base.filter(d => d.interviewFlag === 'Yes').forEach(d => {
+      if (d.serviceCategory) d.serviceCategory.split(';').forEach(c => {
+        c = c.trim(); if (c) catMap[c] = (catMap[c]||0)+1;
+      });
+    });
+    const catOptions = CAPS.sortedEntries(catMap);
+
+    /* ── Category filter ── */
+    const pool = activeCat
+      ? base.filter(d => d.serviceCategory && d.serviceCategory.includes(activeCat))
+      : base;
+
+    /* ── Shortlisted ── */
+    const shortlisted  = pool.filter(d => d.interviewFlag === 'Yes');
+    const interviews   = shortlisted.filter(d => d.interviewSubcategory !== 'BAFO');
+    const bafos        = shortlisted.filter(d => d.interviewSubcategory === 'BAFO');
+    const activeIV     = pool.filter(d => d.stage === 'Interview');
+    const wonAfterIV   = shortlisted.filter(d => d.stage === 'Closed Won');
+    const lostAfterIV  = shortlisted.filter(d => d.stage === 'Closed Lost');
+    const decided      = wonAfterIV.length + lostAfterIV.length;
+    const ivWinRate    = decided > 0 ? wonAfterIV.length / decided : 0;
+    const iaAfterIV    = shortlisted.filter(d => ['Intent to Award','Closed Won'].includes(d.stage));
+
+    /* Funnel rates */
+    const slRate   = pool.length > 0 ? shortlisted.length / pool.length : 0;
+    const iaRate   = shortlisted.length > 0 ? iaAfterIV.length / shortlisted.length : 0;
+    const wonRateIA= iaAfterIV.length > 0 ? wonAfterIV.length / iaAfterIV.length : 0;
+
+    /* ── UPCOMING: interviewDate > today ── */
+    const upcoming = pool.filter(d => {
+      const dt = d.interviewDate || d.bafoDate;
+      if (!dt) return false;
+      const d2 = dt instanceof Date ? dt : new Date(dt);
+      return !isNaN(d2) && d2 > TODAY;
+    }).sort((a,b) => {
+      const da = new Date(a.interviewDate || a.bafoDate);
+      const db = new Date(b.interviewDate || b.bafoDate);
+      return da - db;
+    });
+
+    /* ── MONTHLY by interviewDate ── */
+    // Bucket by actual interview date (falls back to bafoDate if no interviewDate)
+    const ivMonthSet = new Set();
+    shortlisted.forEach(d => {
+      const m = mKey(d.interviewDate || d.bafoDate);
+      if (m) ivMonthSet.add(m);
+    });
+    // Determine cutoff based on year filter or earliest data
+    let monthCutoff = activeYear ? String(activeYear)+'-01' : '2025-10';
+    const ivMonths = [...ivMonthSet].sort().filter(m => m >= monthCutoff);
+
+    const mIntCount = {}, mBafoCount = {}, mWonCount = {}, mLostCount = {};
+    ivMonths.forEach(m => { mIntCount[m]=0; mBafoCount[m]=0; mWonCount[m]=0; mLostCount[m]=0; });
+
+    shortlisted.forEach(d => {
+      const m = mKey(d.interviewDate || d.bafoDate);
+      if (!m || !mIntCount.hasOwnProperty(m)) return;
+      if (d.interviewSubcategory === 'BAFO') mBafoCount[m]++;
+      else mIntCount[m]++;
+      if (d.stage === 'Closed Won')  mWonCount[m]++;
+      if (d.stage === 'Closed Lost') mLostCount[m]++;
+    });
+
+    // Average monthly interviews (only months that have at least 1)
+    const monthsWithData = ivMonths.filter(m => (mIntCount[m]||0)+(mBafoCount[m]||0) > 0);
+    const totalMonthlyIV = monthsWithData.reduce((s,m) => s+(mIntCount[m]||0)+(mBafoCount[m]||0), 0);
+    const avgMonthly     = monthsWithData.length > 0 ? (totalMonthlyIV / monthsWithData.length) : 0;
+    const avgMonthlyInt  = monthsWithData.length > 0
+      ? monthsWithData.reduce((s,m)=>s+(mIntCount[m]||0),0) / monthsWithData.length : 0;
+    const avgMonthlyBafo = monthsWithData.length > 0
+      ? monthsWithData.reduce((s,m)=>s+(mBafoCount[m]||0),0) / monthsWithData.length : 0;
+
+    /* ── CATEGORY STATS ── */
+    const catStats = {}; // key: category name
+    shortlisted.forEach(d => {
+      if (!d.serviceCategory) return;
+      d.serviceCategory.split(';').forEach(c => {
+        c = c.trim(); if (!c) return;
+        if (!catStats[c]) catStats[c] = { name:c, total:0, iv:0, bafo:0, won:0, lost:0, ia:0, active:0 };
+        const s = catStats[c];
+        s.total++;
+        if (d.interviewSubcategory === 'BAFO') s.bafo++; else s.iv++;
+        if (d.stage === 'Closed Won')          s.won++;
+        if (d.stage === 'Closed Lost')         s.lost++;
+        if (d.stage === 'Intent to Award')     s.ia++;
+        if (d.stage === 'Interview')           s.active++;
+      });
+    });
+    const catRows = Object.values(catStats).map(r => ({
+      ...r,
+      decided:  r.won + r.lost,
+      winRate:  (r.won + r.lost) > 0 ? r.won / (r.won + r.lost) : null,
+    }));
+
+    // Worst: highest loss count among decided (min 2 decided), then lowest win rate
+    const decidedCats = catRows.filter(r => r.decided >= 2);
+    const worstCat    = decidedCats.length > 0
+      ? [...decidedCats].sort((a,b) => b.lost - a.lost || (a.winRate||0) - (b.winRate||0))[0]
+      : null;
+    const bestCat     = decidedCats.length > 0
+      ? [...decidedCats].sort((a,b) => (b.winRate||0) - (a.winRate||0) || b.won - a.won)[0]
+      : null;
+
+    /* ══════════ BUILD HTML ══════════ */
+    const container = document.getElementById('dashboard');
+    container.innerHTML = `
+      <div class="ca-page-header">
+        <h1 class="ca-page-header__title">Interviews Dashboard</h1>
+        <p class="ca-page-header__subtitle">Shortlisting, oral presentations, BAFOs, and interview-to-award conversion — Oct 2025 onwards</p>
+      </div>
+
+      <!-- ── Filter Bar ── -->
+      <div class="ca-filter-bar">
+        <span class="ca-filter-bar__label">Year:</span>
+        <select id="gf-year">
+          <option value="">All Years</option>
+          ${allYears.map(y=>`<option value="${y}" ${activeYear==y?'selected':''}>${y}</option>`).join('')}
+        </select>
+        <div class="ca-filter-bar__sep"></div>
+        <span class="ca-filter-bar__label">Category:</span>
+        <select id="gf-cat">
+          <option value="">All Categories</option>
+          ${catOptions.map(([c,n])=>`<option value="${c}" ${activeCat===c?'selected':''}>${c} (${n})</option>`).join('')}
+        </select>
+        <span class="ca-filter-bar__count">
+          <strong>${shortlisted.length}</strong> shortlisted from ${pool.length} submissions
+          ${activeCat ? `<span style="background:#EEF2FF;color:#3730A3;padding:1px 8px;border-radius:10px;font-weight:600;margin-left:6px;font-size:0.78rem">${activeCat} ✕</span>` : ''}
+        </span>
+      </div>
+
+      <!-- ── KPI Cards ── -->
+      <div class="ca-metrics-row">
+        ${CAPS.metricCard('Total Shortlisted', CAPS.formatNumber(shortlisted.length),
+          CAPS.formatPercent(slRate)+' of submissions', '',
+          'Deals where Interview Flag = Yes — invited for oral presentation or BAFO.')}
+        ${CAPS.metricCard('Oral Presentations', CAPS.formatNumber(interviews.length),
+          CAPS.formatPercent(shortlisted.length>0?interviews.length/shortlisted.length:0)+' of shortlisted', 'blue',
+          'Shortlisted deals where Interview Subcategory is not BAFO.')}
+        ${CAPS.metricCard('BAFOs', CAPS.formatNumber(bafos.length),
+          CAPS.formatPercent(shortlisted.length>0?bafos.length/shortlisted.length:0)+' of shortlisted', 'crimson',
+          'Best and Final Offer rounds — Interview Subcategory = BAFO.')}
+        ${CAPS.metricCard('Interview Win Rate', CAPS.formatPercent(ivWinRate),
+          wonAfterIV.length+' won / '+lostAfterIV.length+' lost', 'green',
+          'Won / (Won + Lost) among shortlisted deals with a decided outcome.')}
+        ${CAPS.metricCard('Currently Active', CAPS.formatNumber(activeIV.length),
+          upcoming.length+' upcoming scheduled', '',
+          'Deals currently in the Interview stage. Upcoming = have a future interview date.')}
+      </div>
+
+      <!-- ── Avg Monthly strip ── -->
+      <div class="iv-avg-strip">
+        <div class="iv-avg-card">
+          <div class="iv-avg-card__icon">📅</div>
+          <div>
+            <div class="iv-avg-card__lbl">Avg Interviews / Month</div>
+            <div class="iv-avg-card__val">${avgMonthly.toFixed(1)}</div>
+            <div class="iv-avg-card__sub">over ${monthsWithData.length} month${monthsWithData.length!==1?'s':''} with data · based on interview date</div>
+          </div>
+        </div>
+        <div class="iv-avg-card">
+          <div class="iv-avg-card__icon">🎤</div>
+          <div>
+            <div class="iv-avg-card__lbl">Avg Oral Presentations / Month</div>
+            <div class="iv-avg-card__val">${avgMonthlyInt.toFixed(1)}</div>
+            <div class="iv-avg-card__sub">${interviews.length} total across ${monthsWithData.length} month${monthsWithData.length!==1?'s':''}</div>
+          </div>
+        </div>
+        <div class="iv-avg-card">
+          <div class="iv-avg-card__icon">📝</div>
+          <div>
+            <div class="iv-avg-card__lbl">Avg BAFOs / Month</div>
+            <div class="iv-avg-card__val">${avgMonthlyBafo.toFixed(1)}</div>
+            <div class="iv-avg-card__sub">${bafos.length} total across ${monthsWithData.length} month${monthsWithData.length!==1?'s':''}</div>
+          </div>
+        </div>
+        ${worstCat ? `<div class="iv-avg-card" style="border-color:#FECACA;background:#FFF5F5">
+          <div class="iv-avg-card__icon">⚠️</div>
+          <div>
+            <div class="iv-avg-card__lbl" style="color:#991B1B">Worst Performing Category</div>
+            <div class="iv-avg-card__val" style="font-size:1rem;color:#B91C1C">${trunc(worstCat.name,28)}</div>
+            <div class="iv-avg-card__sub">${worstCat.lost} lost · ${worstCat.decided} decided · ${CAPS.formatPercent(worstCat.winRate)} win rate</div>
+          </div>
+        </div>` : ''}
+      </div>
+
+      <!-- ── Funnel ── -->
+      <div class="ca-section-label">Submission-to-Award Funnel</div>
+      <div class="iv-funnel-row">
+        <div class="iv-funnel-step">
+          <div class="iv-funnel-lbl">Total Submitted</div>
+          <div class="iv-funnel-val">${pool.length}</div>
+          <div class="iv-funnel-sub">In scope</div>
+        </div>
+        <div class="iv-funnel-step">
+          <div class="iv-funnel-lbl">Shortlisted</div>
+          <div class="iv-funnel-val">${shortlisted.length}</div>
+          <div class="iv-funnel-sub">Interview Flag = Yes</div>
+          <div class="iv-funnel-pct ${slRate>=0.3?'good':slRate>=0.15?'amber':'red'}">${CAPS.formatPercent(slRate)}</div>
+        </div>
+        <div class="iv-funnel-step">
+          <div class="iv-funnel-lbl">Intent to Award</div>
+          <div class="iv-funnel-val">${iaAfterIV.length}</div>
+          <div class="iv-funnel-sub">IA or Won after interview</div>
+          <div class="iv-funnel-pct ${iaRate>=0.5?'good':iaRate>=0.25?'amber':'red'}">${CAPS.formatPercent(iaRate)}</div>
+        </div>
+        <div class="iv-funnel-step">
+          <div class="iv-funnel-lbl">Closed Won</div>
+          <div class="iv-funnel-val">${wonAfterIV.length}</div>
+          <div class="iv-funnel-sub">Won after interview</div>
+          <div class="iv-funnel-pct ${wonRateIA>=0.6?'good':wonRateIA>=0.35?'amber':'red'}">${CAPS.formatPercent(wonRateIA)}</div>
+        </div>
+      </div>
+
+      <!-- ── Monthly Trend ── -->
+      <div class="ca-section-label">
+        Monthly Interview Trend
+        <span class="ca-section-badge">based on interview date</span>
+      </div>
+      <div class="ca-panel" style="margin-bottom:20px">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">Interviews &amp; BAFOs per Month — by Interview Date</span>
+          <span class="ca-panel__badge">${shortlisted.length} total · avg <strong>${avgMonthly.toFixed(1)}/mo</strong></span>
+        </div>
+        <div class="ca-panel__body">
+          <div class="chart-container h320"><canvas id="ch-monthly"></canvas></div>
+        </div>
+      </div>
+
+      <div class="ca-grid ca-grid--2">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Monthly Outcomes — Won vs Lost (by interview date)</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h280"><canvas id="ch-outcomes"></canvas></div>
+          </div>
+        </div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Interview Type Split</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h280"><canvas id="ch-type"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Upcoming Interviews ── -->
+      <div class="ca-section-label">
+        Upcoming Interviews
+        <span class="ca-section-badge">${upcoming.length} scheduled</span>
+      </div>
+      <div class="ca-panel" style="margin-bottom:20px">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">Pipeline — Interview Date &gt; Today</span>
+          <span class="ca-panel__badge">${upcoming.length} deal${upcoming.length!==1?'s':''}</span>
+        </div>
+        <div class="ca-panel__body ca-panel__body--no-pad">
+          <div id="upcoming-table"></div>
+        </div>
+      </div>
+
+      <!-- ── Category Performance ── -->
+      <div class="ca-section-label">
+        Category Performance
+        ${worstCat ? `<span class="ca-section-badge worst">⚠️ Worst: ${trunc(worstCat.name,22)}</span>` : ''}
+        ${bestCat  ? `<span class="ca-section-badge best">🏆 Best: ${trunc(bestCat.name,22)}</span>`   : ''}
+      </div>
+
+      <div class="ca-grid ca-grid--2" style="margin-bottom:20px">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Interviews per Category</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h400"><canvas id="ch-cat-vol"></canvas></div>
+          </div>
+        </div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Win Rate per Category (decided deals only)</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h400"><canvas id="ch-cat-wr"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ca-panel" style="margin-bottom:20px">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">Category Stats — Full Breakdown</span>
+          <span class="ca-panel__badge">${catRows.length} categories</span>
+        </div>
+        <div class="ca-panel__body ca-panel__body--no-pad">
+          <div class="ca-table-scroll" id="cat-table"></div>
+        </div>
+      </div>
+
+      <!-- ── All Shortlisted ── -->
+      <div class="ca-section-label">All Shortlisted Deals</div>
+      <div class="ca-panel">
+        <div class="ca-panel__header" id="all-tbl-header" style="cursor:pointer;user-select:none" title="Click to collapse / expand">
+          <span class="ca-panel__title">All Interview-Shortlisted RFPs</span>
+          <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+            <span class="ca-panel__badge" id="tbl-count">${shortlisted.length} deals</span>
+            <button id="tbl-toggle-btn" style="
+              display:inline-flex;align-items:center;gap:5px;
+              padding:4px 12px;border-radius:6px;border:1px solid var(--ca-gray-200);
+              background:var(--ca-white);color:var(--ca-gray-500);font-size:0.78rem;
+              font-weight:600;font-family:var(--font-family);cursor:pointer;
+              transition:all 0.15s;white-space:nowrap;
+            ">
+              <span id="tbl-toggle-icon" style="font-size:0.7rem;transition:transform 0.2s">▼</span>
+              <span id="tbl-toggle-lbl">Collapse</span>
+            </button>
+          </div>
+        </div>
+        <div id="all-tbl-collapsible">
+          <div class="ca-panel__body">
+            <div class="ca-controls-row">
+              <div class="iv-tabs" id="type-tabs">
+                <button class="iv-tab ${activeTab==='all'?'active':''}" data-type="all">All (${shortlisted.length})</button>
+                <button class="iv-tab t-interview ${activeTab==='interview'?'active':''}" data-type="interview">🎤 Presentations (${interviews.length})</button>
+                <button class="iv-tab t-bafo ${activeTab==='bafo'?'active':''}" data-type="bafo">📝 BAFOs (${bafos.length})</button>
+              </div>
+            </div>
+          </div>
+          <div class="ca-panel__body ca-panel__body--no-pad">
+            <div class="ca-table-scroll" id="all-table"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    /* ══════════ CHART 1: Monthly volume stacked bar ══════════ */
+    const mLbls = ivMonths.map(mLabel);
+    allCharts.push(new Chart(document.getElementById('ch-monthly'), {
+      type: 'bar',
+      data: {
+        labels: mLbls,
+        datasets: [
+          { label:'Oral Presentation', data:ivMonths.map(m=>mIntCount[m]),  backgroundColor:C.yellowA, borderColor:C.yellow,  borderWidth:1, borderRadius:4, barPercentage:0.6 },
+          { label:'BAFO',              data:ivMonths.map(m=>mBafoCount[m]), backgroundColor:C.crimsonA,borderColor:C.crimson, borderWidth:1, borderRadius:4, barPercentage:0.6 },
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ top:32, right:16, left:8, bottom:8 } },
+        plugins:{
+          legend:{ position:'top', align:'end', labels:{ padding:16, font:{ size:12 } } },
+          tooltip:{
+            mode:'index', intersect:false,
+            callbacks:{ afterBody:(items)=>{
+              const tot = items.reduce((s,i)=>s+i.parsed.y,0);
+              return tot>0 ? [`Total: ${tot} (avg ${avgMonthly.toFixed(1)}/mo)`] : [];
+            }}
+          },
+          datalabels:{ display:ctx=>ctx.dataset.data[ctx.dataIndex]>0, anchor:'center', align:'center', font:{weight:'700',size:11}, color:'#fff', clamp:true }
+        },
+        scales:{
+          y:{ beginAtZero:true, stacked:true, title:{ display:true, text:'Interviews', font:{weight:'600',size:12} }, grid:{ color:'#F2F4F7' }, ticks:{ stepSize:1 } },
+          x:{ stacked:true, title:{ display:true, text:'Interview Month', font:{weight:'600',size:12} }, grid:{ display:false }, ticks:{ maxRotation:45, autoSkip:false } }
+        }
+      }
+    }));
+
+    /* ══════════ CHART 2: Monthly outcomes ══════════ */
+    allCharts.push(new Chart(document.getElementById('ch-outcomes'), {
+      type: 'bar',
+      data: {
+        labels: mLbls,
+        datasets: [
+          { label:'Closed Won',  data:ivMonths.map(m=>mWonCount[m]),  backgroundColor:C.greenA,  borderColor:C.green,  borderWidth:1, borderRadius:4, barPercentage:0.5 },
+          { label:'Closed Lost', data:ivMonths.map(m=>mLostCount[m]), backgroundColor:C.redA,    borderColor:C.red,    borderWidth:1, borderRadius:4, barPercentage:0.5 },
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ top:28, right:16, left:8, bottom:8 } },
+        plugins:{
+          legend:{ position:'top', align:'end', labels:{ padding:14, font:{ size:12 } } },
+          tooltip:{
+            mode:'index', intersect:false,
+            callbacks:{ afterBody:(items)=>{
+              const w=items[0]?.parsed.y||0, l=items[1]?.parsed.y||0, tot=w+l;
+              return tot>0?[`Win rate: ${((w/tot)*100).toFixed(0)}%`]:[];
+            }}
+          },
+          datalabels:{ display:ctx=>ctx.dataset.data[ctx.dataIndex]>0, anchor:'end', align:'end', font:{weight:'700',size:11}, color:C.navy, clamp:true }
+        },
+        scales:{
+          y:{ beginAtZero:true, title:{ display:true, text:'Deals', font:{weight:'600',size:12} }, grid:{ color:'#F2F4F7' }, ticks:{ stepSize:1 } },
+          x:{ title:{ display:true, text:'Interview Month', font:{weight:'600',size:12} }, grid:{ display:false }, ticks:{ maxRotation:45, autoSkip:false } }
+        }
+      }
+    }));
+
+    /* ══════════ CHART 3: Type donut ══════════ */
+    allCharts.push(new Chart(document.getElementById('ch-type'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Oral Presentation','BAFO'],
+        datasets:[{ data:[interviews.length,bafos.length], backgroundColor:[C.yellow,C.crimson], borderWidth:2, borderColor:'#fff' }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:'55%',
+        layout:{ padding:16 },
+        plugins:{
+          legend:{ position:'bottom', labels:{ padding:16, font:{ size:12 } } },
+          tooltip:{ callbacks:{ label:ctx=>ctx.label+': '+ctx.parsed+' ('+( shortlisted.length>0?((ctx.parsed/shortlisted.length)*100).toFixed(1):0 )+'%)' } },
+          datalabels:{ display:ctx=>ctx.dataset.data[ctx.dataIndex]>0, color:'#fff', font:{weight:'700',size:13}, anchor:'center', align:'center',
+            formatter:(val)=>{ const pct=shortlisted.length>0?((val/shortlisted.length)*100).toFixed(0):0; return [String(val),pct+'%']; }, textAlign:'center' }
+        }
+      }
+    }));
+
+    /* ══════════ CHART 4: Category volume ══════════ */
+    const catSorted = [...catRows].sort((a,b)=>b.total-a.total);
+    allCharts.push(new Chart(document.getElementById('ch-cat-vol'), {
+      type: 'bar',
+      data:{
+        labels: catSorted.map(r=>r.name),
+        datasets:[
+          { label:'Won',   data:catSorted.map(r=>r.won),   backgroundColor:C.greenA,  borderColor:C.green,  borderWidth:1, borderRadius:4 },
+          { label:'Lost',  data:catSorted.map(r=>r.lost),  backgroundColor:C.redA,    borderColor:C.red,    borderWidth:1, borderRadius:4 },
+          { label:'Active/IA', data:catSorted.map(r=>r.ia+r.active), backgroundColor:'rgba(46,80,144,0.55)', borderColor:C.blue, borderWidth:1, borderRadius:4 },
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        layout:{ padding:{ top:8, bottom:8, left:8, right:50 } },
+        plugins:{
+          legend:{ position:'top', align:'end', labels:{ padding:12, font:{ size:11 } } },
+          tooltip:{ mode:'index', intersect:false,
+            callbacks:{ afterBody:(items)=>{
+              const r=catSorted[items[0].dataIndex];
+              return r.decided>0?[`Win rate: ${(r.winRate*100).toFixed(1)}% (${r.decided} decided)`]:['No decided deals yet'];
+            }}
+          },
+          datalabels:{ display:ctx=>ctx.dataset.data[ctx.dataIndex]>0, anchor:'end', align:'end', font:{weight:'700',size:10}, color:C.navy, clamp:true }
+        },
+        scales:{
+          x:{ beginAtZero:true, stacked:false, title:{ display:true, text:'Deals', font:{weight:'600',size:12} }, grid:{ color:'#F2F4F7' }, ticks:{ stepSize:1 } },
+          y:{ grid:{ display:false }, ticks:{ font:{ size:11 } } }
+        }
+      }
+    }));
+
+    /* ══════════ CHART 5: Category win rate ══════════ */
+    const decidedCatsSorted = [...catRows].filter(r=>r.decided>=1).sort((a,b)=>(b.winRate||0)-(a.winRate||0));
+    const wrColors = decidedCatsSorted.map(r=>{
+      const pct=(r.winRate||0)*100;
+      return pct>=60?C.greenA:pct>=35?C.yellowA:C.redA;
+    });
+    allCharts.push(new Chart(document.getElementById('ch-cat-wr'), {
+      type:'bar',
+      data:{
+        labels:decidedCatsSorted.map(r=>r.name),
+        datasets:[{ label:'Win Rate (%)',
+          data:decidedCatsSorted.map(r=>+((r.winRate||0)*100).toFixed(1)),
+          backgroundColor:wrColors, borderColor:wrColors.map(c=>c.replace('0.82','1').replace('0.72','1')),
+          borderWidth:1, borderRadius:5, barPercentage:0.65
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        layout:{ padding:{ top:8, bottom:8, left:8, right:70 } },
+        plugins:{
+          legend:{ display:false },
+          tooltip:{ callbacks:{ label:ctx=>{
+            const r=decidedCatsSorted[ctx.dataIndex];
+            return `${ctx.parsed.x.toFixed(1)}% (${r.won} won / ${r.decided} decided)`;
+          }}},
+          datalabels:{ display:true, anchor:'end', align:'end', font:{weight:'700',size:11}, color:C.navy, formatter:v=>v+'%', clamp:true }
+        },
+        scales:{
+          x:{ beginAtZero:true, max:100, title:{ display:true, text:'Win Rate (%)', font:{weight:'600',size:12} }, grid:{ color:'#F2F4F7' }, ticks:{ callback:v=>v+'%' } },
+          y:{ grid:{ display:false }, ticks:{ font:{ size:11 } } }
+        }
+      }
+    }));
+
+    /* ══════════ UPCOMING TABLE ══════════ */
+    document.getElementById('upcoming-table').innerHTML = upcoming.length > 0 ? `
+      <table class="iv-table">
+        <thead><tr>
+          <th>#</th><th>RFP Name</th><th>Agency</th><th>State</th>
+          <th>Category</th><th>Type</th><th>Interview Date</th><th>In</th>
+          <th class="right">Amount</th><th>HubSpot</th>
+        </tr></thead>
+        <tbody>${upcoming.map((d,i)=>{
+          const dt   = d.interviewDate || d.bafoDate;
+          const days = daysFromNow(dt);
+          const cls  = days <= 3 ? 'soon' : days <= 7 ? 'week' : 'future';
+          const lbl  = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : days+'d';
+          return `<tr>
+            <td style="color:var(--ca-gray-400);font-size:0.78rem">${i+1}</td>
+            <td><div class="deal-name-cell" title="${(d.dealName||'').replace(/"/g,'&quot;')}">${trunc(d.dealName,52)}</div></td>
+            <td><div class="text-cell">${trunc(d.agency,26)}</div></td>
+            <td style="font-size:0.82rem">${d.agencyState||'—'}</td>
+            <td><div class="text-cell">${trunc(d.serviceCategory,24)}</div></td>
+            <td>${CAPS.interviewBadge(d.interviewFlag,d.interviewSubcategory)}</td>
+            <td style="font-size:0.82rem;white-space:nowrap;font-weight:600">${fmtDate(dt)}</td>
+            <td><span class="upcoming-days ${cls}">${lbl}</span></td>
+            <td class="right">${d.amount!==null?'$'+Math.round(d.amount).toLocaleString():'—'}</td>
+            <td>${d.hubspotLink?`<a class="ca-link" href="${d.hubspotLink}" target="_blank">View ↗</a>`:'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>` :
+      `<div class="ca-empty">
+        <div style="font-size:2rem;margin-bottom:8px">📅</div>
+        <div style="font-weight:600;color:var(--ca-gray-700);margin-bottom:4px">No upcoming interviews scheduled</div>
+        <div style="font-size:0.85rem">No deals have a future interview date set in HubSpot.</div>
+      </div>`;
+
+    /* ══════════ CATEGORY TABLE ══════════ */
+    function buildCatTable() {
+      const sorted = [...catRows].sort((a,b) => {
+        let va=0,vb=0;
+        if (catSort==='name')     { return catSortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name); }
+        if (catSort==='total')    { va=a.total;        vb=b.total; }
+        if (catSort==='oral')     { va=a.iv||0;        vb=b.iv||0; }
+        if (catSort==='bafo')     { va=a.bafo||0;      vb=b.bafo||0; }
+        if (catSort==='won')      { va=a.won;          vb=b.won; }
+        if (catSort==='lost')     { va=a.lost;         vb=b.lost; }
+        if (catSort==='decided')  { va=a.decided;      vb=b.decided; }
+        if (catSort==='winrate')  { va=a.winRate??-1;  vb=b.winRate??-1; }
+        if (catSort==='activeia') { va=(a.active+a.ia)||0; vb=(b.active+b.ia)||0; }
+        return catSortDir==='desc'?vb-va:va-vb;
+      });
+
+      function sa(col) {
+        const on = catSort===col;
+        return `<span class="sort-arrows">
+          <span class="arr${on&&catSortDir==='asc'?' on':''}">▲</span>
+          <span class="arr${on&&catSortDir==='desc'?' on':''}">▼</span>
+        </span>`;
+      }
+      function wrCls(r){ return r.winRate===null?'none':r.winRate>=0.6?'good':r.winRate>=0.35?'amber':'red'; }
+
+      return `<table class="cat-stat-table">
+        <thead><tr>
+          <th class="${catSort==='name'?'sort-active':''}" data-col="name">Category ${sa('name')}</th>
+          <th class="right ${catSort==='total'?'sort-active':''}" data-col="total">Total Shortlisted ${sa('total')}</th>
+          <th class="right ${catSort==='oral'?'sort-active':''}" data-col="oral">Oral ${sa('oral')}</th>
+          <th class="right ${catSort==='bafo'?'sort-active':''}" data-col="bafo">BAFO ${sa('bafo')}</th>
+          <th class="right ${catSort==='won'?'sort-active':''}" data-col="won">Won ${sa('won')}</th>
+          <th class="right ${catSort==='lost'?'sort-active':''}" data-col="lost">Lost ${sa('lost')}</th>
+          <th class="right ${catSort==='decided'?'sort-active':''}" data-col="decided">Decided ${sa('decided')}</th>
+          <th class="${catSort==='winrate'?'sort-active':''}" data-col="winrate">Win Rate ${sa('winrate')}</th>
+          <th class="right ${catSort==='activeia'?'sort-active':''}" data-col="activeia">Active / IA ${sa('activeia')}</th>
+        </tr></thead>
+        <tbody>${sorted.map(r=>{
+          const isWorst = worstCat && r.name===worstCat.name;
+          const isBest  = bestCat  && r.name===bestCat.name;
+          const wrc     = wrCls(r);
+          const pct     = r.winRate!==null?(r.winRate*100).toFixed(1)+'%':'—';
+          return `<tr class="${isWorst?'worst-row':isBest?'best-row':''}">
+            <td>
+              <span style="font-weight:600;color:var(--ca-gray-900)">${r.name}</span>
+              ${isWorst?'<span style="font-size:0.72rem;color:#991B1B;margin-left:6px;font-weight:600">⚠️ Worst</span>':''}
+              ${isBest ?'<span style="font-size:0.72rem;color:#065F46;margin-left:6px;font-weight:600">🏆 Best</span>':''}
+            </td>
+            <td class="right"><strong>${r.total}</strong></td>
+            <td class="right">${r.iv||'—'}</td>
+            <td class="right">${r.bafo||'—'}</td>
+            <td class="right" style="color:var(--ca-green);font-weight:600">${r.won||'—'}</td>
+            <td class="right" style="color:var(--ca-red)">${r.lost||'—'}</td>
+            <td class="right">${r.decided||'—'}</td>
+            <td>
+              ${r.decided>0?`<div class="wr-cell">
+                <div class="wr-track"><div class="wr-fill ${wrc}" style="width:${(r.winRate*100).toFixed(1)}%"></div></div>
+                <span class="wr-pct ${wrc}">${pct}</span>
+              </div>`:`<span style="color:var(--ca-gray-300);font-size:0.8rem">No decided</span>`}
+            </td>
+            <td class="right">${r.active+r.ia||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    }
+
+    document.getElementById('cat-table').innerHTML = buildCatTable();
+    document.querySelectorAll('.cat-stat-table thead th[data-col]').forEach(th=>{
+      th.addEventListener('click',()=>{
+        const col=th.dataset.col;
+        if(catSort===col) catSortDir=catSortDir==='desc'?'asc':'desc';
+        else { catSort=col; catSortDir=col==='name'?'asc':'desc'; }
+        document.getElementById('cat-table').innerHTML=buildCatTable();
+        // Re-attach
+        document.querySelectorAll('.cat-stat-table thead th[data-col]').forEach(t=>{
+          t.addEventListener('click',()=>t.click&&t.dispatchEvent(new MouseEvent('click')));
+        });
+        attachCatSort();
+      });
+    });
+    function attachCatSort(){
+      document.querySelectorAll('.cat-stat-table thead th[data-col]').forEach(th=>{
+        th.addEventListener('click',()=>{
+          const col=th.dataset.col;
+          if(catSort===col) catSortDir=catSortDir==='desc'?'asc':'desc';
+          else { catSort=col; catSortDir=col==='name'?'asc':'desc'; }
+          document.getElementById('cat-table').innerHTML=buildCatTable();
+          attachCatSort();
+        });
+      });
+    }
+    // Replace with clean attach
+    document.getElementById('cat-table').innerHTML = buildCatTable();
+    attachCatSort();
+
+    /* ══════════ ALL SHORTLISTED TABLE ══════════ */
+    function sortAllRows(rows) {
+      return [...rows].sort((a,b) => {
+        let va, vb;
+        switch (allSort) {
+          case 'name':   va=a.dealName||'';         vb=b.dealName||'';         return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'agency': va=a.agency||'';           vb=b.agency||'';           return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'state':  va=a.agencyState||'';      vb=b.agencyState||'';      return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'cat':    va=a.serviceCategory||'';  vb=b.serviceCategory||'';  return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'type':   va=a.interviewSubcategory||''; vb=b.interviewSubcategory||''; return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'outcome':va=a.stage||'';            vb=b.stage||'';            return allSortDir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+          case 'amount': va=a.amount??-1;           vb=b.amount??-1;           break;
+          case 'ivdate': va=(a.interviewDate||a.bafoDate)?new Date(a.interviewDate||a.bafoDate).getTime():0;
+                         vb=(b.interviewDate||b.bafoDate)?new Date(b.interviewDate||b.bafoDate).getTime():0; break;
+          default: return 0;
+        }
+        if (!va && vb) return 1; if (va && !vb) return -1;
+        return allSortDir==='desc' ? vb-va : va-vb;
+      });
+    }
+
+    function buildAllTable(rows) {
+      if (!rows.length) return '<div class="ca-empty">No matching records.</div>';
+      const sorted = sortAllRows(rows);
+
+      function aSA(col, alignRight) {
+        const on = allSort===col;
+        const cls = [
+          alignRight ? 'right' : '',
+          'iv-tbl-sort',
+          on ? 'sort-active' : ''
+        ].filter(Boolean).join(' ');
+        const arrows = `<span class="sort-arrows">
+          <span class="arr${on&&allSortDir==='asc'?' on':''}">▲</span>
+          <span class="arr${on&&allSortDir==='desc'?' on':''}">▼</span>
+        </span>`;
+        return { cls, arrows };
+      }
+
+      const cols = [
+        { key:'name',    label:'RFP Name',       right:false },
+        { key:'agency',  label:'Agency',          right:false },
+        { key:'state',   label:'State',           right:false },
+        { key:'cat',     label:'Category',        right:false },
+        { key:'type',    label:'Type',            right:false },
+        { key:'outcome', label:'Outcome',         right:false },
+        { key:'amount',  label:'Amount',          right:true  },
+        { key:'ivdate',  label:'Interview Date',  right:false },
+      ];
+
+      const headCells = cols.map(c => {
+        const {cls, arrows} = aSA(c.key, c.right);
+        return `<th class="${cls}" data-allcol="${c.key}" style="cursor:pointer;user-select:none">${c.label} ${arrows}</th>`;
+      }).join('');
+
+      return `<table class="iv-table" id="all-sortable-table">
+        <thead><tr>
+          <th style="width:28px">#</th>
+          ${headCells}
+          <th>HubSpot</th>
+        </tr></thead>
+        <tbody>${sorted.map((d,i)=>`<tr>
+          <td style="color:var(--ca-gray-400);font-size:0.78rem">${i+1}</td>
+          <td><div class="deal-name-cell" title="${(d.dealName||'').replace(/"/g,'&quot;')}">${trunc(d.dealName,48)}</div></td>
+          <td><div class="text-cell">${trunc(d.agency,24)}</div></td>
+          <td style="font-size:0.82rem">${d.agencyState||'—'}</td>
+          <td><div class="text-cell">${trunc(d.serviceCategory,22)}</div></td>
+          <td>${CAPS.interviewBadge(d.interviewFlag,d.interviewSubcategory)}</td>
+          <td>${CAPS.stageBadge(d.stage)}</td>
+          <td class="right">${d.amount!==null?'$'+Math.round(d.amount).toLocaleString():'—'}</td>
+          <td style="font-size:0.82rem;white-space:nowrap">${fmtDate(d.interviewDate||d.bafoDate)}</td>
+          <td>${d.hubspotLink?`<a class="ca-link" href="${d.hubspotLink}" target="_blank">View ↗</a>`:'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    function getTabRows(){
+      return activeTab==='interview'?interviews:activeTab==='bafo'?bafos:shortlisted;
+    }
+
+    function renderAllTable() {
+      const wrap = document.getElementById('all-table');
+      wrap.innerHTML = buildAllTable(getTabRows());
+      wrap.querySelectorAll('th[data-allcol]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.allcol;
+          if (allSort === col) allSortDir = allSortDir==='desc'?'asc':'desc';
+          else { allSort = col; allSortDir = ['name','agency','state','cat','type','outcome'].includes(col)?'asc':'desc'; }
+          renderAllTable();
+        });
+      });
+    }
+
+    renderAllTable();
+
+    /* ══════════ EVENTS ══════════ */
+    /* ══════════ COLLAPSE / EXPAND ══════════ */
+    let tblCollapsed = false;
+    const collapsible = document.getElementById('all-tbl-collapsible');
+    const toggleBtn   = document.getElementById('tbl-toggle-btn');
+    const toggleIcon  = document.getElementById('tbl-toggle-icon');
+    const toggleLbl   = document.getElementById('tbl-toggle-lbl');
+
+    function setCollapsed(collapsed) {
+      tblCollapsed = collapsed;
+      collapsible.style.overflow = 'hidden';
+      collapsible.style.transition = 'max-height 0.3s ease, opacity 0.25s ease';
+      if (collapsed) {
+        collapsible.style.maxHeight = '0px';
+        collapsible.style.opacity   = '0';
+        toggleIcon.style.transform  = 'rotate(-90deg)';
+        toggleLbl.textContent       = 'Expand';
+        toggleBtn.style.color       = 'var(--ca-blue)';
+        toggleBtn.style.borderColor = 'var(--ca-blue)';
+      } else {
+        collapsible.style.maxHeight = collapsible.scrollHeight + 'px';
+        collapsible.style.opacity   = '1';
+        toggleIcon.style.transform  = 'rotate(0deg)';
+        toggleLbl.textContent       = 'Collapse';
+        toggleBtn.style.color       = 'var(--ca-gray-500)';
+        toggleBtn.style.borderColor = 'var(--ca-gray-200)';
+      }
+    }
+
+    // Start expanded
+    collapsible.style.maxHeight = 'none';
+
+    document.getElementById('all-tbl-header').addEventListener('click', () => setCollapsed(!tblCollapsed));
+    toggleBtn.addEventListener('click', e => { e.stopPropagation(); setCollapsed(!tblCollapsed); });
+
+    document.getElementById('gf-year').addEventListener('change',e=>{ activeYear=e.target.value; render(); });
+    document.getElementById('gf-cat').addEventListener('change', e=>{ activeCat =e.target.value; render(); });
+
+    document.getElementById('type-tabs').addEventListener('click',e=>{
+      const btn=e.target.closest('[data-type]');
+      if(!btn) return;
+      activeTab=btn.dataset.type;
+      renderAllTable();
+      document.getElementById('tbl-count').textContent=getTabRows().length+' deals';
+      document.querySelectorAll('#type-tabs .iv-tab').forEach(b=>{
+        b.classList.toggle('active', b.dataset.type===activeTab);
+      });
+    });
+
+    /* Info tooltips handled by window._capsToggleTip in dashboard-common.js */
+  }
+
+  render();
+</script>
+</body>
+</html>

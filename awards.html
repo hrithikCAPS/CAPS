@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Awards — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    /* Stage Tabs */
+    .ca-stage-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--ca-white);
+      border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg);
+      padding: 5px;
+      width: fit-content;
+    }
+    .ca-stage-tab {
+      padding: 7px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--ca-gray-500);
+      font-family: var(--font-family);
+      transition: all 0.15s;
+    }
+    .ca-stage-tab:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .ca-stage-tab.active              { background: var(--ca-navy);   color: #fff; }
+    .ca-stage-tab.active.tab-won      { background: var(--ca-green);  color: #fff; }
+    .ca-stage-tab.active.tab-intent   { background: var(--ca-orange); color: #fff; }
+    .ca-stage-tab.active.tab-direct   { background: #6941C6;          color: #fff; }
+
+    /* Controls row */
+    .ca-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .ca-controls-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ca-filter-label { font-size: 0.85rem; color: var(--ca-gray-500); font-weight: 500; }
+    .ca-filter-select {
+      padding: 7px 12px;
+      border: 1px solid var(--ca-gray-300);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family);
+      font-size: 0.875rem;
+      color: var(--ca-gray-700);
+      background: var(--ca-white);
+      cursor: pointer;
+      outline: none;
+      min-width: 210px;
+    }
+    .ca-filter-select:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.1); }
+    .ca-count-chip { font-size: 0.82rem; color: var(--ca-gray-500); }
+    .ca-count-chip strong { color: var(--ca-blue); font-weight: 700; }
+
+    /* Search box */
+    .ca-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .ca-search-wrap svg {
+      position: absolute;
+      left: 10px;
+      color: var(--ca-gray-400);
+      pointer-events: none;
+    }
+    .ca-search-input {
+      padding: 7px 12px 7px 34px;
+      border: 1px solid var(--ca-gray-300);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family);
+      font-size: 0.875rem;
+      color: var(--ca-gray-700);
+      background: var(--ca-white);
+      outline: none;
+      min-width: 220px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ca-search-input:focus {
+      border-color: var(--ca-blue);
+      box-shadow: 0 0 0 3px rgba(46,80,144,0.1);
+    }
+    .ca-search-input::placeholder { color: var(--ca-gray-400); }
+    .ca-search-clear {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--ca-gray-400);
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0 2px;
+      display: none;
+    }
+    .ca-search-clear:hover { color: var(--ca-gray-700); }
+    .ca-search-highlight { background: #FFF3CD; border-radius: 2px; padding: 0 1px; }
+
+    /* KPI cards */
+    .ca-kpi-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+    .ca-kpi-card {
+      flex: 1; min-width: 150px;
+      background: var(--ca-white);
+      border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ca-kpi-label { font-size: 0.72rem; font-weight: 600; color: var(--ca-gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .ca-kpi-value { font-size: 1.65rem; font-weight: 700; color: var(--ca-gray-900); }
+    .ca-kpi-value.green  { color: var(--ca-green); }
+    .ca-kpi-value.orange { color: var(--ca-orange); }
+    .ca-kpi-value.blue   { color: var(--ca-blue); }
+    .ca-kpi-sub { font-size: 0.76rem; color: var(--ca-gray-500); margin-top: 2px; }
+
+    /* Table */
+    .ca-table-scroll { overflow-x: auto; }
+    .ca-awards-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .ca-awards-table thead th {
+      background: var(--ca-gray-50);
+      color: var(--ca-gray-500);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.7rem;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .ca-awards-table thead th.right { text-align: right; }
+    .ca-awards-table thead th.iv-tbl-sort {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s, color 0.12s;
+    }
+    .ca-awards-table thead th.iv-tbl-sort:hover {
+      background: var(--ca-gray-100);
+      color: var(--ca-gray-700);
+    }
+    .ca-awards-table thead th.sort-active {
+      color: var(--ca-blue);
+      background: rgba(45,96,196,0.06);
+    }
+    .sort-arrows {
+      display: inline-flex;
+      flex-direction: column;
+      margin-left: 5px;
+      gap: 1px;
+      vertical-align: middle;
+      line-height: 1;
+      position: relative;
+      top: -1px;
+    }
+    .sort-arrows .arr { font-size: 0.6rem; opacity: 0.3; line-height: 1; }
+    .sort-arrows .arr.on { opacity: 1; color: var(--ca-blue); }
+    .ca-awards-table tbody tr { border-bottom: 1px solid var(--ca-gray-100); transition: background 0.12s; }
+    .ca-awards-table tbody tr:hover { background: var(--ca-gray-50); }
+    .ca-awards-table tbody td { padding: 10px 14px; color: var(--ca-gray-700); vertical-align: middle; }
+    .ca-awards-table tbody td.right { text-align: right; font-family: 'SF Mono','Fira Code',monospace; font-size: 0.82rem; }
+    .deal-name-cell { font-weight: 600; color: var(--ca-gray-900); max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .text-cell      { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.82rem; }
+    .ca-link        { color: var(--ca-blue); text-decoration: none; font-weight: 600; font-size: 0.82rem; }
+    .ca-link:hover  { text-decoration: underline; }
+    .ca-empty { text-align: center; padding: 60px 20px; color: var(--ca-gray-500); }
+
+    /* Map */
+    .ca-map-svg { width: 100%; height: auto; display: block; }
+    .ca-map-state { stroke: #fff; stroke-width: 0.5; cursor: default; }
+    .ca-map-state.has-data { cursor: pointer; }
+    .ca-map-state.has-data:hover { stroke: var(--ca-navy); stroke-width: 1.5; opacity: 0.8; }
+    #map-tooltip {
+      position: fixed; pointer-events: none; display: none;
+      background: var(--ca-navy); color: #fff;
+      padding: 7px 12px; border-radius: 7px; font-size: 0.82rem;
+      font-family: var(--font-family); line-height: 1.5;
+      box-shadow: var(--shadow-lg); z-index: 9999;
+    }
+    #map-tooltip strong { display: block; font-weight: 700; }
+    .ca-map-legend {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; padding: 10px 20px 4px;
+      font-size: 0.78rem; color: var(--ca-gray-500);
+    }
+    .ca-undefined-note {
+      padding: 6px 20px 16px;
+      font-size: 0.78rem; color: var(--ca-gray-400); text-align: center;
+    }
+
+    /* Delivery Required toggle pill */
+    .ca-delivery-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border: 1.5px solid var(--ca-gray-300);
+      border-radius: 999px;
+      background: var(--ca-white);
+      color: var(--ca-gray-600);
+      font-family: var(--font-family);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .ca-delivery-toggle:hover {
+      border-color: var(--ca-blue);
+      color: var(--ca-blue);
+      background: rgba(45,96,196,0.04);
+    }
+    .ca-delivery-toggle.active {
+      border-color: var(--ca-blue);
+      background: var(--ca-blue);
+      color: #fff;
+    }
+    /* Delivery Required column badge */
+    .ca-delivery-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #DCFCE7;
+      color: #166534;
+    }
+    .ca-delivery-badge.no {
+      background: var(--ca-gray-100);
+      color: var(--ca-gray-500);
+    }
+  </style>
+</head>
+<body>
+<div id="map-tooltip"></div>
+<main class="ca-main" id="dashboard">
+  <div class="ca-loading"><div class="ca-loading__spinner"></div><div class="ca-loading__text">Loading awards...</div></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+CAPS.renderHeader('Awards');
+
+let activeStage    = 'all';
+let activeCategory = '';
+let activeSearch   = '';
+let activeDelivery = false;    // true = show only "Delivery Required" deals
+let activeSort     = 'date';   // 'date' | 'amount' | 'name' | 'agency' | 'state' | 'category' | 'stage' | 'delivery'
+let activeSortDir  = 'desc';   // 'asc'  | 'desc'
+
+function fmt(v)   { return v || '—'; }
+function fmtAmt(v){ if (!v && v !== 0) return '—'; const n = parseFloat(v); return isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US'); }
+function fmtDate(v){
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? '—' : d.toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'});
+}
+function trunc(s, n){ return s && s.length > n ? s.slice(0,n)+'…' : (s||'—'); }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function highlight(s, q) {
+  if (!q || !s) return escapeHtml(s||'');
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return escapeHtml(s).replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="ca-search-highlight">$1</mark>');
+}
+
+async function render() {
+  // Always call loadData() first so the header "last data fetch" date is populated,
+  // regardless of whether we use CAPS_AWARDS_DATA or the fallback path.
+  await CAPS.loadData();
+
+  // Awards dashboard uses the dedicated Awards sheet (all-time, no date filter)
+  // which is exported as window.CAPS_AWARDS_DATA by refresh-data.py.
+  // Fall back to filtering main data if CAPS_AWARDS_DATA is not present.
+  let pool;
+  if (window.CAPS_AWARDS_DATA && window.CAPS_AWARDS_DATA.length) {
+    pool = window.CAPS_AWARDS_DATA.map(r => {
+      const row = {};
+      for (const [k, v] of Object.entries(r)) row[k.trim()] = v;
+      return {
+        sno:                    row['S.No.'] || '',
+        hubspotId:              row['HubSpot ID'] || '',
+        rfpNumber:              row['RFP Number'] || '',
+        dealName:               row['Deal Name'] || '',
+        agency:                 row['Agency'] || '',
+        agencyState:            row['Agency State'] || '',
+        stage:                  row['Stage'] || '',
+        interviewFlag:          row['Interview Flag'] || '',
+        interviewSubcategory:   row['Interview Subcategory'] || '',
+        bidClosingDate:         row['Bid Closing Date'] || '',
+        submissionDate:         row['Submission Date'] || '',
+        amount:                 parseFloat(row['Amount ($)']) || 0,
+        serviceCategory:        row['Service Category'] || '',
+        submissionMode:         row['Submission Mode'] || '',
+        owner:                  row['Owner'] || '',
+        interviewType:          row['Interview Type'] || '',
+        interviewDate:          row['Interview Date'] || '',
+        bafoDate:               row['BAFO Date'] || '',
+        intentToAwardDate:      row['Intent to Award Date'] || '',
+        tentativelyAwardedDate: row['Tentatively Awarded Date'] || '',
+        awardedDate:            row['Awarded Date'] || '',
+        awardStatus:            row['Award Status'] || '',
+        wonReason:              row['Won Reason'] || '',
+        lostReason:             row['Lost Reason'] || '',
+        createdDate:            row['Created Date'] || '',
+        hubspotLink:            row['HubSpot Link'] || '',
+        deliveryRequired:       row['Delivery Required'] || '',
+      };
+    });
+  } else {
+    await CAPS.loadData();
+    pool = (window.CAPS_EMBEDDED_DATA?.records || [])
+      .map(r => { const row = {}; for (const [k,v] of Object.entries(r)) row[k.trim()]=v; return row; })
+      .filter(r => r['Stage'] === 'Closed Won' || r['Stage'] === 'Intent to Award')
+      .map(r => ({
+        dealName: r['Deal Name']||'', agency: r['Agency']||'', agencyState: r['Agency State']||'',
+        stage: r['Stage']||'', amount: parseFloat(r['Amount ($)'])||0,
+        serviceCategory: r['Service Category']||'', intentToAwardDate: r['Intent to Award Date']||'',
+        awardedDate: r['Awarded Date']||'', awardStatus: r['Award Status']||'',
+        hubspotLink: r['HubSpot Link']||'', owner: r['Owner']||'',
+        rfpNumber: r['RFP Number']||'', hubspotId: r['HubSpot ID']||'',
+        deliveryRequired: r['Delivery Required']||'',
+      }));
+  }
+
+  // Categories from pool
+  const catSet = new Set();
+  pool.forEach(d => { if (d.serviceCategory) d.serviceCategory.split(';').forEach(c => { c=c.trim(); if(c) catSet.add(c); }); });
+  const cats = [...catSet].sort();
+
+  // Apply filters
+  let data = pool;
+  if (activeStage === 'won')    data = data.filter(d => d.stage === 'Closed Won');
+  if (activeStage === 'intent') data = data.filter(d => d.stage === 'Intent to Award');
+  if (activeCategory)           data = data.filter(d => d.serviceCategory && d.serviceCategory.includes(activeCategory));
+  if (activeDelivery)           data = data.filter(d => (d.deliveryRequired || '').toLowerCase() === 'yes');
+  if (activeSearch) {
+    const q = activeSearch.toLowerCase();
+    data = data.filter(d =>
+      (d.dealName||'').toLowerCase().includes(q) ||
+      (d.agency||'').toLowerCase().includes(q) ||
+      (d.serviceCategory||'').toLowerCase().includes(q) ||
+      (d.rfpNumber||'').toLowerCase().includes(q) ||
+      (d.agencyState||'').toLowerCase().includes(q)
+    );
+  }
+
+  // Dynamic sort
+  const _asd = activeSortDir;
+  data = [...data].sort((a, b) => {
+    switch (activeSort) {
+      case 'name':     return _asd==='asc' ? (a.dealName||'').localeCompare(b.dealName||'')           : (b.dealName||'').localeCompare(a.dealName||'');
+      case 'agency':   return _asd==='asc' ? (a.agency||'').localeCompare(b.agency||'')               : (b.agency||'').localeCompare(a.agency||'');
+      case 'state':    return _asd==='asc' ? (a.agencyState||'').localeCompare(b.agencyState||'')     : (b.agencyState||'').localeCompare(a.agencyState||'');
+      case 'category': return _asd==='asc' ? (a.serviceCategory||'').localeCompare(b.serviceCategory||'') : (b.serviceCategory||'').localeCompare(a.serviceCategory||'');
+      case 'stage':    return _asd==='asc' ? (a.stage||'').localeCompare(b.stage||'')                 : (b.stage||'').localeCompare(a.stage||'');
+      case 'date': {
+        const va = a.intentToAwardDate ? new Date(a.intentToAwardDate).getTime() : 0;
+        const vb = b.intentToAwardDate ? new Date(b.intentToAwardDate).getTime() : 0;
+        if (!va && vb) return 1; if (va && !vb) return -1;
+        return _asd === 'desc' ? vb - va : va - vb;
+      }
+      case 'delivery': return _asd==='asc' ? (a.deliveryRequired||'').localeCompare(b.deliveryRequired||'') : (b.deliveryRequired||'').localeCompare(a.deliveryRequired||'');
+      default: { // 'amount'
+        const va = a.amount || 0, vb = b.amount || 0;
+        if (!va && vb) return 1; if (va && !vb) return -1;
+        return _asd === 'desc' ? vb - va : va - vb;
+      }
+    }
+  });
+
+  // KPIs
+  const won    = pool.filter(d => d.stage === 'Closed Won');
+  const intent = pool.filter(d => d.stage === 'Intent to Award');
+  const wonVal    = won.reduce((s,d)    => s + (d.amount||0), 0);
+  const intentVal = intent.reduce((s,d) => s + (d.amount||0), 0);
+
+  // State counts + agency list from filtered data
+  const stateCounts = {};
+  const stateAgencies = {};   // state key → Set of agency names
+  let noState = 0;
+  data.forEach(d => {
+    const st = (d.agencyState || '').trim();
+    if (st) {
+      stateCounts[st] = (stateCounts[st]||0) + 1;
+      if (!stateAgencies[st]) stateAgencies[st] = new Set();
+      if (d.agency) stateAgencies[st].add(d.agency.trim());
+    } else noState++;
+  });
+
+  // Build HTML
+  document.getElementById('dashboard').innerHTML = `
+    <div class="ca-page-header">
+      <h1 class="ca-page-header__title">Awards</h1>
+      <p class="ca-page-header__subtitle">All-time Closed Won and Intent to Award deals</p>
+    </div>
+
+    <div class="ca-kpi-row">
+      <div class="ca-kpi-card"><div class="ca-kpi-label">Total Pool</div><div class="ca-kpi-value">${pool.length}</div><div class="ca-kpi-sub">Won + Intent to Award</div></div>
+      <div class="ca-kpi-card"><div class="ca-kpi-label">Closed Won</div><div class="ca-kpi-value green">${won.length}</div><div class="ca-kpi-sub">${wonVal > 0 ? '$'+Math.round(wonVal).toLocaleString() : 'No amount data'}</div></div>
+      <div class="ca-kpi-card"><div class="ca-kpi-label">Intent to Award</div><div class="ca-kpi-value orange">${intent.length}</div><div class="ca-kpi-sub">${intentVal > 0 ? '$'+Math.round(intentVal).toLocaleString() : 'No amount data'}</div></div>
+      <div class="ca-kpi-card"><div class="ca-kpi-label">Total Value</div><div class="ca-kpi-value blue">${(wonVal+intentVal) > 0 ? '$'+Math.round(wonVal+intentVal).toLocaleString() : '—'}</div><div class="ca-kpi-sub">Won + Intent combined</div></div>
+    </div>
+
+    <div class="ca-controls-row">
+      <div class="ca-stage-tabs" id="stage-tabs">
+        <button class="ca-stage-tab ${activeStage==='all'?'active':''}"                data-stage="all">All (${pool.length})</button>
+        <button class="ca-stage-tab ${activeStage==='won'?'active tab-won':''}"        data-stage="won">🏆 Closed Won (${won.length})</button>
+        <button class="ca-stage-tab ${activeStage==='intent'?'active tab-intent':''}"  data-stage="intent">⏳ Intent to Award (${intent.length})</button>
+      </div>
+      <div class="ca-controls-right">
+        <div class="ca-search-wrap">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/>
+          </svg>
+          <input id="awards-search" class="ca-search-input" type="text" placeholder="Search RFP, agency, category…" value="${escapeHtml(activeSearch)}" autocomplete="off">
+          <button class="ca-search-clear" id="search-clear" title="Clear search" style="display:${activeSearch?'block':'none'}">✕</button>
+        </div>
+        <span class="ca-filter-label">Category:</span>
+        <select class="ca-filter-select" id="cat-filter">
+          <option value="">All Categories</option>
+          ${cats.map(c=>`<option value="${c}" ${activeCategory===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <button class="ca-delivery-toggle${activeDelivery?' active':''}" id="delivery-toggle" title="Show only deals with delivery required">📦 Delivery Required</button>
+        <span class="ca-count-chip">Showing <strong>${data.length}</strong> of ${pool.length}</span>
+      </div>
+    </div>
+
+    <div class="ca-panel" style="margin-bottom:24px">
+      <div class="ca-panel__header">
+        <span class="ca-panel__title">Awards Table</span>
+        <span class="ca-panel__badge">${data.length} record${data.length!==1?'s':''}</span>
+      </div>
+      <div class="ca-table-scroll">${buildTable(data)}</div>
+    </div>
+
+    <div class="ca-panel">
+      <div class="ca-panel__header">
+        <span class="ca-panel__title">Geographic Distribution</span>
+        <span class="ca-panel__badge">${Object.keys(stateCounts).length} states</span>
+      </div>
+      <div id="map-wrap"></div>
+      <div class="ca-map-legend" id="map-legend"></div>
+      <div class="ca-undefined-note" id="map-undef"></div>
+    </div>
+  `;
+
+  // Sort header events
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (activeSort === col) {
+        activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc';
+      } else {
+        activeSort = col;
+        // Text columns default asc, numeric/date columns default desc
+        activeSortDir = ['name','agency','state','category','stage'].includes(col) ? 'asc' : 'desc';
+      }
+      render();
+    });
+  });
+
+  // Stage / category / search events
+  document.getElementById('stage-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-stage]');
+    if (btn) { activeStage = btn.dataset.stage; render(); }
+  });
+  document.getElementById('cat-filter').addEventListener('change', e => {
+    activeCategory = e.target.value; render();
+  });
+  const searchInput = document.getElementById('awards-search');
+  const clearBtn = document.getElementById('search-clear');
+  searchInput.addEventListener('input', e => {
+    activeSearch = e.target.value;
+    clearBtn.style.display = activeSearch ? 'block' : 'none';
+    render();
+  });
+  clearBtn.addEventListener('click', () => {
+    activeSearch = '';
+    searchInput.value = '';
+    clearBtn.style.display = 'none';
+    render();
+  });
+  document.getElementById('delivery-toggle').addEventListener('click', () => {
+    activeDelivery = !activeDelivery;
+    render();
+  });
+  // Restore focus position after re-render
+  searchInput.focus();
+  searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+
+  buildMap(stateCounts, stateAgencies, noState);
+}
+
+function sortArrows(col) {
+  const isActive = activeSort === col;
+  const upOn   = isActive && activeSortDir === 'asc';
+  const downOn = isActive && activeSortDir === 'desc';
+  return `<span class="sort-arrows">
+    <span class="arr${upOn   ? ' on' : ''}">▲</span>
+    <span class="arr${downOn ? ' on' : ''}">▼</span>
+  </span>`;
+}
+
+function buildTable(data) {
+  if (!data.length) return `<div class="ca-empty">No matching awards. Try adjusting the filters${activeSearch ? ` for "<strong>${escapeHtml(activeSearch)}</strong>"` : ''}.</div>`;
+  const q = activeSearch;
+  const rows = data.map((d,i) => {
+    const delVal = (d.deliveryRequired||'').trim();
+    const isYes  = delVal.toLowerCase() === 'yes';
+    const delBadge = delVal
+      ? `<span class="ca-delivery-badge${isYes?'':' no'}">${delVal}</span>`
+      : '<span style="color:var(--ca-gray-400)">—</span>';
+    return `
+    <tr>
+      <td style="color:var(--ca-gray-400);font-size:0.78rem;width:32px">${i+1}</td>
+      <td><div class="deal-name-cell" title="${escapeHtml(d.dealName)}">${highlight(trunc(d.dealName,60), q)}</div></td>
+      <td><div class="text-cell" title="${escapeHtml(d.agency)}">${highlight(trunc(d.agency,28), q)}</div></td>
+      <td style="font-size:0.82rem">${highlight(d.agencyState, q) || '—'}</td>
+      <td><div class="text-cell" title="${escapeHtml(d.serviceCategory)}">${highlight(trunc(d.serviceCategory,26), q)}</div></td>
+      <td>${CAPS.stageBadge(d.stage)}</td>
+      <td class="right">${fmtAmt(d.amount)}</td>
+      <td style="font-size:0.82rem;white-space:nowrap">${fmtDate(d.intentToAwardDate)}</td>
+      <td style="text-align:center">${delBadge}</td>
+      <td>${d.hubspotLink ? `<a class="ca-link" href="${d.hubspotLink}" target="_blank">View ↗</a>` : '—'}</td>
+    </tr>`;
+  }).join('');
+  function sh(col, label, cls='') {
+    const active = activeSort === col;
+    return `<th class="${cls}${active?' sort-active':''} iv-tbl-sort" data-sort="${col}" title="Sort by ${label}">${label}${sortArrows(col)}</th>`;
+  }
+  return `
+    <table class="ca-awards-table">
+      <thead><tr>
+        <th style="width:32px">#</th>
+        ${sh('name',     'RFP Name')}
+        ${sh('agency',   'Agency')}
+        ${sh('state',    'State')}
+        ${sh('category', 'Service Category')}
+        ${sh('stage',    'Stage')}
+        ${sh('amount',   'Bid Amount', 'right ')}
+        ${sh('date',     'Intent Date')}
+        ${sh('delivery', 'Delivery Req.')}
+        <th>HubSpot</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function buildMap(stateCounts, stateAgencies, noState) {
+  const wrap = document.getElementById('map-wrap');
+  if (!wrap) return;
+
+  let us;
+  try { us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'); }
+  catch(e) { wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ca-gray-400)">Map unavailable</div>'; return; }
+
+  const FIPS = {
+    '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+    '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+    '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+    '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+    '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+    '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+    '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+    '55':'WI','56':'WY'
+  };
+  // Full state name → abbreviation
+  const NAME_TO_ABBR = {
+    'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+    'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+    'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+    'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+    'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+    'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+    'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+    'north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA',
+    'rhode island':'RI','south carolina':'SC','south dakota':'SD','tennessee':'TN',
+    'texas':'TX','utah':'UT','vermont':'VT','virginia':'VA','washington':'WA',
+    'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC',
+    'washington dc':'DC','washington d.c.':'DC'
+  };
+  const ABBR_TO_NAME = {};
+  Object.entries(NAME_TO_ABBR).forEach(([n,a]) => { ABBR_TO_NAME[a] = n.replace(/\b\w/g,c=>c.toUpperCase()); });
+
+  // Normalise stateCounts + stateAgencies keys to abbreviations
+  const abbrCounts = {};
+  const abbrAgencies = {};   // abbr → Set of agency names
+  Object.entries(stateCounts).forEach(([st, cnt]) => {
+    const key = st.trim().toLowerCase();
+    const abbr = NAME_TO_ABBR[key] || (key.length === 2 ? key.toUpperCase() : null);
+    if (abbr) abbrCounts[abbr] = (abbrCounts[abbr]||0) + cnt;
+  });
+  Object.entries(stateAgencies).forEach(([st, agencySet]) => {
+    const key = st.trim().toLowerCase();
+    const abbr = NAME_TO_ABBR[key] || (key.length === 2 ? key.toUpperCase() : null);
+    if (abbr) {
+      if (!abbrAgencies[abbr]) abbrAgencies[abbr] = new Set();
+      agencySet.forEach(a => abbrAgencies[abbr].add(a));
+    }
+  });
+
+  const maxCount = Math.max(...Object.values(abbrCounts), 1);
+  const colorScale = d3.scaleSequential().domain([0, maxCount]).interpolator(d3.interpolate('#DBEAFE','#1B2F5E'));
+  const states = topojson.feature(us, us.objects.states).features;
+  const tooltip = document.getElementById('map-tooltip');
+  const W = 960, H = 580;
+  const proj = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+  const path = d3.geoPath().projection(proj);
+
+  const svg = d3.select('#map-wrap').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('class','ca-map-svg');
+
+  svg.selectAll('path')
+    .data(states)
+    .enter().append('path')
+    .attr('class', d => {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      return 'ca-map-state' + (abbrCounts[abbr] ? ' has-data' : '');
+    })
+    .attr('fill', d => {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      return abbrCounts[abbr] ? colorScale(abbrCounts[abbr]) : '#E4E7EC';
+    })
+    .attr('d', path)
+    .on('mousemove', (event, d) => {
+      const abbr    = FIPS[String(d.id).padStart(2,'0')];
+      const count   = abbrCounts[abbr] || 0;
+      const name    = ABBR_TO_NAME[abbr] || abbr;
+      if (!count) return;
+      const agencies = abbrAgencies[abbr] ? [...abbrAgencies[abbr]].sort() : [];
+      const agencyHtml = agencies.length
+        ? '<div style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.2);padding-top:6px">'
+          + agencies.map(a => `<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:2px"><span style="opacity:0.6;flex-shrink:0">•</span><span>${a}</span></div>`).join('')
+          + '</div>'
+        : '';
+      tooltip.style.display = 'block';
+      tooltip.style.left    = (event.clientX + 14) + 'px';
+      tooltip.style.top     = (event.clientY - 10) + 'px';
+      tooltip.style.maxWidth = '260px';
+      tooltip.innerHTML = `<strong style="font-size:0.9rem">${name}</strong><span style="opacity:0.8;font-size:0.8rem;margin-left:6px">${count} award${count!==1?'s':''}</span>${agencyHtml}`;
+    })
+    .on('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  // Labels: state abbreviation on all states + award count on states with data
+  const tiny = ['RI','DE','CT','NJ','NH','VT','MD','DC'];
+
+  // Single-pass labels: abbreviation on all states + count on states with data.
+  // We skip a separate halo pass (stroke at tiny sizes turns glyphs into boxes).
+  // Instead we use a paint-order trick: render stroke behind fill on the same element.
+  svg.selectAll('text.state-count-label')
+    .data(states)
+    .enter().append('text')
+    .attr('class', 'state-count-label')
+    .attr('pointer-events', 'none')
+    .each(function(d) {
+      const abbr = FIPS[String(d.id).padStart(2,'0')];
+      if (!abbr) return;
+      const c = path.centroid(d);
+      if (!c || isNaN(c[0]) || isNaN(c[1])) return;
+      const isTiny   = tiny.includes(abbr);
+      const count    = abbrCounts[abbr] || 0;
+      const hasData  = count > 0;
+      const darkFill = count >= maxCount * 0.45; // state is dark → use white text
+      const textCol  = hasData ? (darkFill ? '#ffffff' : '#1B2F5E') : '#94A3B8';
+      const haloCol  = darkFill ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.85)';
+      const abbrSz   = isTiny ? '7' : '9';
+      const valSz    = isTiny ? '6' : '7.5';
+      const lineH    = isTiny ? 7 : 9;
+      const el = d3.select(this);
+      el.attr('x', c[0]).attr('y', hasData ? c[1] - 4 : c[1])
+        .attr('text-anchor', 'middle')
+        .attr('font-family', 'Inter, sans-serif')
+        .attr('font-weight', '700')
+        .attr('paint-order', 'stroke fill') /* stroke renders behind fill */
+        .attr('stroke', haloCol)
+        .attr('stroke-width', '2')
+        .attr('stroke-linejoin', 'round');
+      el.append('tspan')
+        .attr('x', c[0]).attr('dy', '0')
+        .attr('font-size', abbrSz)
+        .attr('fill', textCol)
+        .text(abbr);
+      if (hasData) {
+        el.append('tspan')
+          .attr('x', c[0]).attr('dy', lineH)
+          .attr('font-size', valSz)
+          .attr('fill', textCol)
+          .text(count);
+      }
+    });
+
+  svg.append('path')
+    .datum(topojson.mesh(us, us.objects.states, (a,b) => a!==b))
+    .attr('fill','none').attr('stroke','#fff').attr('stroke-width',0.8).attr('d',path);
+
+  // Legend
+  const legendEl = document.getElementById('map-legend');
+  legendEl.innerHTML = `
+    <span>0</span>
+    <svg width="140" height="10" style="border-radius:4px;overflow:hidden">
+      <defs><linearGradient id="lg" x1="0%" x2="100%">
+        <stop offset="0%" stop-color="#DBEAFE"/>
+        <stop offset="100%" stop-color="#1B2F5E"/>
+      </linearGradient></defs>
+      <rect width="140" height="10" fill="url(#lg)"/>
+    </svg>
+    <span>${maxCount} award${maxCount!==1?'s':''}</span>
+    <span style="margin-left:12px;color:var(--ca-gray-300)">▪</span>
+    <svg width="12" height="12" style="margin-left:2px"><rect width="12" height="12" rx="2" fill="#E4E7EC"/></svg>
+    <span>No data</span>
+  `;
+
+  // Undefined note
+  if (noState > 0) {
+    document.getElementById('map-undef').textContent = `${noState} deal${noState!==1?'s':''} could not be mapped to a state (Agency State not set in HubSpot)`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>

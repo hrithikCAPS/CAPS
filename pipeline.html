@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+</head>
+<body>
+  <main class="ca-main" id="dashboard">
+    <div class="ca-page-header">
+      <h1 class="ca-page-header__title">Pipeline</h1>
+      <p class="ca-page-header__subtitle">This dashboard is coming soon. The data and framework are ready.</p>
+    </div>
+    <div class="ca-panel">
+      <div class="ca-panel__body" style="text-align:center;padding:80px 20px;color:var(--ca-gray-500)">
+        <div style="font-size:3rem;margin-bottom:12px">🚧</div>
+        <div style="font-size:1.1rem;font-weight:600;color:var(--ca-gray-700);margin-bottom:8px">Dashboard Under Construction</div>
+        <div>This page will be built using the shared framework. Data is already available via <code>CAPS.loadData()</code>.</div>
+      </div>
+    </div>
+  </main>
+  <script src="js/data.js"></script>
+  <script src="js/dashboard-common.js"></script>
+  <script>
+    CAPS.renderHeader('Pipeline');
+    CAPS.loadData(); // populates the "last data fetch" date in the header
+  </script>
+</body>
+</html>

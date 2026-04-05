@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>State Analysis — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    .chart-container { position: relative; width: 100%; }
+    .chart-container.h320 { height: 340px; }
+    .chart-container.h380 { height: 400px; }
+
+    /* Global filter bar */
+    .ca-global-filter {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); padding: 14px 20px;
+      margin-bottom: 20px; box-shadow: var(--shadow-sm); flex-wrap: wrap;
+    }
+    .ca-global-filter__label { font-size: 0.9rem; font-weight: 600; color: var(--ca-gray-700); }
+    .ca-global-filter select {
+      padding: 8px 14px; border: 1px solid var(--ca-gray-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.88rem; color: var(--ca-gray-700);
+      background: var(--ca-white); cursor: pointer; min-width: 180px;
+    }
+    .ca-global-filter select:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.12); outline: none; }
+    .ca-global-filter__count { font-size: 0.82rem; color: var(--ca-gray-500); margin-left: auto; }
+    .ca-global-filter__count strong { color: var(--ca-blue); font-weight: 700; }
+
+    .ca-section-label {
+      font-size: 1.1rem; font-weight: 700; color: var(--ca-navy);
+      margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ca-light-blue);
+    }
+
+    /* Map */
+    .ca-map-svg { width: 100%; height: auto; display: block; }
+    .ca-map-state { stroke: #fff; stroke-width: 0.5; cursor: default; }
+    .ca-map-state.has-data { cursor: pointer; }
+    .ca-map-state.has-data:hover { stroke: var(--ca-navy); stroke-width: 1.5; opacity: 0.82; }
+    #map-tooltip {
+      position: fixed; pointer-events: none; display: none;
+      background: var(--ca-navy); color: #fff;
+      padding: 9px 14px; border-radius: 8px; font-size: 0.82rem;
+      font-family: var(--font-family); line-height: 1.55;
+      box-shadow: var(--shadow-lg); z-index: 9999; max-width: 280px;
+    }
+    #map-tooltip strong { display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 2px; }
+    .ca-map-legend {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; padding: 10px 20px 4px;
+      font-size: 0.78rem; color: var(--ca-gray-500);
+    }
+    .ca-undefined-note { padding: 6px 20px 16px; font-size: 0.78rem; color: var(--ca-gray-400); text-align: center; }
+
+    /* Map metric toggle */
+    .map-toggle {
+      display: flex; gap: 6px; margin-bottom: 0; align-items: center;
+    }
+    .map-toggle-btn {
+      padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--ca-gray-200); background: var(--ca-white);
+      color: var(--ca-gray-500); font-family: var(--font-family); transition: all 0.15s;
+    }
+    .map-toggle-btn:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .map-toggle-btn.active { background: var(--ca-navy); color: #fff; border-color: var(--ca-navy); }
+
+    /* State table */
+    .ca-table-scroll { overflow-x: auto; }
+    .st-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .st-table thead th {
+      background: var(--ca-gray-50); color: var(--ca-gray-500); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap; position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none;
+    }
+    .st-table thead th:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .st-table thead th.sort-active { color: var(--ca-blue); background: rgba(46,80,144,0.06); }
+    .st-table thead th.right { text-align: right; }
+    .sort-arrows { display: inline-flex; flex-direction: column; margin-left: 4px; gap: 1px; vertical-align: middle; }
+    .sort-arrows .arr { font-size: 0.58rem; opacity: 0.3; line-height: 1; }
+    .sort-arrows .arr.on { opacity: 1; color: var(--ca-blue); }
+    .st-table tbody tr { border-bottom: 1px solid var(--ca-gray-100); transition: background 0.12s; }
+    .st-table tbody tr:hover { background: var(--ca-gray-50); }
+    .st-table tbody td { padding: 10px 14px; color: var(--ca-gray-700); vertical-align: middle; }
+    .st-table tbody td.right { text-align: right; font-family: 'SF Mono','Fira Code',monospace; font-size: 0.82rem; }
+    .st-table tbody td.center { text-align: center; }
+
+    /* Win-rate inline bar */
+    .wr-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .wr-bar-track { flex: 1; height: 6px; background: var(--ca-gray-200); border-radius: 3px; min-width: 60px; }
+    .wr-bar-fill  { height: 100%; border-radius: 3px; }
+    .wr-bar-fill.good  { background: var(--ca-green); }
+    .wr-bar-fill.amber { background: var(--ca-yellow); }
+    .wr-bar-fill.red   { background: var(--ca-red); }
+    .wr-pct { font-size: 0.8rem; font-weight: 700; min-width: 36px; text-align: right; }
+    .wr-pct.good  { color: var(--ca-green); }
+    .wr-pct.amber { color: var(--ca-yellow); }
+    .wr-pct.red   { color: var(--ca-red); }
+
+    /* Rank badge */
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: 0.75rem; font-weight: 700; }
+    .rank-badge.gold   { background: #FEF9C3; color: #854D0E; }
+    .rank-badge.silver { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .rank-badge.bronze { background: #FEF3C7; color: #92400E; }
+    .rank-badge.other  { background: transparent; color: var(--ca-gray-400); }
+
+    /* Search */
+    .ca-search-wrap { position: relative; display: flex; align-items: center; }
+    .ca-search-wrap svg { position: absolute; left: 10px; color: var(--ca-gray-400); pointer-events: none; }
+    .ca-search-input {
+      padding: 7px 12px 7px 34px; border: 1px solid var(--ca-gray-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.875rem; color: var(--ca-gray-700);
+      background: var(--ca-white); outline: none; min-width: 200px; transition: border-color 0.15s;
+    }
+    .ca-search-input:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.1); }
+    .ca-search-input::placeholder { color: var(--ca-gray-400); }
+    .ca-search-clear { position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--ca-gray-400); font-size: 1rem; line-height: 1; padding: 0 2px; display: none; }
+    .ca-search-clear:hover { color: var(--ca-gray-700); }
+    .ca-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; padding: 0 4px; }
+    .ca-count-chip { font-size: 0.82rem; color: var(--ca-gray-500); }
+    .ca-count-chip strong { color: var(--ca-blue); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div id="map-tooltip"></div>
+<main class="ca-main" id="dashboard">
+  <div class="ca-loading">
+    <div class="ca-loading__spinner"></div>
+    <div class="ca-loading__text">Loading geographic data...</div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+  CAPS.renderHeader('State Analysis');
+
+  Chart.register(ChartDataLabels);
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size   = 12;
+  Chart.defaults.color       = '#667085';
+  Chart.defaults.plugins.legend.labels.usePointStyle      = true;
+  Chart.defaults.plugins.legend.labels.pointStyleWidth    = 10;
+  Chart.defaults.plugins.datalabels                       = { display: false };
+
+  const COLORS = {
+    navy: '#1B2F5E', blue: '#2D60C4', green: '#059669', red: '#DC2626',
+    yellow: '#D97706', orange: '#C05621', blueAlpha: 'rgba(46,80,144,0.82)',
+    greenAlpha: 'rgba(5,150,105,0.82)', redAlpha: 'rgba(220,38,38,0.75)',
+  };
+
+  /* ── State lookup tables ── */
+  const FIPS = {
+    '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+    '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+    '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+    '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+    '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+    '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+    '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+    '55':'WI','56':'WY'
+  };
+  const NAME_TO_ABBR = {
+    'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+    'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+    'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+    'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+    'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+    'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+    'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+    'north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA',
+    'rhode island':'RI','south carolina':'SC','south dakota':'SD','tennessee':'TN',
+    'texas':'TX','utah':'UT','vermont':'VT','virginia':'VA','washington':'WA',
+    'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC',
+    'washington dc':'DC','washington d.c.':'DC'
+  };
+  const ABBR_TO_NAME = {};
+  Object.entries(NAME_TO_ABBR).forEach(([n, a]) => {
+    ABBR_TO_NAME[a] = n.replace(/\b\w/g, c => c.toUpperCase());
+  });
+
+  function toAbbr(st) {
+    if (!st) return null;
+    const k = st.trim().toLowerCase();
+    return NAME_TO_ABBR[k] || (k.length === 2 ? k.toUpperCase() : null);
+  }
+
+  /* ── Active state ── */
+  let activeYearFilter  = '';
+  let activeStateFilter = '';   // abbr or '' for all
+  let activeSearch      = '';
+  let activeSort        = 'bids';
+  let activeSortDir     = 'desc';
+  let mapMetric         = 'bids';    // 'bids' | 'wins' | 'winrate'
+
+  let chartBids    = null;
+  let chartWinRate = null;
+
+  async function renderDashboard() {
+    const allData = await CAPS.loadData();
+    const OCT_2025 = new Date('2025-10-01');
+
+    /* Year options */
+    const yearSet = new Set();
+    allData.forEach(d => {
+      const ref = d.bidClosingDate || d.submissionDate;
+      if (!ref) return;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (dt >= OCT_2025) yearSet.add(dt.getFullYear());
+    });
+    const allYears = [...yearSet].sort((a,b) => b - a);
+
+    /* Base = Oct 2025+ */
+    let base = allData.filter(d => {
+      const ref = d.bidClosingDate || d.submissionDate;
+      if (!ref) return false;
+      return (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025;
+    });
+
+    if (activeYearFilter) {
+      base = base.filter(d => {
+        const ref = d.bidClosingDate || d.submissionDate;
+        return ref && new Date(ref).getFullYear() == activeYearFilter;
+      });
+    }
+
+    /* State options (all states present in base, sorted by bid count) */
+    const stateOptMap = {};
+    base.forEach(d => {
+      const abbr = toAbbr(d.agencyState);
+      if (abbr) stateOptMap[abbr] = (stateOptMap[abbr] || 0) + 1;
+    });
+    const stateOptions = Object.entries(stateOptMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([abbr, cnt]) => ({ abbr, name: ABBR_TO_NAME[abbr] || abbr, cnt }));
+
+    /* Apply state filter */
+    let data = activeStateFilter
+      ? base.filter(d => toAbbr(d.agencyState) === activeStateFilter)
+      : base;
+
+    /* ── Aggregate by state ── */
+    const stBids       = {}, stWon = {}, stLost = {}, stInterview = {}, stIA = {};
+    const stValue      = {}, stAgencies = {};
+    const stCatBids    = {};   // abbr -> { category -> bidCount }
+    const stCatWins    = {};   // abbr -> { category -> winCount }
+    let noState = 0;
+
+    data.forEach(d => {
+      const abbr = toAbbr(d.agencyState);
+      if (!abbr) { noState++; return; }
+      stBids[abbr]      = (stBids[abbr] || 0) + 1;
+      const isWon = d.stage === 'Closed Won';
+      stWon[abbr]       = (stWon[abbr] || 0) + (isWon ? 1 : 0);
+      stLost[abbr]      = (stLost[abbr] || 0) + (d.stage === 'Closed Lost' ? 1 : 0);
+      stInterview[abbr] = (stInterview[abbr] || 0) + (d.interviewFlag === 'Yes' ? 1 : 0);
+      stIA[abbr]        = (stIA[abbr] || 0) + (d.stage === 'Intent to Award' ? 1 : 0);
+      if (d.amount)     stValue[abbr] = (stValue[abbr] || 0) + d.amount;
+      if (!stAgencies[abbr]) stAgencies[abbr] = new Set();
+      if (d.agency) stAgencies[abbr].add(d.agency.trim());
+
+      // Category breakdown per state
+      if (!stCatBids[abbr]) stCatBids[abbr] = {};
+      if (!stCatWins[abbr]) stCatWins[abbr] = {};
+      const cats = d.serviceCategory ? d.serviceCategory.split(';').map(c => c.trim()).filter(Boolean) : ['(No Category)'];
+      cats.forEach(cat => {
+        stCatBids[abbr][cat] = (stCatBids[abbr][cat] || 0) + 1;
+        if (isWon) stCatWins[abbr][cat] = (stCatWins[abbr][cat] || 0) + 1;
+      });
+    });
+
+    /* Build state rows */
+    const stateRows = Object.keys(stBids).map(abbr => {
+      const bids     = stBids[abbr] || 0;
+      const won      = stWon[abbr]  || 0;
+      const lost     = stLost[abbr] || 0;
+      const decided  = won + lost;
+      const winRate  = decided > 0 ? won / decided : null;
+      const value    = stValue[abbr] || 0;
+      const iv       = stInterview[abbr] || 0;
+      const ia       = stIA[abbr] || 0;
+      // Top categories by bid count (top 4)
+      const catBids = stCatBids[abbr] || {};
+      const catWins = stCatWins[abbr] || {};
+      const topCats = Object.entries(catBids)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([cat, cnt]) => ({ cat, cnt, wins: catWins[cat] || 0 }));
+      // Most successful category = category with most wins (fallback: most bids)
+      const winEntries = Object.entries(catWins).sort((a,b) => b[1] - a[1]);
+      const topWinCat  = winEntries.length > 0
+        ? { cat: winEntries[0][0], wins: winEntries[0][1] }
+        : topCats.length > 0 ? { cat: topCats[0].cat, wins: 0 } : null;
+
+      return { abbr, name: ABBR_TO_NAME[abbr] || abbr, bids, won, lost, decided, winRate, value, iv, ia, topCats, topWinCat };
+    });
+
+    /* ── Aggregate by category (for the bottom table) ── */
+    const catAgg = {};  // cat -> { bids, iv, ia, won, lost, value }
+    data.forEach(d => {
+      const cats = d.serviceCategory
+        ? d.serviceCategory.split(';').map(c => c.trim()).filter(Boolean)
+        : ['(No Category)'];
+      cats.forEach(cat => {
+        if (!catAgg[cat]) catAgg[cat] = { bids:0, iv:0, ia:0, won:0, lost:0, value:0 };
+        const a = catAgg[cat];
+        a.bids++;
+        if (d.interviewFlag === 'Yes')        a.iv++;
+        if (d.stage === 'Intent to Award')    a.ia++;
+        if (d.stage === 'Closed Won')  { a.won++;  a.value += d.amount || 0; }
+        if (d.stage === 'Closed Lost')        a.lost++;
+      });
+    });
+    const catRows = Object.entries(catAgg).map(([cat, a]) => {
+      const decided = a.won + a.lost;
+      return { cat, ...a, decided, winRate: decided > 0 ? a.won / decided : null };
+    });
+
+    /* Summary KPIs */
+    const totalBids       = data.length;
+    const statesCovered   = stateRows.length;
+    const statesWithWins  = stateRows.filter(r => r.won > 0).length;
+    const totalWon        = data.filter(d => d.stage === 'Closed Won').length;
+    const totalLost       = data.filter(d => d.stage === 'Closed Lost').length;
+    const totalIV         = data.filter(d => d.interviewFlag === 'Yes').length;
+    const totalIA         = data.filter(d => d.stage === 'Intent to Award').length;
+    const totalValue      = data.filter(d => d.stage === 'Closed Won').reduce((s, d) => s + (d.amount || 0), 0);
+    const winRate         = (totalWon + totalLost) > 0 ? totalWon / (totalWon + totalLost) : 0;
+    const topStateRow     = [...stateRows].sort((a,b) => b.bids - a.bids)[0];
+    const stateName       = activeStateFilter ? (ABBR_TO_NAME[activeStateFilter] || activeStateFilter) : null;
+
+    /* ── BUILD HTML ── */
+    document.getElementById('dashboard').innerHTML = `
+      <div class="ca-page-header">
+        <h1 class="ca-page-header__title">State Analysis</h1>
+        <p class="ca-page-header__subtitle">Geographic breakdown of bids, interviews, and awards by US state — Oct 2025 onwards</p>
+      </div>
+
+      <!-- KPIs — adapt to state filter context -->
+      <div class="ca-metrics-row">
+        ${stateName ? `
+          ${CAPS.metricCard('Total Bids', CAPS.formatNumber(totalBids), stateName, '',
+            'Total RFPs submitted in ' + stateName + ' in this period.')}
+          ${CAPS.metricCard('Interviews', CAPS.formatNumber(totalIV),
+            totalBids > 0 ? CAPS.formatPercent(totalIV / totalBids) + ' interview rate' : 'of bids', 'blue',
+            'Deals that reached the interview stage in ' + stateName + '.')}
+          ${CAPS.metricCard('Intent to Award', CAPS.formatNumber(totalIA),
+            totalBids > 0 ? CAPS.formatPercent(totalIA / totalBids) + ' of bids' : '—', 'orange',
+            'Deals at Intent to Award stage in ' + stateName + '.')}
+          ${CAPS.metricCard('Closed Won', CAPS.formatNumber(totalWon),
+            totalValue > 0 ? CAPS.formatCurrency(totalValue) : '—', 'green',
+            'Deals closed won in ' + stateName + '.')}
+          ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate),
+            totalWon + ' won / ' + totalLost + ' lost', 'blue',
+            'Win rate in ' + stateName + '. Formula: Won / (Won + Lost).')}
+        ` : `
+          ${CAPS.metricCard('States Covered', CAPS.formatNumber(statesCovered), 'unique states with bids', '',
+            'Number of distinct US states where ConsultAdd submitted at least one RFP in this period.')}
+          ${CAPS.metricCard('States with Wins', CAPS.formatNumber(statesWithWins),
+            CAPS.formatPercent(statesCovered > 0 ? statesWithWins / statesCovered : 0) + ' of active states', 'green',
+            'States where at least one deal reached Closed Won status.')}
+          ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate),
+            totalWon + ' won / ' + totalLost + ' lost', 'blue',
+            'Overall win rate across all states. Formula: Closed Won / (Closed Won + Closed Lost).')}
+          ${CAPS.metricCard('Top State', topStateRow ? topStateRow.name : '—',
+            topStateRow ? topStateRow.bids + ' bids' : '—', '',
+            'State with the highest number of RFP submissions in the selected period.')}
+          ${CAPS.metricCard('Total Bids', CAPS.formatNumber(totalBids), statesCovered + ' states', '',
+            'Total number of RFPs submitted across all states.')}
+        `}
+      </div>
+
+      <!-- Global Filters -->
+      <div class="ca-global-filter">
+        <span class="ca-global-filter__label">Year:</span>
+        <select id="gf-year">
+          <option value="">All Years</option>
+          ${allYears.map(y => `<option value="${y}" ${activeYearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
+        </select>
+        <span class="ca-global-filter__label" style="margin-left:12px">State:</span>
+        <select id="gf-state">
+          <option value="">All States</option>
+          ${stateOptions.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
+        </select>
+        <span class="ca-global-filter__count">
+          ${activeStateFilter ? `<strong>${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}</strong> — ` : ''}
+          Showing <strong>${data.length}</strong> of ${base.length} RFPs in scope
+        </span>
+      </div>
+
+      <!-- Map -->
+      <div class="ca-section-label">US Geographic Map</div>
+      <div class="ca-panel" style="margin-bottom:20px">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">State Activity Heatmap</span>
+          <div class="map-toggle" id="map-toggle">
+            <button class="map-toggle-btn ${mapMetric==='bids'?'active':''}" data-metric="bids">Bid Count</button>
+            <button class="map-toggle-btn ${mapMetric==='wins'?'active':''}" data-metric="wins">Wins</button>
+            <button class="map-toggle-btn ${mapMetric==='winrate'?'active':''}" data-metric="winrate">Win Rate</button>
+          </div>
+        </div>
+        <div id="map-wrap"></div>
+        <div class="ca-map-legend" id="map-legend"></div>
+        <div class="ca-undefined-note" id="map-undef"></div>
+      </div>
+
+      <!-- Charts -->
+      <div class="ca-section-label">Performance Charts</div>
+      <div class="ca-grid ca-grid--2">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Win / Loss by Category${activeStateFilter ? ` — ${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}` : ''}</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h380"><canvas id="ch-bids"></canvas></div>
+          </div>
+        </div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Interviews Received — Month on Month${activeStateFilter ? ` (${ABBR_TO_NAME[activeStateFilter] || activeStateFilter})` : ''}</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h380"><canvas id="ch-winrate"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Breakdown Table -->
+      <div class="ca-section-label">Category Breakdown${activeStateFilter ? ` — ${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}` : ' — All States'}</div>
+      <div class="ca-panel">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">${activeStateFilter ? `How each category performs in ${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}` : 'How each category performs across all states'}</span>
+          <span class="ca-panel__badge" id="tbl-count">${catRows.length} categories</span>
+        </div>
+        <div class="ca-panel__body" style="padding-bottom:8px">
+          <div class="ca-controls-row">
+            <div class="ca-search-wrap">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/>
+              </svg>
+              <input id="st-search" class="ca-search-input" type="text" placeholder="Search category…" value="${activeSearch}" autocomplete="off">
+              <button class="ca-search-clear" id="search-clear" style="display:${activeSearch?'block':'none'}">✕</button>
+            </div>
+            <span class="ca-count-chip" id="search-count"></span>
+          </div>
+        </div>
+        <div class="ca-panel__body ca-panel__body--no-pad">
+          <div class="ca-table-scroll" id="state-table"></div>
+        </div>
+      </div>
+    `;
+
+    /* ═══ Build Charts ═══ */
+    if (chartBids)    { chartBids.destroy();    chartBids    = null; }
+    if (chartWinRate) { chartWinRate.destroy();  chartWinRate = null; }
+
+    /* Chart 1: Win / Loss by Category — top categories with decided deals */
+    const decidedCats = [...catRows]
+      .filter(r => r.decided >= 1)
+      .sort((a, b) => b.decided - a.decided)
+      .slice(0, 12);
+
+    chartBids = new Chart(document.getElementById('ch-bids'), {
+      type: 'bar',
+      data: {
+        labels: decidedCats.map(r => r.cat.length > 22 ? r.cat.slice(0, 20) + '…' : r.cat),
+        datasets: [
+          {
+            label: 'Won',
+            data: decidedCats.map(r => r.won),
+            backgroundColor: COLORS.greenAlpha,
+            borderColor: COLORS.green,
+            borderWidth: 1, borderRadius: 4, barPercentage: 0.65,
+          },
+          {
+            label: 'Lost',
+            data: decidedCats.map(r => r.lost),
+            backgroundColor: COLORS.redAlpha,
+            borderColor: COLORS.red,
+            borderWidth: 1, borderRadius: 4, barPercentage: 0.65,
+          },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 24, right: 16, left: 8, bottom: 8 } },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              afterBody: (items) => {
+                const r = decidedCats[items[0].dataIndex];
+                const wr = r.decided > 0 ? ((r.won / r.decided) * 100).toFixed(1) : '—';
+                return [`Win rate: ${wr}% (${r.decided} decided)`];
+              }
+            }
+          },
+          datalabels: {
+            display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+            anchor: 'end', align: 'end',
+            font: { weight: '700', size: 10 },
+            color: ctx => ctx.datasetIndex === 0 ? COLORS.green : COLORS.red,
+            clamp: true,
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, stacked: false, grid: { color: '#F2F4F7' }, ticks: { stepSize: 1 }, title: { display: true, text: 'Deals', font: { weight: '600', size: 11 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 20 } }
+        }
+      }
+    });
+
+    /* Chart 2: Interviews received month-on-month */
+    // Build ordered month buckets from Oct 2025 to current month
+    const ivMonthBuckets = {};
+    const ivMonthLabels  = [];
+    const _start = new Date('2025-10-01');
+    const _now   = new Date();
+    _now.setDate(1);
+    for (let m = new Date(_start); m <= _now; m.setMonth(m.getMonth() + 1)) {
+      const key = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+      const label = m.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      ivMonthBuckets[key] = 0;
+      ivMonthLabels.push({ key, label });
+    }
+
+    // Count interviews — use interviewDate if set, fall back to bidClosingDate
+    const awdMonthBuckets = Object.fromEntries(ivMonthLabels.map(m => [m.key, 0]));
+
+    data.filter(d => d.interviewFlag === 'Yes').forEach(d => {
+      const ref = d.interviewDate || d.bidClosingDate || d.submissionDate;
+      if (!ref) return;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (isNaN(dt)) return;
+      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if (key in ivMonthBuckets) ivMonthBuckets[key]++;
+    });
+
+    // Count awards (Closed Won) by awardedDate, fall back to bidClosingDate
+    data.filter(d => d.stage === 'Closed Won').forEach(d => {
+      const ref = d.awardedDate || d.bidClosingDate || d.submissionDate;
+      if (!ref) return;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (isNaN(dt)) return;
+      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if (key in awdMonthBuckets) awdMonthBuckets[key]++;
+    });
+
+    const ivCounts  = ivMonthLabels.map(m => ivMonthBuckets[m.key]);
+    const awdCounts = ivMonthLabels.map(m => awdMonthBuckets[m.key]);
+    const ivMax     = Math.max(...ivCounts, ...awdCounts, 1);
+
+    chartWinRate = new Chart(document.getElementById('ch-winrate'), {
+      type: 'line',
+      data: {
+        labels: ivMonthLabels.map(m => m.label),
+        datasets: [
+          {
+            label: 'Interviews',
+            data: ivCounts,
+            borderColor: COLORS.blue,
+            backgroundColor: 'rgba(45,96,196,0.07)',
+            borderWidth: 2.5,
+            pointBackgroundColor: COLORS.blue,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.35,
+            order: 2,
+          },
+          {
+            label: 'Awards',
+            data: awdCounts,
+            borderColor: COLORS.green,
+            backgroundColor: 'rgba(5,150,105,0.07)',
+            borderWidth: 2.5,
+            pointBackgroundColor: COLORS.green,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.35,
+            order: 1,
+          },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 24, right: 16, left: 8, bottom: 8 } },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 }, usePointStyle: true } },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}`,
+            }
+          },
+          datalabels: {
+            display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+            anchor: 'end', align: 'top',
+            font: { weight: '700', size: 10 },
+            color: ctx => ctx.datasetIndex === 0 ? COLORS.blue : COLORS.green,
+            clamp: true,
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: ivMax + 2,
+            grid: { color: '#F2F4F7' },
+            ticks: { stepSize: 1, precision: 0 },
+            title: { display: true, text: 'Count', font: { weight: '600', size: 11 } }
+          },
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+
+    /* ═══ State Table ═══ */
+    function sortArrows(col) {
+      const isActive = activeSort === col;
+      return `<span class="sort-arrows">
+        <span class="arr${isActive && activeSortDir==='asc'?' on':''}">▲</span>
+        <span class="arr${isActive && activeSortDir==='desc'?' on':''}">▼</span>
+      </span>`;
+    }
+
+    function wrClass(r) {
+      if (r.winRate === null) return 'other';
+      return r.winRate >= 0.6 ? 'good' : r.winRate >= 0.3 ? 'amber' : 'red';
+    }
+
+    function buildTable(rows) {
+      if (!rows.length) return '<div style="text-align:center;padding:48px;color:var(--ca-gray-500)">No categories match your search.</div>';
+      return `<table class="st-table">
+        <thead><tr>
+          <th style="width:42px">Rank</th>
+          <th class="${activeSort==='cat'?'sort-active':''}" data-sort="cat">Category ${sortArrows('cat')}</th>
+          <th class="right ${activeSort==='bids'?'sort-active':''}" data-sort="bids">Bids ${sortArrows('bids')}</th>
+          <th class="right ${activeSort==='iv'?'sort-active':''}" data-sort="iv">Interviews ${sortArrows('iv')}</th>
+          <th class="right ${activeSort==='ia'?'sort-active':''}" data-sort="ia">Intent to Award ${sortArrows('ia')}</th>
+          <th class="right ${activeSort==='won'?'sort-active':''}" data-sort="won">Won ${sortArrows('won')}</th>
+          <th class="right ${activeSort==='lost'?'sort-active':''}" data-sort="lost">Lost ${sortArrows('lost')}</th>
+          <th class="${activeSort==='winrate'?'sort-active':''}" data-sort="winrate">Win Rate ${sortArrows('winrate')}</th>
+          <th class="right ${activeSort==='value'?'sort-active':''}" data-sort="value">Total Value ${sortArrows('value')}</th>
+        </tr></thead>
+        <tbody>${rows.map((r, i) => {
+          const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'other';
+          const wrc = r.winRate === null ? 'other' : r.winRate >= 0.6 ? 'good' : r.winRate >= 0.3 ? 'amber' : 'red';
+          const pct = r.winRate !== null ? (r.winRate * 100).toFixed(1) + '%' : '—';
+          const barW = r.winRate !== null ? (r.winRate * 100).toFixed(1) : 0;
+          return `<tr>
+            <td class="center"><span class="rank-badge ${rankCls}">${i+1}</span></td>
+            <td><strong style="font-size:0.88rem">${r.cat}</strong></td>
+            <td class="right"><strong>${r.bids}</strong></td>
+            <td class="right">${r.iv || '—'}</td>
+            <td class="right">${r.ia || '—'}</td>
+            <td class="right" style="color:var(--ca-green);font-weight:600">${r.won || '—'}</td>
+            <td class="right" style="color:var(--ca-red)">${r.lost || '—'}</td>
+            <td>
+              ${r.decided > 0 ? `<div class="wr-bar-wrap">
+                <div class="wr-bar-track"><div class="wr-bar-fill ${wrc}" style="width:${barW}%"></div></div>
+                <span class="wr-pct ${wrc}">${pct}</span>
+              </div>` : '<span style="color:var(--ca-gray-300);font-size:0.8rem">No decided</span>'}
+            </td>
+            <td class="right">${r.value > 0 ? CAPS.formatCurrency(r.value) : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    }
+
+    function getSortedFiltered() {
+      let rows = [...catRows];
+      if (activeSearch) {
+        const q = activeSearch.toLowerCase();
+        rows = rows.filter(r => r.cat.toLowerCase().includes(q));
+      }
+      rows.sort((a, b) => {
+        if (activeSort === 'cat') {
+          return activeSortDir === 'asc' ? a.cat.localeCompare(b.cat) : b.cat.localeCompare(a.cat);
+        }
+        let va = 0, vb = 0;
+        if (activeSort === 'bids')    { va = a.bids;           vb = b.bids; }
+        if (activeSort === 'iv')      { va = a.iv;             vb = b.iv; }
+        if (activeSort === 'ia')      { va = a.ia;             vb = b.ia; }
+        if (activeSort === 'won')     { va = a.won;            vb = b.won; }
+        if (activeSort === 'lost')    { va = a.lost;           vb = b.lost; }
+        if (activeSort === 'winrate') { va = a.winRate ?? -1;  vb = b.winRate ?? -1; }
+        if (activeSort === 'value')   { va = a.value;          vb = b.value; }
+        return activeSortDir === 'desc' ? vb - va : va - vb;
+      });
+      return rows;
+    }
+
+    function refreshTable() {
+      const rows = getSortedFiltered();
+      document.getElementById('state-table').innerHTML = buildTable(rows);
+      document.getElementById('tbl-count').textContent = rows.length + ' categor' + (rows.length === 1 ? 'y' : 'ies');
+      document.getElementById('search-count').innerHTML = activeSearch ? `<strong>${rows.length}</strong> of ${catRows.length}` : '';
+      document.querySelectorAll('.st-table thead th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.sort;
+          if (activeSort === col) activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc';
+          else { activeSort = col; activeSortDir = col === 'cat' ? 'asc' : 'desc'; }
+          refreshTable();
+        });
+      });
+    }
+
+    refreshTable();
+
+    /* Search */
+    const searchEl = document.getElementById('st-search');
+    const clearEl  = document.getElementById('search-clear');
+    searchEl.addEventListener('input', e => {
+      activeSearch = e.target.value;
+      clearEl.style.display = activeSearch ? 'block' : 'none';
+      refreshTable();
+    });
+    clearEl.addEventListener('click', () => {
+      activeSearch = ''; searchEl.value = ''; clearEl.style.display = 'none'; refreshTable();
+    });
+
+    /* Global filter events */
+    document.getElementById('gf-year').addEventListener('change',  e => { activeYearFilter  = e.target.value; renderDashboard(); });
+    document.getElementById('gf-state').addEventListener('change', e => { activeStateFilter = e.target.value; renderDashboard(); });
+
+    /* Map metric toggle */
+    document.getElementById('map-toggle').addEventListener('click', e => {
+      const btn = e.target.closest('[data-metric]');
+      if (!btn) return;
+      mapMetric = btn.dataset.metric;
+      document.querySelectorAll('#map-toggle .map-toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.metric === mapMetric);
+      });
+      buildMap(stateRows, noState);
+    });
+
+    buildMap(stateRows, noState);
+  }
+
+  /* ═══ MAP BUILD ═══ */
+  async function buildMap(stateRows, noState) {
+    const wrap = document.getElementById('map-wrap');
+    if (!wrap) return;
+
+    /* Clear existing SVG */
+    while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+
+    let us;
+    try { us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'); }
+    catch(e) { wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ca-gray-400)">Map unavailable — check your connection.</div>'; return; }
+
+    const stateMap = {};
+    stateRows.forEach(r => { stateMap[r.abbr] = r; });
+
+    /* Pick metric */
+    function getMetricVal(abbr) {
+      const r = stateMap[abbr];
+      if (!r) return 0;
+      if (mapMetric === 'bids')    return r.bids;
+      if (mapMetric === 'wins')    return r.won;
+      if (mapMetric === 'winrate') return r.decided > 0 ? +(r.winRate*100).toFixed(1) : 0;
+      return 0;
+    }
+    const metricLabel = mapMetric === 'bids' ? 'bid' : mapMetric === 'wins' ? 'win' : '% win rate';
+
+    const allVals = stateRows.map(r => getMetricVal(r.abbr)).filter(v => v > 0);
+    const maxVal  = allVals.length > 0 ? Math.max(...allVals) : 1;
+
+    const colorStart = mapMetric === 'wins' ? '#D1FAE5' : mapMetric === 'winrate' ? '#EFF6FF' : '#DBEAFE';
+    const colorEnd   = mapMetric === 'wins' ? '#065F46' : mapMetric === 'winrate' ? '#1E3A8A' : '#1B2F5E';
+    const colorScale = d3.scaleSequential().domain([0, maxVal]).interpolator(d3.interpolate(colorStart, colorEnd));
+
+    const states  = topojson.feature(us, us.objects.states).features;
+    const tooltip = document.getElementById('map-tooltip');
+    const W = 960, H = 580;
+    const proj = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+    const path = d3.geoPath().projection(proj);
+
+    const svg = d3.select('#map-wrap').append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'ca-map-svg');
+
+    svg.selectAll('path')
+      .data(states)
+      .enter().append('path')
+      .attr('class', d => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        return 'ca-map-state' + (stateMap[abbr] ? ' has-data' : '');
+      })
+      .attr('fill', d => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        const val  = getMetricVal(abbr);
+        return val > 0 ? colorScale(val) : '#E4E7EC';
+      })
+      .attr('d', path)
+      .on('mousemove', (event, d) => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        const r    = stateMap[abbr];
+        if (!r) return;
+        const name = ABBR_TO_NAME[abbr] || abbr;
+        const val  = getMetricVal(abbr);
+        const agencies = [...(r.agencies || new Set())].sort().slice(0,6);
+        tooltip.style.display = 'block';
+        tooltip.style.left    = (event.clientX + 14) + 'px';
+        tooltip.style.top     = (event.clientY - 10) + 'px';
+        tooltip.innerHTML = `
+          <strong>${name}</strong>
+          <div style="margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:0.78rem">
+            <span style="opacity:.65">Bids</span><span><b>${r.bids}</b></span>
+            <span style="opacity:.65">Interviews</span><span><b>${r.iv||0}</b></span>
+            <span style="opacity:.65">Won</span><span style="color:#6EE7B7"><b>${r.won||0}</b></span>
+            <span style="opacity:.65">Lost</span><span style="color:#FCA5A5"><b>${r.lost||0}</b></span>
+            <span style="opacity:.65">Win Rate</span><span><b>${r.decided > 0 ? (r.winRate*100).toFixed(1)+'%' : '—'}</b></span>
+          </div>
+        `;
+      })
+      .on('mouseleave', () => { tooltip.style.display = 'none'; });
+
+    /* Labels: state abbreviation on all states + metric value on states with data */
+    const tiny = ['RI','DE','CT','NJ','NH','VT','MD','DC'];
+
+    // Single-pass labels: abbreviation on all states + metric on states with data.
+    // paint-order: stroke fill keeps the halo behind glyphs so tiny text stays crisp.
+    svg.selectAll('text.label').data(states).enter().append('text')
+      .attr('class','label')
+      .attr('pointer-events','none')
+      .each(function(d) {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        if (!abbr) return;
+        const c = path.centroid(d);
+        if (!c || isNaN(c[0]) || isNaN(c[1])) return;
+        const isTiny   = tiny.includes(abbr);
+        const v        = getMetricVal(abbr);
+        const hasData  = v > 0;
+        const darkFill = v >= maxVal * 0.45; // state fill is dark → white text
+        const textCol  = hasData ? (darkFill ? '#ffffff' : '#1B2F5E') : '#94A3B8';
+        const haloCol  = darkFill ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.85)';
+        const abbrSz   = isTiny ? '7' : '9';
+        const valSz    = isTiny ? '6' : '7.5';
+        const lineH    = isTiny ? 7 : 9;
+        const el = d3.select(this);
+        el.attr('x', c[0]).attr('y', hasData ? c[1] - 4 : c[1])
+          .attr('text-anchor','middle')
+          .attr('font-family','Inter,sans-serif')
+          .attr('font-weight','700')
+          .attr('paint-order','stroke fill') /* stroke renders behind fill */
+          .attr('stroke', haloCol)
+          .attr('stroke-width','2')
+          .attr('stroke-linejoin','round');
+        el.append('tspan')
+          .attr('x', c[0]).attr('dy','0')
+          .attr('font-size', abbrSz)
+          .attr('fill', textCol)
+          .text(abbr);
+        if (hasData) {
+          el.append('tspan')
+            .attr('x', c[0]).attr('dy', lineH)
+            .attr('font-size', valSz)
+            .attr('fill', textCol)
+            .text(mapMetric === 'winrate' ? v + '%' : v);
+        }
+      });
+
+    // State borders
+    svg.append('path')
+      .datum(topojson.mesh(us, us.objects.states, (a,b) => a !== b))
+      .attr('fill','none').attr('stroke','#fff').attr('stroke-width',0.8).attr('d',path);
+
+    // Legend
+    const legendEl = document.getElementById('map-legend');
+    legendEl.innerHTML = `
+      <span>0</span>
+      <svg width="140" height="10" style="border-radius:4px;overflow:hidden">
+        <defs><linearGradient id="lg2" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="${colorStart}"/>
+          <stop offset="100%" stop-color="${colorEnd}"/>
+        </linearGradient></defs>
+        <rect width="140" height="10" fill="url(#lg2)"/>
+      </svg>
+      <span>${maxVal}${mapMetric === 'winrate' ? '%' : ''} ${metricLabel}${maxVal !== 1 ? 's' : ''}</span>
+      <span style="margin-left:12px;color:var(--ca-gray-300)">▪</span>
+      <svg width="12" height="12" style="margin-left:2px"><rect width="12" height="12" rx="2" fill="#E4E7EC"/></svg>
+      <span>No data</span>
+    `;
+
+    if (noState > 0) {
+      document.getElementById('map-undef').textContent =
+        `${noState} deal${noState !== 1 ? 's' : ''} could not be mapped to a state (Agency State not set in HubSpot)`;
+    } else {
+      document.getElementById('map-undef').textContent = '';
+    }
+  }
+
+  renderDashboard();
+</script>
+</body>
+</html>

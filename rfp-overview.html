@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFP Overview — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    .chart-container { position: relative; width: 100%; }
+    .chart-container.h300 { height: 320px; }
+    .chart-container.h350 { height: 370px; }
+    .chart-container.h400 { height: 420px; }
+    .ca-global-filter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--ca-white);
+      border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      flex-wrap: wrap;
+    }
+    .ca-global-filter__label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--ca-gray-700);
+    }
+    .ca-global-filter select {
+      padding: 8px 14px;
+      border: 1px solid var(--ca-gray-300);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family);
+      font-size: 0.88rem;
+      color: var(--ca-gray-700);
+      background: var(--ca-white);
+      cursor: pointer;
+      min-width: 200px;
+    }
+    .ca-global-filter select:focus {
+      border-color: var(--ca-blue);
+      box-shadow: 0 0 0 3px rgba(46,80,144,0.12);
+      outline: none;
+    }
+    .ca-global-filter__count {
+      font-size: 0.82rem;
+      color: var(--ca-gray-500);
+      margin-left: auto;
+    }
+    .ca-global-filter__count strong {
+      color: var(--ca-blue);
+      font-weight: 700;
+    }
+    .ca-section-label {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ca-navy);
+      margin: 28px 0 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--ca-light-blue);
+    }
+    .ca-legend-inline {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      padding: 8px 0 4px;
+      font-size: 0.8rem;
+      color: var(--ca-gray-500);
+    }
+    .ca-legend-inline span { display: inline-flex; align-items: center; gap: 5px; }
+    .ca-legend-dot {
+      width: 10px; height: 10px; border-radius: 3px; display: inline-block;
+    }
+    /* Info button styles are in dashboard.css (shared) */
+    /* ── Sortable table headers ── */
+    .iv-tbl-sort { cursor: pointer; user-select: none; transition: background 0.12s, color 0.12s; }
+    .iv-tbl-sort:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .sort-active  { color: var(--ca-blue) !important; background: rgba(45,96,196,0.06) !important; }
+    .sort-arrows  { display: inline-flex; flex-direction: column; margin-left: 5px; gap: 1px; vertical-align: middle; line-height: 1; position: relative; top: -1px; }
+    .sort-arrows .arr     { font-size: 0.6rem; opacity: 0.3; line-height: 1; }
+    .sort-arrows .arr.on  { opacity: 1; color: var(--ca-blue); }
+  </style>
+</head>
+<body>
+
+  <main class="ca-main" id="dashboard">
+    <div class="ca-loading">
+      <div class="ca-loading__spinner"></div>
+      <div class="ca-loading__text">Loading RFP data from Excel...</div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/dashboard-common.js"></script>
+  <script>
+    CAPS.renderHeader('RFP Overview');
+
+    /* ── Chart.js Global Defaults ── */
+    Chart.register(ChartDataLabels);
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#667085';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.pointStyleWidth = 10;
+    /* Default datalabels off — enable per chart */
+    Chart.defaults.plugins.datalabels = { display: false };
+
+    const COLORS = {
+      navy: '#1B2F5E', blue: '#2D60C4', crimson: '#BE123C', lightBlue: '#5B8FD6',
+      green: '#059669', red: '#DC2626', yellow: '#D97706', orange: '#C05621',
+      purple: '#6D28D9', teal: '#0891B2', gray: '#98A2B3',
+      navyAlpha: 'rgba(27,47,94,0.85)', blueAlpha: 'rgba(45,96,196,0.85)',
+      crimsonAlpha: 'rgba(190,18,60,0.85)', greenAlpha: 'rgba(5,150,105,0.85)',
+      orangeAlpha: 'rgba(192,86,33,0.85)', yellowAlpha: 'rgba(217,119,6,0.85)',
+    };
+
+    const STAGE_COLORS = {
+      'Submitted': COLORS.blue, 'Interview': COLORS.yellow, 'Intent to Award': COLORS.orange,
+      'Closed Won': COLORS.green, 'Closed Lost': COLORS.red, 'Terminated': COLORS.purple,
+      'RFx Cancelled': COLORS.gray,
+    };
+
+    let allCharts = [];
+    function destroyCharts() { allCharts.forEach(c => c.destroy()); allCharts = []; }
+
+    /* Intent table sort state (module-level so it survives filter re-renders) */
+    let intentSort    = 'date';
+    let intentSortDir = 'desc';
+
+    /* ── Helper: get submission month (when proposal was submitted) ── */
+    function getSubMonth(d) {
+      const dt = d.submissionDate || d.bidClosingDate || d.createdDate;
+      if (!dt) return null;
+      const date = dt instanceof Date ? dt : new Date(dt);
+      if (isNaN(date.getTime())) return null;
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+    }
+
+    function monthLabel(ym) {
+      const [y, m] = ym.split('-');
+      const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[parseInt(m)] + ' ' + y;
+    }
+
+    /* ── Main render ── */
+    async function renderDashboard(categoryFilter, yearFilter) {
+      const allData = await CAPS.loadData();
+      destroyCharts();
+
+      /* Compute unique years from bid closing date — Oct 2025+ scope only */
+      const OCT_2025_FOR_YEARS = new Date('2025-10-01');
+      const yearSet = new Set();
+      allData.forEach(d => {
+        const ref = d.bidClosingDate || d.submissionDate;
+        if (!ref) return;
+        const dt = ref instanceof Date ? ref : new Date(ref);
+        if (dt >= OCT_2025_FOR_YEARS) { const y = dt.getFullYear(); if (!isNaN(y)) yearSet.add(y); }
+      });
+      const allYears = [...yearSet].sort((a,b) => b - a);
+
+      /* Apply filters — base set is always Oct 2025+ (RFP Data sheet scope) */
+      let baseData = allData.filter(d => {
+        const ref = d.bidClosingDate || d.submissionDate;
+        return ref && (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025_FOR_YEARS;
+      });
+      if (yearFilter) {
+        baseData = baseData.filter(d => {
+          const ref = d.bidClosingDate || d.submissionDate || d.createdDate;
+          return ref && new Date(ref).getFullYear() == yearFilter;
+        });
+      }
+      /* Category filter applied last; baseData used for category dropdown options */
+      let data = categoryFilter
+        ? baseData.filter(d => d.serviceCategory && d.serviceCategory.includes(categoryFilter))
+        : baseData;
+
+      const container = document.getElementById('dashboard');
+      const total = data.length;
+      const withAmount = data.filter(d => d.amount !== null);
+      const totalValue = withAmount.reduce((s, d) => s + d.amount, 0);
+      const avgDeal = withAmount.length > 0 ? totalValue / withAmount.length : 0;
+      const interviewCount = data.filter(d => d.interviewFlag === 'Yes').length;
+      const wonCount = data.filter(d => d.stage === 'Closed Won').length;
+      const lostCount = data.filter(d => d.stage === 'Closed Lost').length;
+      const winRate = (wonCount + lostCount) > 0 ? wonCount / (wonCount + lostCount) : 0;
+      const awardedCount = data.filter(d => d.awardedDate).length;
+
+      /* Compute categories from year-filtered base (before category filter) */
+      const allCats = {};
+      baseData.forEach(d => {
+        if (d.serviceCategory) d.serviceCategory.split(';').forEach(c => {
+          c = c.trim(); if (c) allCats[c] = (allCats[c] || 0) + 1;
+        });
+      });
+      const catOptions = CAPS.sortedEntries(allCats);
+
+      /* Monthly data */
+      const monthSet = new Set();
+      data.forEach(d => { const m = getSubMonth(d); if (m) monthSet.add(m); });
+      const cutoff = yearFilter ? String(yearFilter) + '-01' : '2025-10';
+      const months = [...monthSet].sort().filter(m => m >= cutoff);
+
+      const monthSubmissions = {}, monthInterviews = {}, monthBAFO = {}, monthWon = {}, monthLost = {};
+      months.forEach(m => { monthSubmissions[m]=0; monthInterviews[m]=0; monthBAFO[m]=0; monthWon[m]=0; monthLost[m]=0; });
+
+      data.forEach(d => {
+        const m = getSubMonth(d);
+        if (!m || m < cutoff) return;
+        if (!monthSubmissions.hasOwnProperty(m)) return;
+        monthSubmissions[m]++;
+        if (d.interviewFlag === 'Yes') {
+          if (d.interviewSubcategory === 'BAFO') monthBAFO[m]++;
+          else monthInterviews[m]++;
+        }
+        if (d.stage === 'Closed Won') monthWon[m]++;
+        if (d.stage === 'Closed Lost') monthLost[m]++;
+      });
+
+      /* Stage data */
+      const stageCounts = CAPS.countBy(data, 'stage');
+      const stageValues = CAPS.sumBy(data, 'stage', 'amount');
+
+      /* Intent to Award deals */
+      const intentDeals = data.filter(d => d.stage === 'Intent to Award').sort((a, b) => (b.intentToAwardDate || 0) - (a.intentToAwardDate || 0));
+      const intentCount = intentDeals.length;
+
+      /* ═══ BUILD HTML ═══ */
+      container.innerHTML = `
+        <div class="ca-page-header">
+          <h1 class="ca-page-header__title">RFP Overview Dashboard</h1>
+          <p class="ca-page-header__subtitle">Submissions, interviews, and awards — Oct 2025 to present</p>
+        </div>
+
+        <!-- Global Filter -->
+        <div class="ca-global-filter">
+          <span class="ca-global-filter__label">Year:</span>
+          <select id="global-year-filter">
+            <option value="">All Years</option>
+            ${allYears.map(y => `<option value="${y}" ${yearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+          <span class="ca-global-filter__label" style="margin-left:12px">Category:</span>
+          <select id="global-cat-filter">
+            <option value="">All Categories</option>
+            ${catOptions.map(([c, n]) => `<option value="${c}" ${categoryFilter === c ? 'selected' : ''}>${c} (${n})</option>`).join('')}
+          </select>
+          <span class="ca-global-filter__count">Showing <strong>${total}</strong> of ${baseData.length} RFPs (Oct 2025+)</span>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="ca-metrics-row">
+          ${CAPS.metricCard('Total Submissions', CAPS.formatNumber(total), `${CAPS.formatNumber(withAmount.length)} with amount data`, '',
+            'Total number of RFPs submitted with bid closing date from Oct 2025 onwards, across all stages.')}
+          ${CAPS.metricCard('Avg Deal Amount', CAPS.formatCurrency(avgDeal), `${CAPS.formatCurrency(totalValue)} total pipeline`, 'blue',
+            'Average dollar amount per deal, calculated only from deals that have an amount value. Total pipeline is the sum of all deal amounts.')}
+          ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate), `${wonCount} won / ${lostCount} lost`, 'green',
+            'Percentage of decided deals that were won. Formula: Closed Won / (Closed Won + Closed Lost). Excludes deals still in progress.')}
+          ${CAPS.metricCard('Interview Shortlists', CAPS.formatNumber(interviewCount), `${CAPS.formatPercent(total > 0 ? interviewCount / total : 0)} of submissions`, 'crimson',
+            'Number of RFPs where the Interview Flag is Yes — meaning we were shortlisted for an interview or BAFO at any point.')}
+          ${CAPS.metricCard('Deals Awarded', CAPS.formatNumber(awardedCount), `${CAPS.formatCurrency(data.filter(d => d.awardedDate && d.amount).reduce((s,d) => s + d.amount, 0))} total value`, '',
+            'Number of deals that have an Awarded Date set in HubSpot, regardless of current stage. Total value is sum of awarded deal amounts.')}
+        </div>
+
+        <!-- Section: Monthly Trends -->
+        <div class="ca-section-label">Monthly Submission Trends</div>
+
+        <!-- Month-on-Month Submissions -->
+        <div class="ca-panel" style="margin-bottom:20px">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Month-on-Month RFP Submissions</span>
+            <span class="ca-panel__badge">${total} total</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h300"><canvas id="chart-monthly-subs"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Interviews + Awards by Month (side by side) -->
+        <div class="ca-grid ca-grid--2">
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">Interviews by Submission Month</span>
+              <span class="ca-panel__badge">${interviewCount} total</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h300"><canvas id="chart-monthly-interviews"></canvas></div>
+            </div>
+          </div>
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">Awards & Losses by Submission Month</span>
+              <span class="ca-panel__badge">${wonCount} won / ${lostCount} lost</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h300"><canvas id="chart-monthly-awards"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Breakdown Analysis -->
+        <div class="ca-section-label">Breakdown Analysis</div>
+
+        <!-- Stage Donut + Stage Value Bar -->
+        <div class="ca-grid ca-grid--2">
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">RFPs by Current Stage</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h350"><canvas id="chart-stage-donut"></canvas></div>
+            </div>
+          </div>
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">Pipeline Value by Stage ($)</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h350"><canvas id="chart-stage-value"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Conversion Funnel -->
+        <div class="ca-section-label">Submission-to-Award Funnel</div>
+        <div class="ca-panel" style="margin-bottom:20px">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Monthly Conversion: Submissions → Interviews → Awards</span>
+          </div>
+          <div class="ca-panel__body">
+            <div class="chart-container h350"><canvas id="chart-funnel"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Section: Intent to Award Table -->
+        <div class="ca-section-label">Intent to Award</div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Deals with Intent to Award</span>
+            <span class="ca-panel__badge">${intentCount} deals</span>
+          </div>
+          <div class="ca-panel__body ca-panel__body--no-pad">
+            <div class="ca-table-wrap" id="intent-table"></div>
+          </div>
+        </div>
+      `;
+
+      /* ═══ CHART 1: Monthly Submissions (bar) ═══ */
+      const mLabels = months.map(monthLabel);
+      allCharts.push(new Chart(document.getElementById('chart-monthly-subs'), {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [{
+            label: 'RFPs Submitted',
+            data: months.map(m => monthSubmissions[m]),
+            backgroundColor: COLORS.blueAlpha,
+            borderColor: COLORS.blue,
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 32, right: 16, left: 8, bottom: 8 } },
+          plugins: {
+            legend: { display: false },
+            title: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.parsed.y + ' RFPs submitted' } },
+            datalabels: { display: true, anchor: 'end', align: 'end', font: { weight: '700', size: 12 }, color: COLORS.navy, clamp: true }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Number of Submissions', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } }, grid: { color: '#F2F4F7' }, ticks: { padding: 6 } },
+            x: { title: { display: true, text: 'Submission Month', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false } }
+          },
+          animation: { duration: 800 }
+        }
+      }));
+
+      /* ═══ CHART 2: Monthly Interviews (stacked bar) ═══ */
+      allCharts.push(new Chart(document.getElementById('chart-monthly-interviews'), {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [
+            {
+              label: 'Interview',
+              data: months.map(m => monthInterviews[m]),
+              backgroundColor: COLORS.yellowAlpha,
+              borderColor: COLORS.yellow,
+              borderWidth: 1, borderRadius: 4, barPercentage: 0.55,
+            },
+            {
+              label: 'BAFO',
+              data: months.map(m => monthBAFO[m]),
+              backgroundColor: COLORS.crimsonAlpha,
+              borderColor: COLORS.crimson,
+              borderWidth: 1, borderRadius: 4, barPercentage: 0.55,
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 24, right: 16, left: 8, bottom: 8 } },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { padding: 16, font: { size: 12 } } },
+            tooltip: { mode: 'index', intersect: false },
+            datalabels: { display: ctx => ctx.dataset.data[ctx.dataIndex] > 0, anchor: 'center', align: 'center', font: { weight: '700', size: 11 }, color: '#fff', clamp: true }
+          },
+          scales: {
+            y: { beginAtZero: true, stacked: true, title: { display: true, text: 'Interviews', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } }, grid: { color: '#F2F4F7' }, ticks: { stepSize: 1, padding: 6 } },
+            x: { stacked: true, title: { display: true, text: 'Submission Month', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false } }
+          }
+        }
+      }));
+
+      /* ═══ CHART 3: Monthly Awards (grouped bar) ═══ */
+      allCharts.push(new Chart(document.getElementById('chart-monthly-awards'), {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [
+            {
+              label: 'Closed Won',
+              data: months.map(m => monthWon[m]),
+              backgroundColor: COLORS.greenAlpha,
+              borderColor: COLORS.green,
+              borderWidth: 1, borderRadius: 4, barPercentage: 0.5,
+            },
+            {
+              label: 'Closed Lost',
+              data: months.map(m => monthLost[m]),
+              backgroundColor: 'rgba(240,68,56,0.6)',
+              borderColor: COLORS.red,
+              borderWidth: 1, borderRadius: 4, barPercentage: 0.5,
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 32, right: 16, left: 8, bottom: 8 } },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { padding: 16, font: { size: 12 } } },
+            tooltip: { mode: 'index', intersect: false },
+            datalabels: { display: ctx => ctx.dataset.data[ctx.dataIndex] > 0, anchor: 'end', align: 'end', font: { weight: '700', size: 11 }, color: COLORS.navy, clamp: true }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Deal Count', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } }, grid: { color: '#F2F4F7' }, ticks: { stepSize: 1, padding: 6 } },
+            x: { title: { display: true, text: 'Submission Month', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false } }
+          }
+        }
+      }));
+
+      /* ═══ CHART 4: Stage Donut ═══ */
+      const stageLabels = CAPS.STAGE_ORDER.filter(s => stageCounts[s]);
+      const stageData = stageLabels.map(s => stageCounts[s] || 0);
+      const stageBgColors = stageLabels.map(s => STAGE_COLORS[s]);
+      allCharts.push(new Chart(document.getElementById('chart-stage-donut'), {
+        type: 'doughnut',
+        data: {
+          labels: stageLabels,
+          datasets: [{ data: stageData, backgroundColor: stageBgColors, borderWidth: 2, borderColor: '#fff' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '55%',
+          layout: { padding: { top: 14, bottom: 14, left: 8, right: 8 } },
+          plugins: {
+            legend: { position: 'right', labels: { padding: 18, font: { size: 12 }, boxWidth: 12, boxHeight: 12 } },
+            tooltip: { callbacks: {
+              label: ctx => {
+                const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+              }
+            }},
+            datalabels: {
+              display: ctx => (ctx.dataset.data[ctx.dataIndex] / total) > 0.04,
+              color: '#fff',
+              font: { weight: '700', size: 11 },
+              anchor: 'center', align: 'center',
+              formatter: (val) => {
+                const pct = ((val / total) * 100).toFixed(0);
+                return [String(val), pct + '%'];
+              },
+              textAlign: 'center'
+            }
+          }
+        }
+      }));
+
+      /* ═══ CHART 5: Stage Value (horizontal bar) ═══ */
+      const svLabels = CAPS.STAGE_ORDER.filter(s => stageValues[s]);
+      allCharts.push(new Chart(document.getElementById('chart-stage-value'), {
+        type: 'bar',
+        data: {
+          labels: svLabels,
+          datasets: [{
+            label: 'Pipeline Value ($)',
+            data: svLabels.map(s => stageValues[s] || 0),
+            backgroundColor: svLabels.map(s => STAGE_COLORS[s]),
+            borderWidth: 0, borderRadius: 6, barPercentage: 0.6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          layout: { padding: { top: 8, bottom: 8, left: 8, right: 100 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => '$' + ctx.parsed.x.toLocaleString() } },
+            datalabels: { display: true, anchor: 'end', align: 'end', font: { weight: '700', size: 11 }, color: COLORS.navy,
+              formatter: v => CAPS.formatCurrency(v), clamp: true }
+          },
+          scales: {
+            x: { beginAtZero: true, title: { display: true, text: 'Value ($)', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { color: '#F2F4F7' }, ticks: { callback: v => CAPS.formatCurrency(v), padding: 6 } },
+            y: { grid: { display: false }, ticks: { font: { size: 12 }, padding: 8 } }
+          }
+        }
+      }));
+
+      /* ═══ CHART 6: Funnel (line + bar combo) ═══ */
+      allCharts.push(new Chart(document.getElementById('chart-funnel'), {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [
+            {
+              label: 'Submissions',
+              data: months.map(m => monthSubmissions[m]),
+              backgroundColor: 'rgba(46,80,144,0.7)',
+              borderColor: COLORS.blue, borderWidth: 1, borderRadius: 4,
+              order: 2, barPercentage: 0.4,
+            },
+            {
+              label: 'Interviews',
+              type: 'line',
+              data: months.map(m => (monthInterviews[m] || 0) + (monthBAFO[m] || 0)),
+              borderColor: COLORS.yellow, backgroundColor: 'rgba(247,144,9,0.15)',
+              borderWidth: 3, pointRadius: 5, pointBackgroundColor: COLORS.yellow,
+              fill: false, tension: 0.3, order: 1,
+            },
+            {
+              label: 'Closed Won',
+              type: 'line',
+              data: months.map(m => monthWon[m]),
+              borderColor: COLORS.green, backgroundColor: 'rgba(18,183,106,0.15)',
+              borderWidth: 3, pointRadius: 5, pointBackgroundColor: COLORS.green,
+              fill: false, tension: 0.3, order: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 32, right: 16, left: 8, bottom: 8 } },
+          plugins: {
+            legend: { position: 'top', labels: { padding: 18, font: { size: 12 } } },
+            tooltip: { mode: 'index', intersect: false },
+            datalabels: { display: ctx => ctx.dataset.data[ctx.dataIndex] > 0, anchor: 'end', align: 'end', font: { weight: '700', size: 11 }, color: COLORS.navy, offset: 2, clamp: true }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Count', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } }, grid: { color: '#F2F4F7' }, ticks: { padding: 6 } },
+            x: { title: { display: true, text: 'Submission Month', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false } }
+          }
+        }
+      }));
+
+      /* ═══ INTENT TO AWARD TABLE ═══ */
+      function iSA(col) {
+        const on = intentSort === col;
+        return `<span class="sort-arrows"><span class="arr${on&&intentSortDir==='asc'?' on':''}">▲</span><span class="arr${on&&intentSortDir==='desc'?' on':''}">▼</span></span>`;
+      }
+      function buildIntentTable(deals) {
+        if (!deals.length) return '<div style="padding:40px;text-align:center;color:var(--ca-gray-500)">No deals currently in Intent to Award stage</div>';
+        const _dir = intentSortDir;
+        const sorted = [...deals].sort((a, b) => {
+          switch (intentSort) {
+            case 'name':   return _dir==='asc' ? (a.dealName||'').localeCompare(b.dealName||'') : (b.dealName||'').localeCompare(a.dealName||'');
+            case 'agency': return _dir==='asc' ? (a.agency||'').localeCompare(b.agency||'')     : (b.agency||'').localeCompare(a.agency||'');
+            case 'amount': { const va=a.amount||0,vb=b.amount||0; if(!va&&vb)return 1; if(va&&!vb)return -1; return _dir==='desc'?vb-va:va-vb; }
+            default: { // 'date'
+              const va=a.intentToAwardDate?new Date(a.intentToAwardDate).getTime():0;
+              const vb=b.intentToAwardDate?new Date(b.intentToAwardDate).getTime():0;
+              if(!va&&vb)return 1; if(va&&!vb)return-1; return _dir==='desc'?vb-va:va-vb;
+            }
+          }
+        });
+        function sh(col,label,cls='') {
+          return `<th class="${cls}${intentSort===col?' sort-active':''} iv-tbl-sort" data-icol="${col}">${label}${iSA(col)}</th>`;
+        }
+        return `<table class="ca-table">
+          <thead><tr>
+            <th style="width:32px">#</th>
+            ${sh('name','Deal Name')}
+            ${sh('agency','Agency')}
+            ${sh('amount','Amount','right ')}
+            ${sh('date','Intent Date')}
+            <th>HubSpot</th>
+          </tr></thead>
+          <tbody>${sorted.map((d,i) => `<tr>
+            <td style="color:var(--ca-gray-400);font-size:0.78rem">${i+1}</td>
+            <td>${(d.dealName||'').substring(0,50)}${(d.dealName||'').length>50?'…':''}</td>
+            <td>${(d.agency||'—').substring(0,30)}</td>
+            <td class="right mono">${CAPS.formatCurrencyFull(d.amount)}</td>
+            <td style="font-size:0.82rem;white-space:nowrap">${CAPS.formatDate(d.intentToAwardDate)}</td>
+            <td>${d.hubspotLink?`<a href="${d.hubspotLink}" target="_blank" style="color:var(--ca-blue);text-decoration:none;font-weight:600">View ↗</a>`:'—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      }
+      function renderIntentTable() {
+        document.getElementById('intent-table').innerHTML = buildIntentTable(intentDeals);
+        document.querySelectorAll('#intent-table th[data-icol]').forEach(th => {
+          th.addEventListener('click', () => {
+            const col = th.dataset.icol;
+            if (intentSort === col) intentSortDir = intentSortDir==='desc'?'asc':'desc';
+            else { intentSort = col; intentSortDir = ['name','agency'].includes(col)?'asc':'desc'; }
+            renderIntentTable();
+          });
+        });
+      }
+      renderIntentTable();
+
+      /* ═══ GLOBAL FILTER EVENTS ═══ */
+      const getCat  = () => document.getElementById('global-cat-filter')?.value  || null;
+      const getYear = () => document.getElementById('global-year-filter')?.value || null;
+      document.getElementById('global-cat-filter').addEventListener('change', () => renderDashboard(getCat(), getYear()));
+      document.getElementById('global-year-filter').addEventListener('change', () => renderDashboard(getCat(), getYear()));
+    }
+
+    renderDashboard(null, null);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Predictions — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    :root {
+      --p-teal:        #1D6F5A;
+      --p-teal-mid:    #25896F;
+      --p-teal-bg:     #E4F4EF;
+      --p-blue:        #1E5EA8;
+      --p-blue-mid:    #2770C8;
+      --p-blue-bg:     #E5EEF9;
+      --p-slate:       #475569;
+      --p-slate-bg:    #EEF1F6;
+      --p-amber:       #7A4F1E;
+      --p-amber-bg:    #F5EBE0;
+      --p-mist:        #F6F8FB;
+      --p-border:      #C8D4E2;
+      /* legacy aliases used in shared components */
+      --p-indigo:      #1E5EA8;
+      --p-indigo-mid:  #2770C8;
+      --p-indigo-soft: #5C88C8;
+      --p-violet:      #475569;
+      --p-violet-soft: #6480A0;
+      --p-purple-pale: #E5EEF9;
+      --p-rose:        #7A4F1E;
+      --p-rose-soft:   #9A6830;
+      --p-rose-pale:   #F5EBE0;
+    }
+
+    /* ── Hero ── */
+    .pred-hero {
+      background: linear-gradient(135deg,#1B3255 0%,#1E4A7A 55%,#1A5E78 100%);
+      border-radius:12px; padding:24px 30px; margin-bottom:20px;
+      position:relative; overflow:hidden; color:#fff;
+    }
+    .pred-hero__tag {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+      border-radius:20px; padding:3px 12px; font-size:.68rem; font-weight:600;
+      letter-spacing:.07em; text-transform:uppercase; color:rgba(255,255,255,.88); margin-bottom:10px;
+    }
+    .pred-hero__tag::before { content:''; width:5px; height:5px; border-radius:50%; background:#7EC8E3; animation:pp 2.5s ease-in-out infinite; }
+    @keyframes pp { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .pred-hero__title { font-size:1.5rem; font-weight:700; letter-spacing:-.01em; margin-bottom:5px; }
+    .pred-hero__title span { color:#7EC8E3; }
+    .pred-hero__sub { font-size:.84rem; color:rgba(255,255,255,.62); max-width:540px; line-height:1.55; }
+    .pred-hero__meta { display:flex; gap:22px; margin-top:18px; flex-wrap:wrap; }
+    .pred-hero__mi  { display:flex; flex-direction:column; gap:2px; }
+    .pred-hero__ml  { font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.42); }
+    .pred-hero__mv  { font-size:.87rem; font-weight:700; color:rgba(255,255,255,.9); }
+
+    /* ── Category filter tabs ── */
+    .pred-cat-filter {
+      display:flex; gap:6px; flex-wrap:wrap;
+      margin-bottom:20px; padding:5px;
+      background:var(--ca-white); border:1px solid var(--p-border);
+      border-radius:12px; width:fit-content; max-width:100%;
+    }
+    .pred-cat-tab {
+      padding:6px 14px; border-radius:8px; font-size:.8rem; font-weight:600;
+      cursor:pointer; border:none; background:transparent; color:var(--ca-gray-500);
+      font-family:var(--font-family); transition:all .15s; white-space:nowrap;
+    }
+    .pred-cat-tab:hover { background:var(--p-mist); color:var(--p-blue); }
+    .pred-cat-tab.active { background:var(--p-blue); color:#fff; }
+
+    /* ── KPIs ── */
+    .pred-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .pred-kpi { background:var(--ca-white); border:1px solid var(--p-border); border-radius:13px; padding:18px 20px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+    .pred-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:13px 13px 0 0; }
+    .pred-kpi.c1::after { background:linear-gradient(90deg,var(--p-teal),var(--p-teal-mid)); }
+    .pred-kpi.c2::after { background:linear-gradient(90deg,var(--p-blue),var(--p-blue-mid)); }
+    .pred-kpi.c3::after { background:linear-gradient(90deg,#526480,#6A80A0); }
+    .pred-kpi.c4::after { background:linear-gradient(90deg,var(--p-amber),#A06828); }
+    .pred-kpi__icon { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:.95rem; margin-bottom:11px; }
+    .pred-kpi.c1 .pred-kpi__icon { background:var(--p-teal-bg); }
+    .pred-kpi.c2 .pred-kpi__icon { background:var(--p-blue-bg); }
+    .pred-kpi.c3 .pred-kpi__icon { background:var(--p-slate-bg); }
+    .pred-kpi.c4 .pred-kpi__icon { background:var(--p-amber-bg); }
+    .pred-kpi__label { font-size:.67rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ca-gray-500); margin-bottom:5px; }
+    .pred-kpi__value { font-size:1.75rem; font-weight:700; letter-spacing:-.01em; line-height:1; margin-bottom:5px; }
+    .pred-kpi.c1 .pred-kpi__value { color:var(--p-teal); }
+    .pred-kpi.c2 .pred-kpi__value { color:var(--p-blue); }
+    .pred-kpi.c3 .pred-kpi__value { color:var(--p-slate); }
+    .pred-kpi.c4 .pred-kpi__value { color:var(--p-amber); }
+    .pred-kpi__sub { font-size:.71rem; color:var(--ca-gray-500); line-height:1.45; }
+    .pred-kpi__tag { display:inline-flex; align-items:center; gap:4px; margin-top:8px; font-size:.66rem; font-weight:600; padding:2px 7px; border-radius:7px; }
+    .pred-kpi__tag.g { background:var(--p-teal-bg); color:var(--p-teal); }
+    .pred-kpi__tag.b { background:var(--p-blue-bg); color:var(--p-blue); }
+    .pred-kpi__tag.v { background:var(--p-slate-bg); color:var(--p-slate); }
+
+    /* Info button & tooltip styles are in dashboard.css (shared) */
+    .kpi-info-wrap { top:13px; right:13px; } /* predictions-specific position override */
+
+    /* ── Monthly forecast ── */
+    .pred-months { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px; }
+    .pred-month {
+      background:var(--ca-white); border:1px solid var(--p-border);
+      border-radius:13px; overflow:hidden; box-shadow:var(--shadow-sm);
+    }
+    .pred-month__head {
+      padding:13px 16px 10px; color:#fff;
+    }
+    .pred-month__name { font-size:.95rem; font-weight:800; }
+    .pred-month__range { font-size:.66rem; color:rgba(255,255,255,.6); margin-top:1px; }
+    .pred-month__body { padding:12px 16px; }
+    .pred-month-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--p-border); font-size:.79rem; }
+    .pred-month-row:last-child { border-bottom:none; }
+    .pred-month-row__lbl { color:var(--ca-gray-600,#475569); font-weight:500; }
+    .pred-month-row__val { font-weight:700; }
+    .pred-month-row__val.ia   { color:var(--p-teal); }
+    .pred-month-row__val.proj { color:var(--p-blue); }
+    .pred-month__total { margin-top:10px; padding:9px 11px; border-radius:8px; text-align:center; background:var(--p-mist); border:1px solid var(--p-border); }
+    .pred-month__total-n   { font-size:1.35rem; font-weight:700; color:var(--p-blue); line-height:1; }
+    .pred-month__total-sub { font-size:.64rem; font-weight:600; color:var(--p-slate); opacity:.85; margin-top:2px; }
+    .pred-month__val { margin-top:6px; font-size:.72rem; font-weight:600; color:var(--p-slate); text-align:center; }
+    .pred-month__hist { margin-top:5px; font-size:.68rem; color:#64748B; text-align:center; border-top:1px solid var(--p-border); padding-top:6px; }
+
+    /* ── Panels ── */
+    .pred-panel { background:var(--ca-white); border:1px solid var(--p-border); border-radius:13px; box-shadow:var(--shadow-sm); overflow:hidden; }
+    .pred-panel__head { display:flex; align-items:center; justify-content:space-between; padding:13px 18px; border-bottom:1px solid var(--p-border); }
+    .pred-panel__title { font-size:.9rem; font-weight:700; color:var(--ca-gray-900); display:flex; align-items:center; gap:7px; }
+    .pred-panel__badge { font-size:.67rem; font-weight:600; padding:2px 9px; border-radius:9px; }
+    .pred-panel__badge.v { background:var(--p-blue-bg); color:var(--p-blue); }
+    .pred-panel__badge.g { background:var(--p-teal-bg); color:var(--p-teal); }
+    .pred-panel__badge.n { background:var(--p-slate-bg); color:var(--p-slate); }
+    .pred-panel__badge.r { background:var(--p-amber-bg); color:var(--p-amber); }
+    .pred-panel__body { padding:16px 18px; }
+
+    /* ── Grids ── */
+    .pred-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:22px; }
+    .pred-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-bottom:22px; }
+    .pred-13 { display:grid; grid-template-columns:1fr 2.2fr; gap:18px; margin-bottom:22px; }
+
+    /* ── IA table ── */
+    .pred-ia-tbl { width:100%; border-collapse:collapse; font-size:.81rem; }
+    .pred-ia-tbl thead th { background:var(--p-mist); color:var(--ca-gray-500); font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:7px 11px; text-align:left; border-bottom:1px solid var(--p-border); white-space:nowrap; }
+    .pred-ia-tbl tbody tr { border-bottom:1px solid var(--p-border); }
+    .pred-ia-tbl tbody tr:last-child { border-bottom:none; }
+    .pred-ia-tbl tbody tr:hover { background:var(--p-mist); }
+    .pred-ia-tbl tbody td { padding:8px 11px; color:var(--ca-gray-700); vertical-align:middle; }
+    .ia-nm { font-weight:600; color:var(--ca-gray-900); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ia-badge { display:inline-flex; align-items:center; gap:3px; font-size:.66rem; font-weight:700; padding:2px 6px; border-radius:5px; white-space:nowrap; }
+    .ia-badge.cur  { background:var(--p-teal-bg); color:var(--p-teal); }
+    .ia-badge.proj { background:var(--p-blue-bg); color:var(--p-blue); }
+
+    /* ── Horizontal bars ── */
+    .pbar { margin-bottom:11px; }
+    .pbar:last-child { margin-bottom:0; }
+    .pbar-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .pbar-lbl { font-size:.79rem; font-weight:600; color:var(--ca-gray-700); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:68%; }
+    .pbar-val { font-size:.75rem; font-weight:700; color:var(--ca-gray-900); }
+    .pbar-track { height:7px; background:var(--p-mist); border-radius:99px; overflow:hidden; }
+    .pbar-fill  { height:100%; border-radius:99px; transition:width .6s cubic-bezier(.4,0,.2,1); }
+
+    /* ── Win rate rows ── */
+    .wr-row { display:flex; align-items:center; gap:9px; padding:8px 0; border-bottom:1px solid var(--p-border); }
+    .wr-row:last-child { border-bottom:none; }
+    .wr-nm   { flex:1; font-size:.79rem; color:var(--ca-gray-700); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .wr-bar  { width:80px; height:5px; background:var(--p-mist); border-radius:99px; overflow:hidden; flex-shrink:0; }
+    .wr-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--p-blue),var(--p-blue-mid)); }
+    .wr-pct  { font-size:.75rem; font-weight:700; color:var(--p-blue); width:36px; text-align:right; flex-shrink:0; }
+    .wr-cnt  { font-size:.67rem; color:var(--ca-gray-400); width:50px; text-align:right; flex-shrink:0; }
+
+    /* ── Funnel ── */
+    .funnel-step { margin-bottom:6px; }
+    .funnel-bar  { height:36px; border-radius:7px; display:flex; align-items:center; padding:0 13px; justify-content:space-between; }
+    .funnel-lbl  { font-size:.79rem; font-weight:600; color:#fff; }
+    .funnel-cnt  { font-size:.86rem; font-weight:800; color:rgba(255,255,255,.9); }
+    .funnel-arrow { text-align:center; font-size:.66rem; color:var(--ca-gray-400); margin:2px 0; display:flex; align-items:center; gap:5px; }
+    .funnel-arrow::before,.funnel-arrow::after { content:''; flex:1; height:1px; background:var(--p-border); }
+
+    /* ── Per-category section ── */
+    .cat-section { margin-bottom:22px; }
+    .cat-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; }
+    .cat-tab-btn { padding:6px 13px; border-radius:7px; font-size:.78rem; font-weight:600; cursor:pointer; border:1px solid var(--p-border); background:var(--ca-white); color:var(--ca-gray-600,#475569); font-family:var(--font-family); transition:all .14s; white-space:nowrap; }
+    .cat-tab-btn:hover { background:var(--p-mist); border-color:var(--p-blue); color:var(--p-blue); }
+    .cat-tab-btn.active { background:var(--p-blue); border-color:var(--p-blue); color:#fff; }
+    .cat-tab-content { display:none; }
+    .cat-tab-content.active { display:block; }
+    .cat-inner-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+
+    /* ── Keyword cloud ── */
+    .kw-cloud { display:flex; flex-wrap:wrap; gap:7px; padding:4px 0; }
+    .kw-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      border-radius:20px; padding:4px 11px;
+      font-family:var(--font-family); cursor:default;
+      border:1px solid transparent; transition:transform .12s;
+    }
+    .kw-pill:hover { transform:scale(1.04); }
+    .kw-pill__text { font-weight:700; line-height:1; }
+    .kw-pill__cnt  { font-weight:600; opacity:.72; line-height:1; border-left:1px solid rgba(0,0,0,.12); padding-left:5px; }
+
+    /* ── Top-10 RFPs table ── */
+    .top10-tbl { width:100%; border-collapse:collapse; font-size:.8rem; }
+    .top10-tbl thead th { background:var(--p-mist); color:var(--ca-gray-500); font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:7px 10px; text-align:left; border-bottom:1px solid var(--p-border); white-space:nowrap; }
+    .top10-tbl tbody tr { border-bottom:1px solid var(--p-border); }
+    .top10-tbl tbody tr:last-child { border-bottom:none; }
+    .top10-tbl tbody tr:hover { background:var(--p-mist); }
+    .top10-tbl tbody td { padding:8px 10px; color:var(--ca-gray-700); vertical-align:middle; }
+    .top10-rank { font-weight:700; color:var(--p-blue); width:28px; }
+    .top10-name { font-weight:600; color:var(--ca-gray-900); max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .top10-bar-cell { min-width:80px; }
+    .top10-mini-bar { height:6px; background:var(--p-mist); border-radius:99px; overflow:hidden; margin-top:2px; }
+    .top10-mini-fill { height:100%; border-radius:99px; }
+
+    /* ── Insights ── */
+    .insight { display:flex; gap:9px; align-items:flex-start; padding:10px 13px; background:var(--p-mist); border-radius:8px; border-left:3px solid var(--p-blue); margin-bottom:7px; }
+    .insight:last-child { margin-bottom:0; }
+    .insight.v { border-left-color:var(--p-slate); }
+    .insight.r { border-left-color:var(--p-amber); }
+    .insight.g { border-left-color:var(--p-teal); }
+    .insight__em  { font-size:1rem; flex-shrink:0; margin-top:1px; }
+    .insight__txt { font-size:.8rem; color:var(--ca-gray-700); line-height:1.55; }
+    .insight__txt strong { color:var(--ca-gray-900); font-weight:700; }
+
+    /* ── Conv meter ── */
+    .conv-meter { display:flex; align-items:center; gap:9px; padding:11px 13px; background:linear-gradient(135deg,var(--p-purple-pale),var(--ca-indigo-bg)); border-radius:9px; margin-bottom:11px; }
+    .conv-meter__body { flex:1; }
+    .conv-meter__lbl  { font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--p-indigo); margin-bottom:4px; }
+    .conv-meter__track{ height:6px; background:rgba(74,90,122,.15); border-radius:99px; overflow:hidden; }
+    .conv-meter__fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#4A5A7A,#7B8FB5); }
+    .conv-meter__pct  { font-size:.82rem; font-weight:800; color:var(--p-indigo); flex-shrink:0; }
+
+    /* ── Method note ── */
+    .pred-note { background:#F5F7FA; border:1px solid #DDE1EA; border-radius:8px; padding:10px 14px; font-size:.73rem; color:#64748B; line-height:1.6; display:flex; gap:7px; align-items:flex-start; margin-bottom:20px; }
+
+    /* ── Misc ── */
+    .mini-kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+    .mini-kpi { background:var(--p-mist); border:1px solid var(--p-border); border-radius:9px; padding:11px 14px; }
+    .mini-kpi__lbl { font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--ca-gray-500); margin-bottom:4px; }
+    .mini-kpi__val { font-size:1.25rem; font-weight:700; color:var(--p-blue); }
+    .mini-kpi__sub { font-size:.67rem; color:var(--ca-gray-500); margin-top:2px; }
+    .empty-msg { text-align:center; padding:24px; color:var(--ca-gray-400); font-size:.82rem; }
+
+    /* ── Responsive ── */
+    @media(max-width:1100px){ .pred-kpi-grid { grid-template-columns:repeat(2,1fr); } .pred-13 { grid-template-columns:1fr; } .pred-3 { grid-template-columns:1fr 1fr; } }
+    @media(max-width:768px){  .pred-kpi-grid,.pred-months,.pred-2,.pred-3,.pred-13,.cat-inner-grid,.mini-kpi-row { grid-template-columns:1fr; } .pred-hero__title { font-size:1.4rem; } }
+  </style>
+</head>
+<body>
+<main class="ca-main" id="dashboard">
+  <div class="ca-loading"><div class="ca-loading__spinner"></div><div class="ca-loading__text">Building 3-month work volume forecast…</div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+CAPS.renderHeader('Predictions');
+
+/* ── Info tooltip toggle — delegate to shared handler in dashboard-common.js ── */
+function toggleTip(btn){ window._capsToggleTip(btn); }
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════ */
+const TODAY  = new Date();
+const WIN_END = new Date(TODAY); WIN_END.setMonth(WIN_END.getMonth() + 3);
+
+function pd(v)   { if(!v) return null; const d=new Date(v); return isNaN(d)?null:d; }
+function pct(n,d){ return d>0?n/d*100:0; }
+function fp(n)   { return n.toFixed(1)+'%'; }
+function fK(v)   { if(!v&&v!==0) return '—'; if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1e3) return '$'+(v/1e3).toFixed(0)+'K'; return '$'+Math.round(v).toLocaleString(); }
+function trunc(s,n){ return s&&s.length>n?s.slice(0,n)+'…':(s||'—'); }
+function fmtD(d,opts){ return d?d.toLocaleDateString('en-US',opts||{month:'short',day:'numeric',year:'numeric'}):'—'; }
+function fmtMon(d){ return d?d.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'—'; }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function addMonths(d,n){ const r=new Date(d); r.setMonth(r.getMonth()+n); return r; }
+
+const CAT_COLORS=[
+  '#1E5EA8','#25896F','#2E6DA4','#1D6F5A','#475569',
+  '#7A4F1E','#1A7060','#2558A0','#356090','#486A80',
+  '#3A6878','#2A5870','#1E4E88','#356858','#5A6A7A'
+];
+
+/* ═══════════════════════════════════════════════
+   KEYWORD EXTRACTOR  (global — used by renderCatTabs)
+═══════════════════════════════════════════════ */
+/* Slim stop list — only truly generic words; keep tech-context nouns so
+   they form meaningful bigrams (e.g. "Cloud Migration", "Access Management") */
+const KW_STOP = new Set([
+  // Articles / prepositions / conjunctions / auxiliaries
+  'the','and','for','of','to','in','a','an','is','are','with','on','at','by','from',
+  'this','that','or','as','be','its','it','i','we','our','all','any','not','but','so',
+  'was','were','been','have','has','will','would','can','could','should','may',
+  'might','shall','into','than','then','per','via','no',
+  // Pure RFP process words (no tech recruiting meaning)
+  'rfp','rfq','rfi','bid','proposal','procurement','acquisition','contract',
+  'vendor','request','services','service','support','project','program',
+  'phase','scope','term','annual','year','years','general','various','other',
+  'multiple','single','full','new','current','existing','required','related',
+  'including','based','use','end','type','high','level',
+  // Org-type words
+  'state','city','county','department','office','division','bureau','agency',
+  'government','authority','board','commission','district','utility','township',
+  'village','town','parish','borough','regional','local','national','federal',
+  // Pure noise / internal prefixes
+  'off','offline','rebid','bts','fy25','fy26','fy27','fy',
+  'co','llc','inc','ltd','corp','dba','no',
+]);
+
+function extractKeywords(pool, topN=25){
+  const freq = {};
+  pool.forEach(d => {
+    let name = (d.dealName||'')
+      .replace(/^(OFF(LINE)?[\s\-–]+|OFFLINE[\s\-–]+)/i, '')
+      .replace(/^BTS[\s\-–]+/i, '')
+      .replace(/^[\w]{2,10}-\d{2,}-[\d\w]+\s*[-–]\s*/i, '')   // strip RFP# prefix
+      .replace(/["()[\]/\\]/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+
+    // Tokenise — keep alphanumeric words ≥ 2 chars
+    const raw = name.match(/[A-Za-z][A-Za-z0-9#.+\-]{0,}/g) || [];
+    const tokens = raw
+      .map(t => t.replace(/[.\-]+$/, ''))   // strip trailing punctuation
+      .filter(t => {
+        const lo = t.toLowerCase().replace(/s$/, '');
+        return t.length >= 2 && !KW_STOP.has(lo) && !KW_STOP.has(t.toLowerCase());
+      });
+
+    // Build bigrams from consecutive meaningful tokens
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const t1 = tokens[i], t2 = tokens[i+1];
+      // Normalise: keep TRUE acronyms (2–5 ALL-CAPS chars) as-is; title-case everything else
+      const w1 = /^[A-Z0-9]{2,5}$/.test(t1) ? t1 : t1.charAt(0).toUpperCase()+t1.slice(1).toLowerCase();
+      const w2 = /^[A-Z0-9]{2,5}$/.test(t2) ? t2 : t2.charAt(0).toUpperCase()+t2.slice(1).toLowerCase();
+      const bigram = w1 + ' ' + w2;
+      freq[bigram] = (freq[bigram]||0) + 1;
+    }
+  });
+
+  // Generic bigrams that don't help recruiters
+  const BIGRAM_STOP = new Set([
+    'information technology','technology managed','managed information',
+    'technology management','technology system','staff augmentation',  // too generic for this context
+  ]);
+
+  return Object.entries(freq)
+    .filter(([k,v]) => v >= 2 && !BIGRAM_STOP.has(k.toLowerCase()))
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, topN);
+}
+
+/* active category filter — '' = all */
+let activeCat = '';
+/* active per-category tab */
+let activeCatTab = '';
+/* chart registry */
+const chartReg = {};
+function destroyCharts(){ Object.values(chartReg).forEach(c=>c.destroy()); Object.keys(chartReg).forEach(k=>delete chartReg[k]); }
+
+/* ═══════════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════════ */
+async function render() {
+  destroyCharts();
+  await CAPS.loadData();
+  const allRaw = window.CAPS_EMBEDDED_DATA?.records || [];
+  if (!allRaw.length) {
+    document.getElementById('dashboard').innerHTML='<div class="empty-msg">No data — run refresh-data.py first.</div>';
+    return;
+  }
+
+  /* ── Normalize ── */
+  const rows = allRaw.map(r=>{
+    const n={}; for(const [k,v] of Object.entries(r)) n[k.trim()]=v;
+    return {
+      stage:           n['Stage']||'',
+      agency:          n['Agency']||'',
+      agencyState:     (n['Agency State']||'').trim(),
+      serviceCategory: n['Service Category']||'',
+      amount:          parseFloat(n['Amount ($)'])||0,
+      submissionDate:  pd(n['Submission Date']),
+      awardedDate:     pd(n['Awarded Date']),
+      intentDate:      pd(n['Intent to Award Date']),
+      createdDate:     pd(n['Created Date']),
+      dealName:        n['Deal Name']||'',
+      rfpNumber:       n['RFP Number']||'',
+      owner:           n['Owner']||'',
+      hubspotLink:     n['HubSpot Link']||'',
+    };
+  });
+
+  /* ── Last 500 by submission date ── */
+  const base = [...rows]
+    .sort((a,b)=>{
+      const da=a.submissionDate||a.createdDate||new Date(0);
+      const db=b.submissionDate||b.createdDate||new Date(0);
+      return db-da;
+    }).slice(0,500);
+
+  /* ── Historical rates from base-500 ── */
+  const won_base  = base.filter(d=>d.stage==='Closed Won');
+  const lost_base = base.filter(d=>d.stage==='Closed Lost');
+  const resolved  = won_base.length+lost_base.length;
+  const winRate   = resolved>0 ? won_base.length/resolved : 0;
+
+  // Avg submission → Intent to Award (IA date is a PAST date = notification date)
+  const subToIA_days = base
+    .filter(d=>d.intentDate&&d.submissionDate&&d.intentDate>d.submissionDate)
+    .map(d=>(d.intentDate-d.submissionDate)/86400000)
+    .filter(x=>x>0&&x<730);
+  const avgSubToIA = subToIA_days.length
+    ? Math.round(subToIA_days.reduce((s,x)=>s+x,0)/subToIA_days.length) : 90;
+
+  // Avg IA notification → formal award (tells us how long after getting IA notice it takes to win)
+  const iaToAward_days = won_base
+    .filter(d=>d.intentDate&&d.awardedDate&&d.awardedDate>=d.intentDate)
+    .map(d=>(d.awardedDate-d.intentDate)/86400000)
+    .filter(x=>x>0&&x<365);
+  const avgIAToAward = iaToAward_days.length
+    ? Math.round(iaToAward_days.reduce((s,x)=>s+x,0)/iaToAward_days.length) : 30;
+
+  // Avg deal value
+  const avgVal = won_base.length ? won_base.reduce((s,d)=>s+d.amount,0)/won_base.length : 0;
+
+  // ── Historical monthly award rate based on IA notification date ──
+  // For each historically won deal that has an IA date, bucket by month of IA notice
+  const iaWonByMonth = {};
+  won_base.forEach(d=>{
+    if(d.intentDate){
+      const k = d.intentDate.getFullYear()+'-'+d.intentDate.getMonth();
+      iaWonByMonth[k] = (iaWonByMonth[k]||0)+1;
+    }
+  });
+  const iaMonthCounts = Object.values(iaWonByMonth);
+  // avg awards per month in months where we had IA notices
+  const avgAwardsPerIAMonth = iaMonthCounts.length>0
+    ? +(iaMonthCounts.reduce((s,x)=>s+x,0)/iaMonthCounts.length).toFixed(1) : null;
+
+  // Also compute overall won-deals-per-month (using awarded/created date as proxy)
+  const wonAllByMonth = {};
+  won_base.forEach(d=>{
+    const ref = d.awardedDate||d.intentDate||d.createdDate;
+    if(ref){ const k=ref.getFullYear()+'-'+ref.getMonth(); wonAllByMonth[k]=(wonAllByMonth[k]||0)+1; }
+  });
+  const wonMonthCounts = Object.values(wonAllByMonth);
+  const avgWonPerMonth = wonMonthCounts.length>0
+    ? +(wonMonthCounts.reduce((s,x)=>s+x,0)/wonMonthCounts.length).toFixed(1) : 1;
+
+  /* ── Build 3 forecast months (rolling from today) ── */
+  const MONTHS = [0,1,2].map(i=>{
+    const s=addMonths(new Date(TODAY),i); s.setDate(1);
+    const e=new Date(s.getFullYear(), s.getMonth()+1, 0, 23,59,59);
+    // first month starts from today
+    if(i===0){ return { label:TODAY.toLocaleDateString('en-US',{month:'long'}), start:new Date(TODAY), end:e, idx:i }; }
+    return { label:s.toLocaleDateString('en-US',{month:'long'}), start:s, end:e, idx:i };
+  });
+
+  /* ── PREDICTION LOGIC ──
+     3-month delivery forecast uses ONLY high-confidence pipeline signals:
+
+     TIER 1 – Near Certain  → Intent to Award deals (IA notice already received)
+     TIER 2 – Probable      → Interview stage deals × historical win rate
+     EXCLUDED               → Submitted deals (results arrive 6+ months out — not meaningful for 3-mo window)
+
+     avgSubToIA and avgIAToAward are computed from historical data only.
+     Because HubSpot has very few completed IA→Award records, we focus
+     on the qualitative tiers rather than a date-projection model.
+  ── */
+
+  /* All active deals (from full dataset for live pipeline) */
+  const allActive   = rows.filter(d=>['Submitted','Interview','Intent to Award'].includes(d.stage));
+  const iaDeals     = allActive.filter(d=>d.stage==='Intent to Award');
+  const interviewDeals = allActive.filter(d=>d.stage==='Interview');
+  const submittedDeals = allActive.filter(d=>d.stage==='Submitted');
+
+  // Interview → probable awards: use overall win rate as conservative estimate
+  // (Interview deals are further along so actual conversion is likely higher)
+  const probableAwards = Math.round(interviewDeals.length * winRate);
+
+  // Tier 1 value: sum IA deal amounts
+  const iaValue = iaDeals.reduce((s,d)=>s+d.amount,0);
+  // Tier 2 value: probable interview awards × avg deal value
+  const interviewValue = probableAwards * avgVal;
+  const totalForecastValue = iaValue + interviewValue;
+
+  // "enriched" kept for backwards compat with sections below — only IA + Interview
+  const enriched = allActive.filter(d=>d.stage!=='Submitted').map(d=>{
+    return { ...d, projAward: null, isIA: d.stage==='Intent to Award' };
+  });
+
+  /* ── Category list ── */
+  const catSet = new Set();
+  base.forEach(d=> d.serviceCategory.split(';').map(c=>c.trim()).filter(Boolean).forEach(c=>catSet.add(c)));
+  const allCats = [...catSet].sort();
+  if (!activeCatTab) activeCatTab = allCats[0]||'';
+
+  /* ── Apply category filter ── */
+  function catMatch(d, cat){
+    if (!cat) return true;
+    return d.serviceCategory.split(';').map(c=>c.trim()).includes(cat);
+  }
+  const filteredEnriched = activeCat ? enriched.filter(d=>catMatch(d,activeCat)) : enriched;
+  const filteredBase     = activeCat ? base.filter(d=>catMatch(d,activeCat)) : base;
+
+  /* ── Filtered pipeline tiers ── */
+  const fIA        = filteredEnriched.filter(d=>d.isIA);
+  const fInterview = filteredEnriched.filter(d=>d.stage==='Interview');
+  const fSubmitted = activeCat ? submittedDeals.filter(d=>catMatch(d,activeCat)) : submittedDeals;
+  const fWin       = activeCat ? won_base.filter(d=>catMatch(d,activeCat)) : won_base;
+  const fLost      = activeCat ? lost_base.filter(d=>catMatch(d,activeCat)) : lost_base;
+  const fResolved  = fWin.length + fLost.length;
+  const fWinRate   = fResolved>0 ? fWin.length/fResolved : winRate;
+  const fProbable  = Math.round(fInterview.length * fWinRate);
+  const fTotalVal  = fIA.reduce((s,d)=>s+d.amount,0) + fProbable * avgVal;
+  const fTotalExpected = fIA.length + fProbable;
+
+  /* ── Monthly breakdown ──
+     Month 1: all current IA deals (imminent) + historical baseline as context
+     Month 2: 60% of probable interview awards + historical baseline
+     Month 3: remaining 40% of probable interview awards + historical baseline
+     Historical baseline = avgWonPerMonth from past closed-won data
+  ── */
+  const monthData = MONTHS.map((m,i)=>{
+    const iaCount  = i===0 ? fIA.length : 0;
+    const probN    = i===0 ? 0 : i===1 ? Math.ceil(fProbable*0.6) : Math.floor(fProbable*0.4);
+    const total    = iaCount + probN;
+    // Historical context: avg awards we've won per month
+    const histBase = avgWonPerMonth;
+    return { ...m, iaCount, projCount:probN, total, est:total*avgVal, histBase, avgVal };
+  });
+
+  /* ── Category analysis for win-rate panel ── */
+  const catWon={}, catLost={}, catBids={}, catActive2={};
+  base.forEach(d=>{
+    d.serviceCategory.split(';').map(c=>c.trim()).filter(Boolean).forEach(c=>{
+      catBids[c]  =(catBids[c] ||0)+1;
+      if(d.stage==='Closed Won')  catWon[c]  =(catWon[c] ||0)+1;
+      if(d.stage==='Closed Lost') catLost[c] =(catLost[c]||0)+1;
+      if(['Submitted','Interview','Intent to Award'].includes(d.stage)) catActive2[c]=(catActive2[c]||0)+1;
+    });
+  });
+  const catsSorted = Object.entries(catBids).sort((a,b)=>b[1]-a[1]);
+
+  /* ── State analysis ── */
+  const stateMap={};
+  filteredBase.forEach(d=>{ if(d.agencyState) stateMap[d.agencyState]=(stateMap[d.agencyState]||0)+1; });
+  const statesSorted=Object.entries(stateMap).sort((a,b)=>b[1]-a[1]);
+
+  /* ── Date range ── */
+  const dates=base.map(d=>d.submissionDate||d.createdDate).filter(Boolean).sort((a,b)=>a-b);
+  const rangeFrom=dates.length?fmtMon(dates[0]):'—';
+  const rangeTo  =dates.length?fmtMon(dates[dates.length-1]):'—';
+
+  /* ═══════════════ BUILD HTML ═══════════════ */
+  document.getElementById('dashboard').innerHTML=`
+
+    <!-- HERO -->
+    <div class="pred-hero">
+      <div class="pred-hero__tag">✦ Delivery Planning Forecast</div>
+      <div class="pred-hero__title">3-Month Incoming Work Volume<br><span>${fmtD(TODAY,{month:'long',day:'numeric',year:'numeric'})} → ${fmtD(WIN_END,{month:'long',day:'numeric',year:'numeric'})}</span></div>
+      <div class="pred-hero__sub">Based on Intent-to-Award pipeline signals and historical win patterns. Helps delivery teams plan staffing and capacity for incoming contract work.</div>
+      <div class="pred-hero__meta">
+        <div class="pred-hero__mi"><div class="pred-hero__ml">Data window</div><div class="pred-hero__mv">${rangeFrom} → ${rangeTo}</div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">RFPs analysed</div><div class="pred-hero__mv">${base.length}</div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">Overall win rate</div><div class="pred-hero__mv">${fp(winRate*100)}</div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">Active IA deals</div><div class="pred-hero__mv">${iaDeals.length} <span style="font-size:.72rem;opacity:.7">near-certain</span></div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">In interview</div><div class="pred-hero__mv">${interviewDeals.length} <span style="font-size:.72rem;opacity:.7">probable</span></div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">Active submitted</div><div class="pred-hero__mv">${submittedDeals.length} <span style="font-size:.72rem;opacity:.7">6 mo+ out</span></div></div>
+        <div class="pred-hero__mi"><div class="pred-hero__ml">Hist. avg awards / mo</div><div class="pred-hero__mv">${avgWonPerMonth}${avgAwardsPerIAMonth!==null?' <span style="font-size:.72rem;opacity:.7">('+avgAwardsPerIAMonth+' via IA)</span>':''}</div></div>
+      </div>
+    </div>
+
+    <!-- CATEGORY FILTER -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:.76rem;font-weight:600;color:var(--ca-gray-500);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Filter by Service Category</div>
+      <div class="pred-cat-filter" id="cat-filter-bar">
+        <button class="pred-cat-tab ${activeCat===''?'active':''}" data-cat="">All Categories</button>
+        ${allCats.map(c=>`<button class="pred-cat-tab ${activeCat===c?'active':''}" data-cat="${c}">${c}</button>`).join('')}
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="pred-kpi-grid">
+      <div class="pred-kpi c1">
+        <div class="kpi-info-wrap">
+          <button class="kpi-info-btn" onclick="toggleTip(this)">i</button>
+          <div class="kpi-info-tip">
+            <strong>How calculated:</strong> Counts all deals currently in the <em>Intent to Award</em> stage in HubSpot. These deals have already received a formal IA notification from the agency — the award is near-certain and formal contract signing is imminent.
+            ${avgAwardsPerIAMonth!==null?'<br><br>Historically, <strong>'+avgAwardsPerIAMonth+' deals/month</strong> have won after receiving an IA notice.':''}
+          </div>
+        </div>
+        <div class="pred-kpi__icon">✅</div>
+        <div class="pred-kpi__label">Tier 1 — Near Certain</div>
+        <div class="pred-kpi__value">${fIA.length}</div>
+        <div class="pred-kpi__sub">Intent-to-Award notice received · formal award imminent</div>
+        <div class="pred-kpi__tag g">◉ IA stage deals</div>
+      </div>
+      <div class="pred-kpi c2">
+        <div class="kpi-info-wrap">
+          <button class="kpi-info-btn" onclick="toggleTip(this)">i</button>
+          <div class="kpi-info-tip">
+            <strong>How calculated:</strong> <strong>${fInterview.length} deals</strong> currently in the Interview stage × <strong>${fp(fWinRate*100)} historical win rate</strong> (${fWin.length} won out of ${fWin.length+fLost.length} resolved deals in the last 500 RFPs).<br><br>Interview-stage deals have cleared initial screening, so actual conversion is likely higher than the overall win rate.
+          </div>
+        </div>
+        <div class="pred-kpi__icon">🎯</div>
+        <div class="pred-kpi__label">Tier 2 — Probable</div>
+        <div class="pred-kpi__value">${fProbable}</div>
+        <div class="pred-kpi__sub">${fInterview.length} interview deals × ${fp(fWinRate*100)} win rate</div>
+        <div class="pred-kpi__tag b">◉ Interview stage</div>
+      </div>
+      <div class="pred-kpi c3">
+        <div class="kpi-info-wrap">
+          <button class="kpi-info-btn" onclick="toggleTip(this)">i</button>
+          <div class="kpi-info-tip">
+            <strong>Why excluded from forecast:</strong> These <strong>${fSubmitted.length} submitted bids</strong> are active but government RFP cycles typically run 6–12 months from submission to award. Including them would inflate the 3-month forecast with highly uncertain projections.<br><br>They represent your <em>future</em> pipeline and will feed into next quarter's forecast as they progress to Interview or IA stage.
+          </div>
+        </div>
+        <div class="pred-kpi__icon">📋</div>
+        <div class="pred-kpi__label">Active Bids (context only)</div>
+        <div class="pred-kpi__value">${fSubmitted.length}</div>
+        <div class="pred-kpi__sub">Submitted — results expected 6+ months out, not in 3-mo window</div>
+        <div class="pred-kpi__tag v">◉ Long-cycle</div>
+      </div>
+      <div class="pred-kpi c4">
+        <div class="kpi-info-wrap">
+          <button class="kpi-info-btn" onclick="toggleTip(this)">i</button>
+          <div class="kpi-info-tip">
+            <strong>How calculated:</strong><br>
+            • IA deals: sum of contract amounts = <strong>${fK(fIA.reduce((s,d)=>s+d.amount,0))}</strong><br>
+            • Probable (${fProbable} awards): × avg deal size <strong>${fK(avgVal)}</strong> = <strong>${fK(fProbable*avgVal)}</strong><br><br>
+            Avg deal size is based on ${won_base.length} historically won deals. Deals with no amount recorded are excluded from the avg.
+          </div>
+        </div>
+        <div class="pred-kpi__icon">💰</div>
+        <div class="pred-kpi__label">Est. 3-Month Value</div>
+        <div class="pred-kpi__value">${fK(fTotalVal)}</div>
+        <div class="pred-kpi__sub">${fIA.length} IA (${fK(fIA.reduce((s,d)=>s+d.amount,0))}) + ${fProbable} probable (${fK(fProbable*avgVal)})</div>
+        <div class="pred-kpi__tag v">◉ Delivery estimate</div>
+      </div>
+    </div>
+
+    <!-- MONTHLY FORECAST -->
+    <div class="pred-months" id="months-row"></div>
+
+    <!-- IA Deals table — full width -->
+    <div class="pred-panel" style="margin-bottom:20px">
+      <div class="pred-panel__head">
+        <div class="pred-panel__title">✅ Current Intent-to-Award Deals</div>
+        <div class="pred-panel__badge g">${fIA.length} near-certain</div>
+      </div>
+      <div style="overflow-x:auto;max-height:340px;overflow-y:auto" id="ia-tbl-wrap"></div>
+    </div>
+
+    <!-- PER-CATEGORY ANALYSIS -->
+    <div class="pred-panel cat-section" style="margin-bottom:22px">
+      <div class="pred-panel__head">
+        <div class="pred-panel__title">📂 Per-Category Analysis & Top 10 Most Bid RFPs</div>
+        <div class="pred-panel__badge v">${allCats.length} service categories</div>
+      </div>
+      <div class="pred-panel__body">
+        <div class="cat-tabs" id="cat-tabs"></div>
+        <div id="cat-tab-contents"></div>
+      </div>
+    </div>
+
+    <!-- Method note -->
+    <div class="pred-note">
+      <span style="flex-shrink:0">ℹ️</span>
+      <span><strong>3-Signal Methodology:</strong>
+        The forecast combines three independent signals and takes the strongest reading for each month.
+        <strong>(1) Intent-to-Award (IA) deals</strong> — formal notice already received, award near-certain, expected in Month 1.
+        <strong>(2) Interview-stage pipeline</strong> — ${interviewDeals.length} deals × ${fp(winRate*100)} historical win rate = ${probableAwards} probable awards, distributed 60% Month 2 / 40% Month 3.
+        <strong>(3) Rolling monthly award avg</strong> — ${avgWonPerMonth} awards/month historical baseline (${avgAwardsPerIAMonth!==null?avgAwardsPerIAMonth+' via IA-tracked months':'based on award dates'}).
+        Each month's projected total = <strong>max(pipeline signal, rolling avg)</strong> — whichever is higher drives the forecast, so a thin pipeline month still reflects our historical award velocity.
+        <strong>Submitted deals (${submittedDeals.length} active) are excluded</strong> — government RFP cycles are 6–12 months from submission to award.
+        Avg deal size: ${fK(avgVal)} from ${base.length} historical RFPs (${rangeFrom}–${rangeTo}).
+      </span>
+    </div>
+  `;
+
+  /* ═════ WIRE CATEGORY FILTER ═════ */
+  document.getElementById('cat-filter-bar').addEventListener('click', e=>{
+    const btn=e.target.closest('[data-cat]');
+    if (!btn) return;
+    activeCat=btn.dataset.cat;
+    render();
+  });
+
+  /* ═════ RENDER ALL SECTIONS ═════ */
+  renderMonths(monthData, fProbable);
+  renderIATable(fIA);
+  renderCatTabs(allCats, base, catWon, catLost, catBids, catActive2, null, avgWonPerMonth);
+}
+
+/* ══════════════════════════════════════════════
+   MONTHLY CARDS
+══════════════════════════════════════════════ */
+function renderMonths(monthData, fProbable){
+  const row=document.getElementById('months-row'); if(!row) return;
+  const grads=[
+    'linear-gradient(135deg,#1B3A60,#1E5080)',
+    'linear-gradient(135deg,#1A4E6A,#1B6280)',
+    'linear-gradient(135deg,#1E4060,#245070)'
+  ];
+  const tipText=[
+    'Month 1 shows all current Intent-to-Award deals — these are imminent. No interview pipeline is included here as those conversions take longer. Historical avg awards/month: '+monthData[0].histBase+'.',
+    'Month 2 shows ~60% of probable interview-stage conversions ('+monthData[1].projCount+' of '+fProbable+' probable). Historical avg awards/month: '+monthData[1].histBase+'.',
+    'Month 3 shows the remaining ~40% of probable interview conversions ('+monthData[2].projCount+' of '+fProbable+' probable). Historical avg awards/month: '+monthData[2].histBase+'.'
+  ];
+  row.innerHTML=monthData.map((m,i)=>{
+    const histFloor  = Math.round(m.histBase);
+    const pipelineN  = m.iaCount + m.projCount;
+    const displayN   = Math.max(pipelineN, histFloor);
+    const usingHist  = displayN > pipelineN;
+    const signalNote = usingHist
+      ? `Historical floor (${histFloor}/mo) > pipeline signal (${pipelineN})`
+      : `Pipeline signal (${pipelineN}) ≥ historical avg (${histFloor}/mo)`;
+    return `
+    <div class="pred-month" style="position:relative">
+      <div style="position:absolute;top:10px;right:10px;z-index:10">
+        <button class="kpi-info-btn" style="border-color:rgba(255,255,255,.45);color:rgba(255,255,255,.7)" onclick="toggleTip(this)">i</button>
+        <div class="kpi-info-tip" style="right:0;top:22px">${tipText[i]}<br><br><strong>Signal used:</strong> ${signalNote}.</div>
+      </div>
+      <div class="pred-month__head" style="background:${grads[i]}">
+        <div class="pred-month__name">${m.label} ${m.start.getFullYear()}</div>
+        <div class="pred-month__range">${fmtD(m.start,{month:'short',day:'numeric'})} – ${fmtD(m.end,{month:'short',day:'numeric'})}</div>
+      </div>
+      <div class="pred-month__body">
+        <div class="pred-month-row"><span class="pred-month-row__lbl">✅ Near-Certain (IA)</span><span class="pred-month-row__val ia">${m.iaCount}</span></div>
+        <div class="pred-month-row"><span class="pred-month-row__lbl">🎯 Probable (Interview)</span><span class="pred-month-row__val proj">${m.projCount}</span></div>
+        <div class="pred-month-row" style="opacity:.7"><span class="pred-month-row__lbl" style="font-size:.73rem">📊 Rolling Avg (hist.)</span><span class="pred-month-row__val" style="color:var(--p-slate);font-size:.8rem">${histFloor}/mo</span></div>
+        <div class="pred-month__total" style="${usingHist?'border-color:var(--p-amber);background:var(--p-amber-bg)':''}">
+          <div class="pred-month__total-n" style="${usingHist?'color:var(--p-amber)':''}">${displayN}</div>
+          <div class="pred-month__total-sub" style="${usingHist?'color:var(--p-amber)':''}">Projected Awards${usingHist?' ↑ hist. floor':''}</div>
+        </div>
+        ${m.avgVal>0?`<div class="pred-month__val">~${fK(displayN * m.avgVal)} est. value</div>`:''}
+        <div class="pred-month__hist" style="${usingHist?'color:var(--p-amber);font-weight:600':''}">Hist. avg: <strong>${m.histBase}</strong> awards/mo${usingHist?' · driving forecast':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   WIN RATES
+══════════════════════════════════════════════ */
+function renderWinRates(catsSorted, catWon, catLost, catActive){
+  const body=document.getElementById('wr-body'); if(!body) return;
+  const rows=catsSorted.slice(0,10).map(([cat])=>{
+    const w=catWon[cat]||0, l=catLost[cat]||0, a=catActive[cat]||0;
+    const wr=(w+l)>0?w/(w+l)*100:0;
+    return {cat,w,l,a,wr};
+  }).sort((a,b)=>b.wr-a.wr);
+  body.innerHTML=rows.map(r=>`
+    <div class="wr-row">
+      <div class="wr-nm" title="${r.cat}">${trunc(r.cat,22)}</div>
+      <div class="wr-bar"><div class="wr-fill" style="width:${Math.min(r.wr,100)}%"></div></div>
+      <div class="wr-pct">${r.wr>0?fp(r.wr):'—'}</div>
+      <div class="wr-cnt" title="${r.w}W/${r.l}L/${r.a}A">${r.w}W·${r.a}A</div>
+    </div>`).join('')||'<div class="empty-msg">No data.</div>';
+}
+
+/* ══════════════════════════════════════════════
+   IA TABLE
+══════════════════════════════════════════════ */
+function renderIATable(deals){
+  const wrap=document.getElementById('ia-tbl-wrap'); if(!wrap) return;
+  if(!deals.length){
+    wrap.innerHTML='<div class="empty-msg">No active Intent-to-Award deals.</div>'; return;
+  }
+  const sorted=[...deals].sort((a,b)=>{
+    const ea=a.projAward||new Date(9e15), eb=b.projAward||new Date(9e15);
+    return ea-eb;
+  });
+  wrap.innerHTML=`<table class="pred-ia-tbl">
+    <thead><tr><th>#</th><th>Deal Name</th><th>Agency</th><th>State</th><th>Category</th><th>Est. Award</th><th style="text-align:right">Value</th></tr></thead>
+    <tbody>${sorted.map((d,i)=>`
+      <tr>
+        <td style="color:var(--ca-gray-400);font-size:.72rem">${i+1}</td>
+        <td><div class="ia-nm" title="${d.dealName}">${trunc(d.dealName,38)}</div></td>
+        <td style="font-size:.76rem">${trunc(d.agency,20)}</td>
+        <td style="font-size:.74rem">${d.agencyState||'—'}</td>
+        <td><div style="font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px" title="${d.serviceCategory}">${trunc(d.serviceCategory,18)}</div></td>
+        <td><span class="ia-badge cur">~${d.projAward?fmtD(d.projAward,{month:'short',day:'numeric'}):'Soon'}</span></td>
+        <td style="text-align:right;font-size:.76rem;font-weight:700">${d.amount>0?fK(d.amount):'—'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+/* ══════════════════════════════════════════════
+   FUNNEL
+══════════════════════════════════════════════ */
+function renderFunnel(rows, winRate){
+  const body=document.getElementById('funnel-body'); if(!body) return;
+  const sub  =rows.filter(d=>d.stage==='Submitted').length;
+  const intvw=rows.filter(d=>d.stage==='Interview').length;
+  const ia   =rows.filter(d=>d.stage==='Intent to Award').length;
+  const won  =rows.filter(d=>d.stage==='Closed Won').length;
+  const stages=[
+    {l:'Submitted',       n:sub,  g:'linear-gradient(90deg,#3730A3,#4F46E5)',w:100},
+    {l:'Interview',       n:intvw,g:'linear-gradient(90deg,#2D60C4,#5B4FBE)',w:pct(intvw,sub||1)},
+    {l:'Intent to Award', n:ia,   g:'linear-gradient(90deg,#7C3AED,#9B1C52)',w:pct(ia,sub||1)},
+    {l:'Closed Won (all)',n:won,  g:'linear-gradient(90deg,#9B1C52,#BE185D)',w:pct(won,sub||1)},
+  ];
+  body.innerHTML=`
+    <div class="conv-meter">
+      <div class="conv-meter__body">
+        <div class="conv-meter__lbl">Overall Win Rate</div>
+        <div class="conv-meter__track"><div class="conv-meter__fill" style="width:${Math.min(winRate*100,100)}%"></div></div>
+      </div>
+      <div class="conv-meter__pct">${fp(winRate*100)}</div>
+    </div>
+    ${stages.map((s,i)=>`
+      ${i>0?`<div class="funnel-arrow">▼ ${[fp(pct(intvw,sub||1)),fp(pct(ia,intvw||1)),fp(pct(won,ia||1))][i-1]} conv.</div>`:''}
+      <div class="funnel-step">
+        <div class="funnel-bar" style="background:${s.g};width:${Math.max(s.w,12)}%">
+          <span class="funnel-lbl">${s.l}</span><span class="funnel-cnt">${s.n}</span>
+        </div>
+      </div>`).join('')}
+    <div style="margin-top:10px;font-size:.74rem;color:var(--ca-gray-400);border-top:1px solid var(--p-border);padding-top:9px">
+      ${ia} active IA deals = <strong style="color:var(--p-indigo)">most imminent incoming work</strong>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════
+   STATES
+══════════════════════════════════════════════ */
+function renderStates(statesSorted){
+  const body=document.getElementById('states-body'); if(!body) return;
+  const top15=statesSorted.slice(0,15);
+  const max=top15[0]?.[1]||1;
+  const pal=['#1E5EA8','#1D6F5A','#2E6DA4','#25896F','#475569','#7A4F1E','#356090','#2558A0','#1A7060','#486A80','#3A6878','#2A5870','#1E4E88','#356858','#5A6A7A'];
+  body.innerHTML=top15.map(([st,cnt],i)=>`
+    <div class="pbar">
+      <div class="pbar-meta"><div class="pbar-lbl">${st}</div><div class="pbar-val">${cnt}</div></div>
+      <div class="pbar-track"><div class="pbar-fill" style="width:${pct(cnt,max)}%;background:${pal[i%pal.length]}"></div></div>
+    </div>`).join('')||'<div class="empty-msg">No state data.</div>';
+}
+
+/* ══════════════════════════════════════════════
+   INSIGHTS
+══════════════════════════════════════════════ */
+function renderInsights(d){
+  const body=document.getElementById('insights-body'); if(!body) return;
+  const topState=d.statesSorted[0];
+  const top2State=d.statesSorted[1];
+
+  const ins=[
+    {cls:'g', em:'✅',
+     txt: d.fIA.length>0
+       ? `<strong>${d.fIA.length} deal${d.fIA.length!==1?'s':''}</strong> have active Intent-to-Award notices — these are your most certain incoming contracts. Prepare delivery resources now.`
+       : `No active Intent-to-Award deals at the moment. Monitor the pipeline for upcoming IA notifications.`},
+    {cls:'', em:'🎯',
+     txt:`<strong>${d.fInterview.length} deals are in the Interview stage</strong>. At a ${fp(d.fWinRate*100)} historical win rate, expect roughly <strong>${d.fProbable} award${d.fProbable!==1?'s':''}</strong> from this group over the next 1–3 months. Estimated value: <strong>${fK(d.fTotalVal)}</strong>.`},
+    {cls:'v', em:'📋',
+     txt:`<strong>${d.fSubmitted.length} submitted bids</strong> are in the pipeline but excluded from this 3-month forecast — government RFP cycles are typically 6–12 months from submission to award. These represent future pipeline, not imminent delivery.`},
+    topState?{cls:'r', em:'📍',
+     txt:`<strong>${topState[0]}</strong> leads bid activity (${topState[1]} RFPs)${top2State?`, followed by <strong>${top2State[0]}</strong> (${top2State[1]})`:''}. Prioritise delivery staffing in these states.`}:null,
+    d.activeCat?{cls:'v', em:'🔵',
+     txt:`Filtered for <strong>${d.activeCat}</strong>: ${d.fIA.length} active IA deals, ${d.fInterview.length} in interview, <strong>${fp(d.fWinRate*100)} win rate</strong> — ${d.fProbable} probable awards.`}:null,
+    {cls:'g', em:'💡',
+     txt:`For accurate future forecasts, ensure <strong>Intent to Award Date</strong>, <strong>Awarded Date</strong>, and <strong>Interview Flag</strong> are consistently filled in HubSpot — this will enable automatic timeline modelling as more historical data accumulates.`},
+  ].filter(Boolean);
+
+  body.innerHTML=ins.map(i=>`
+    <div class="insight ${i.cls}">
+      <div class="insight__em">${i.em}</div>
+      <div class="insight__txt">${i.txt}</div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   PER-CATEGORY TABS
+══════════════════════════════════════════════ */
+function renderCatTabs(allCats, base, catWon, catLost, catBids, catActive, _unused, avgWonPerMonth){
+  const tabsEl    = document.getElementById('cat-tabs');
+  const contentsEl= document.getElementById('cat-tab-contents');
+  if (!tabsEl||!contentsEl||!allCats.length) return;
+
+  /* ── Build tab buttons ── */
+  tabsEl.innerHTML = allCats.map(c => {
+    const active = activeCatTab===c ? 'active' : '';
+    return '<button class="cat-tab-btn '+active+'" data-ctab="'+c+'">'+trunc(c,20)+'</button>';
+  }).join('');
+
+  /* ── Build content for one category ── */
+  function buildCatContent(cat){
+    try {
+      const pool  = base.filter(d => d.serviceCategory.split(';').map(x=>x.trim()).includes(cat));
+      const w     = catWon[cat]||0;
+      const l     = catLost[cat]||0;
+      const a     = catActive[cat]||0;
+      const total = catBids[cat]||0;
+      const wr    = (w+l)>0 ? w/(w+l)*100 : 0;
+
+      /* ── Category-specific rolling avg ── */
+      const catWonDeals = pool.filter(d => d.stage==='Closed Won');
+      const catWonByMo  = {};
+      catWonDeals.forEach(d => {
+        const ref = d.awardedDate||d.intentDate||d.createdDate;
+        if(ref){ const k=ref.getFullYear()+'-'+ref.getMonth(); catWonByMo[k]=(catWonByMo[k]||0)+1; }
+      });
+      const catMoCounts    = Object.values(catWonByMo);
+      const catAvgPerMonth = catMoCounts.length>0
+        ? +(catMoCounts.reduce((s,x)=>s+x,0)/catMoCounts.length).toFixed(1) : 0;
+      const catHist3mo     = Math.round(catAvgPerMonth * 3);
+
+      /* ── Category ITA and Interview counts ── */
+      const catIA        = pool.filter(d => d.stage==='Intent to Award').length;
+      const catInterview = pool.filter(d => d.stage==='Interview').length;
+      const pipelineN    = catIA + Math.round(catInterview * (wr/100 || 0));
+      const projN        = Math.max(pipelineN, catHist3mo);
+      const usingHist    = projN > pipelineN;
+
+      /* ── Top states for this category ── */
+      const stMap = {};
+      pool.forEach(d => { if(d.agencyState) stMap[d.agencyState]=(stMap[d.agencyState]||0)+1; });
+      const topStates = Object.entries(stMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const stMax     = topStates[0]?.[1] || 1;
+      const stPal     = ['#1E5EA8','#1D6F5A','#2E6DA4','#25896F','#475569','#7A4F1E','#356090','#3A6878'];
+
+      /* ── Technology keyword extraction ── */
+      const keywords   = extractKeywords(pool, 30);
+      const kwMax      = keywords[0]?.[1] || 1;
+
+      // Tiered palette: high-freq = deep blue/teal, mid = slate, low = muted
+      function kwStyle(cnt, max) {
+        const ratio = cnt / max;
+        if (ratio >= 0.6) return { bg:'#1E5EA8', fg:'#ffffff', sz:'0.9rem' };
+        if (ratio >= 0.35) return { bg:'#1D6F5A', fg:'#ffffff', sz:'0.84rem' };
+        if (ratio >= 0.18) return { bg:'#475569', fg:'#ffffff', sz:'0.79rem' };
+        return { bg:'var(--p-mist)', fg:'var(--ca-gray-700)', sz:'0.75rem', border:'1px solid var(--p-border)' };
+      }
+
+      /* ── KPI mini row — 5 boxes ── */
+      const projSub = catAvgPerMonth>0
+        ? (usingHist ? catHist3mo+' hist · '+pipelineN+' pipeline' : pipelineN+' pipeline · '+catHist3mo+' hist')
+        : (pipelineN+' from pipeline');
+      const kpis = [
+        {lbl:'Total Bids',         val:total,                                       sub:'in dataset'},
+        {lbl:'Win Rate',           val:wr>0?fp(wr):'—',                            sub:w+' won / '+l+' lost'},
+        {lbl:'Active Pipeline',    val:a,                                           sub:catIA+' IA · '+catInterview+' interview'},
+        {lbl:'Rolling Avg / mo',   val:catAvgPerMonth>0?catAvgPerMonth:'—',        sub:catMoCounts.length+' month'+(catMoCounts.length!==1?'s':'')+' of wins'},
+        {lbl:'Projected (3 mo)',   val:projN,                                       sub:projSub, highlight:usingHist},
+      ];
+      let kpiHtml = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">';
+      kpis.forEach(k => {
+        const hStyle = k.highlight ? 'background:var(--p-amber-bg);border-color:var(--p-amber)' : '';
+        const vStyle = k.highlight ? 'color:var(--p-amber)' : 'color:var(--p-blue)';
+        kpiHtml += '<div class="mini-kpi" style="'+hStyle+'">'
+          +'<div class="mini-kpi__lbl">'+k.lbl+'</div>'
+          +'<div class="mini-kpi__val" style="'+vStyle+'">'+k.val+'</div>'
+          +'<div class="mini-kpi__sub">'+k.sub+'</div>'
+          +'</div>';
+      });
+      kpiHtml += '</div>';
+
+      /* ── States bar list ── */
+      const statesHtml = topStates.length
+        ? topStates.map(([st,cnt],i) => {
+            const barW = Math.round(pct(cnt,stMax));
+            return '<div class="pbar" style="margin-bottom:9px">'
+              +'<div class="pbar-meta">'
+                +'<div class="pbar-lbl" style="font-size:.81rem">'+st+'</div>'
+                +'<div class="pbar-val" style="font-size:.77rem">'+cnt+'</div>'
+              +'</div>'
+              +'<div class="pbar-track">'
+                +'<div class="pbar-fill" style="width:'+barW+'%;background:'+stPal[i%stPal.length]+'"></div>'
+              +'</div>'
+              +'</div>';
+          }).join('')
+        : '<div class="empty-msg" style="padding:16px">No state data for this category.</div>';
+
+      /* ── Keyword cloud HTML ── */
+      const kwHtml = keywords.length
+        ? '<div class="kw-cloud">'
+            + keywords.map(([kw, cnt]) => {
+                const s = kwStyle(cnt, kwMax);
+                return '<span class="kw-pill" title="'+cnt+' RFPs mention \''+kw+'\'" style="'
+                  +'background:'+s.bg+';color:'+s.fg+';font-size:'+s.sz
+                  +(s.border?';border:'+s.border:'')
+                  +'">'
+                  +'<span class="kw-pill__text">'+kw+'</span>'
+                  +'<span class="kw-pill__cnt">'+cnt+'</span>'
+                  +'</span>';
+              }).join('')
+          + '</div>'
+          + '<div style="margin-top:10px;font-size:.69rem;color:var(--ca-gray-400)">Extracted from RFP deal names in this category. Larger/darker = more frequent across bids.</div>'
+        : '<div class="empty-msg">Not enough data to extract keywords.</div>';
+
+      /* ── Assemble: KPIs + 2-col (States | Keywords) ── */
+      return kpiHtml
+        + '<div style="display:grid;grid-template-columns:260px 1fr;gap:14px;align-items:start">'
+          /* States panel */
+          + '<div class="pred-panel">'
+            + '<div class="pred-panel__head">'
+              + '<div class="pred-panel__title">📍 Top Bidding States</div>'
+              + '<div class="pred-panel__badge n">'+topStates.length+' states</div>'
+            + '</div>'
+            + '<div class="pred-panel__body" style="padding:14px 16px">'+statesHtml+'</div>'
+          + '</div>'
+          /* Keywords panel */
+          + '<div class="pred-panel">'
+            + '<div class="pred-panel__head">'
+              + '<div class="pred-panel__title">🏷️ Technology Keywords — <span style="color:var(--p-blue)">'+trunc(cat,28)+'</span></div>'
+              + '<div class="pred-panel__badge b">'+keywords.length+' keywords · for recruiters</div>'
+            + '</div>'
+            + '<div class="pred-panel__body">'+kwHtml+'</div>'
+          + '</div>'
+        + '</div>';
+
+    } catch(err) {
+      console.error('buildCatContent error:', err);
+      return '<div class="empty-msg">Error rendering category: '+err.message+'</div>';
+    }
+  }
+
+  /* ── Tab switching ── */
+  function showTab(cat){
+    if (!cat) return;
+    activeCatTab = cat;
+    tabsEl.querySelectorAll('.cat-tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.ctab===cat)
+    );
+    contentsEl.innerHTML = '<div class="cat-tab-content active">'+buildCatContent(cat)+'</div>';
+  }
+
+  /* Use onclick to avoid duplicate listeners on re-render */
+  tabsEl.onclick = e => {
+    const btn = e.target.closest('[data-ctab]');
+    if (btn) showTab(btn.dataset.ctab);
+  };
+
+  showTab(activeCatTab || allCats[0] || '');
+}
+
+render();
+</script>
+</body>
+</html>
