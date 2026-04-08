@@ -305,7 +305,7 @@ async function render() {
         interviewSubcategory:   row['Interview Subcategory'] || '',
         bidClosingDate:         row['Bid Closing Date'] || '',
         submissionDate:         row['Submission Date'] || '',
-        amount:                 parseFloat(row['Amount ($)']) || 0,
+        amount:                 parseFloat(String(row['Amount ($)']).replace(/[,$]/g,'')) || 0,
         serviceCategory:        row['Service Category'] || '',
         submissionMode:         row['Submission Mode'] || '',
         owner:                  row['Owner'] || '',
@@ -330,7 +330,7 @@ async function render() {
       .filter(r => r['Stage'] === 'Closed Won' || r['Stage'] === 'Intent to Award')
       .map(r => ({
         dealName: r['Deal Name']||'', agency: r['Agency']||'', agencyState: r['Agency State']||'',
-        stage: r['Stage']||'', amount: parseFloat(r['Amount ($)'])||0,
+        stage: r['Stage']||'', amount: parseFloat(String(r['Amount ($)']).replace(/[,$]/g,''))||0,
         serviceCategory: r['Service Category']||'', intentToAwardDate: r['Intent to Award Date']||'',
         awardedDate: r['Awarded Date']||'', awardStatus: r['Award Status']||'',
         hubspotLink: r['HubSpot Link']||'', owner: r['Owner']||'',

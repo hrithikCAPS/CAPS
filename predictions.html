@@ -377,7 +377,7 @@ async function render() {
       agency:          n['Agency']||'',
       agencyState:     (n['Agency State']||'').trim(),
       serviceCategory: n['Service Category']||'',
-      amount:          parseFloat(n['Amount ($)'])||0,
+      amount:          parseFloat(String(n['Amount ($)']).replace(/[,$]/g,''))||0,
       submissionDate:  pd(n['Submission Date']),
       awardedDate:     pd(n['Awarded Date']),
       intentDate:      pd(n['Intent to Award Date']),

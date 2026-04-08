@@ -39,12 +39,24 @@ HUBSPOT → EXCEL PROPERTY MAPPING:
 - reason_of_close_lost → Lost Reason
 - delivery_needed → Delivery Required
 
-AGENCY STATE LOOKUP (separate step — companies object):
-- After pulling deals, search companies object: objectType=companies, filter: agency_state HAS_PROPERTY, properties: [name, agency_state]
-- Paginate all results (limit 200, paginate until done)
-- Build lookup: company name (normalized, lowercased) → agency_state value
-- Match each deal's "Agency" field (normalized) to the lookup
+AGENCY STATE LOOKUP (via deal-company association — CRITICAL: do NOT search all companies):
+- Every deal in HubSpot has an associated company (agency) object. That company object has the "agency_state" property.
+- You MUST pull agency states by following deal→company associations, NOT by searching all companies globally.
+- Process in batches of 100 deal IDs (collect all deal IDs from RFP + Awards queries first):
+  For each batch of up to 100 deal IDs:
+    search_crm_objects(
+      objectType="companies",
+      filterGroups=[{associatedWith: [{objectType: "deals", operator: "IN", objectIdValues: [batch_of_deal_ids]}]}],
+      properties=["name", "agency_state"],
+      limit=200,
+      paginate until done
+    )
+- This returns ONLY companies actually linked to your deals (not all 1800+ companies in HubSpot).
+- Build lookup: company name (normalized, lowercased, stripped) → agency_state value
+- Match each deal's "Agency" field (normalized, lowercased, stripped) to the lookup
 - Write the matched state to the "Agency State" column (column F, after Agency)
+- NOTE: Some companies may have no agency_state set in HubSpot — leave those cells blank
+- NOTE: 599 deal IDs → 6 batches of ~100 → returns ~95-100 companies per batch (~570 total unique companies)
 
 INTERVIEW FLAG LOGIC:
 - Flag = "Yes" if: interview_type OR interview_date_time OR bafo_date is not empty, OR stage = Interview
