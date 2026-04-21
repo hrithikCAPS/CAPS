@@ -12,6 +12,68 @@
     .chart-container.h320 { height: 340px; }
     .chart-container.h380 { height: 400px; }
 
+    /* Page header with CTA */
+    .ca-page-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .ca-page-header__text { flex: 1; min-width: 280px; }
+
+    /* Flashy "Top Target States" CTA — on-brand navy → blue gradient */
+    .cta-target-states {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 22px;
+      background: linear-gradient(135deg, var(--ca-navy) 0%, var(--ca-blue) 55%, #4F80E0 100%);
+      color: #fff; text-decoration: none;
+      font-family: var(--font-family); font-size: 0.92rem; font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 30px;
+      box-shadow: 0 6px 18px -4px rgba(27,47,94,0.45), 0 2px 4px rgba(45,96,196,0.25);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      white-space: nowrap; overflow: hidden;
+    }
+    .cta-target-states::before {
+      /* subtle moving sheen */
+      content: ''; position: absolute; top: 0; left: -60%;
+      width: 50%; height: 100%;
+      background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+      transform: skewX(-20deg);
+      animation: cta-sheen 3.2s ease-in-out infinite;
+    }
+    @keyframes cta-sheen {
+      0%, 15%   { left: -60%; }
+      55%, 100% { left: 140%; }
+    }
+    .cta-target-states:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px -4px rgba(27,47,94,0.55), 0 4px 8px rgba(45,96,196,0.3);
+    }
+    .cta-target-states:active { transform: translateY(0); }
+    .cta-target-states__icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      font-size: 0.9rem;
+    }
+    .cta-target-states__pulse {
+      position: absolute; top: 8px; right: 10px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--ca-crimson);
+      box-shadow: 0 0 0 0 rgba(190,18,60,0.6);
+      animation: cta-pulse 1.8s ease-out infinite;
+    }
+    @keyframes cta-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(190,18,60,0.55); }
+      70%  { box-shadow: 0 0 0 8px rgba(190,18,60,0);   }
+      100% { box-shadow: 0 0 0 0 rgba(190,18,60,0);     }
+    }
+    .cta-target-states__arrow {
+      font-size: 1.05rem; line-height: 1;
+      transition: transform 0.18s ease;
+    }
+    .cta-target-states:hover .cta-target-states__arrow { transform: translateX(3px); }
+
     /* Global filter bar */
     .ca-global-filter {
       display: flex; align-items: center; gap: 12px;
@@ -231,15 +293,19 @@
       });
     }
 
-    /* State options (all states present in base, sorted by bid count) */
+    /* State options — restricted to our 4 target states (CA, NY, TX, FL)
+       since similar deep-dive analysis is being rolled out for all of them. */
+    const TARGET_STATE_ABBRS = ['CA', 'NY', 'TX', 'FL'];
     const stateOptMap = {};
     base.forEach(d => {
       const abbr = toAbbr(d.agencyState);
       if (abbr) stateOptMap[abbr] = (stateOptMap[abbr] || 0) + 1;
     });
-    const stateOptions = Object.entries(stateOptMap)
-      .sort((a, b) => b[1] - a[1])
-      .map(([abbr, cnt]) => ({ abbr, name: ABBR_TO_NAME[abbr] || abbr, cnt }));
+    const stateOptions = TARGET_STATE_ABBRS.map(abbr => ({
+      abbr,
+      name: ABBR_TO_NAME[abbr] || abbr,
+      cnt: stateOptMap[abbr] || 0,
+    }));
 
     /* Apply state filter */
     let data = activeStateFilter
@@ -339,8 +405,16 @@
     /* ── BUILD HTML ── */
     document.getElementById('dashboard').innerHTML = `
       <div class="ca-page-header">
-        <h1 class="ca-page-header__title">State Analysis</h1>
-        <p class="ca-page-header__subtitle">Geographic breakdown of bids, interviews, and awards by US state — Oct 2025 onwards</p>
+        <div class="ca-page-header__text">
+          <h1 class="ca-page-header__title">State Analysis</h1>
+          <p class="ca-page-header__subtitle">Geographic breakdown of bids, interviews, and awards by US state — Oct 2025 onwards</p>
+        </div>
+        <a href="target-states.html" class="cta-target-states" title="Deep-dive into our top target states">
+          <span class="cta-target-states__pulse"></span>
+          <span class="cta-target-states__icon">★</span>
+          <span>Top Target States</span>
+          <span class="cta-target-states__arrow">→</span>
+        </a>
       </div>
 
       <!-- KPIs — adapt to state filter context -->
@@ -384,9 +458,9 @@
           <option value="">All Years</option>
           ${allYears.map(y => `<option value="${y}" ${activeYearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
         </select>
-        <span class="ca-global-filter__label" style="margin-left:12px">State:</span>
+        <span class="ca-global-filter__label" style="margin-left:12px">Target State:</span>
         <select id="gf-state">
-          <option value="">All States</option>
+          <option value="">All Target States</option>
           ${stateOptions.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
         </select>
         <span class="ca-global-filter__count">

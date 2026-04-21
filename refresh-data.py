@@ -92,5 +92,44 @@ def main():
     print(f"Awards sheet: {len(awards_records)} records written to CAPS_AWARDS_DATA")
     print(f"Last updated: {last_updated}")
 
+    # ─── Target-states page: per-state summary (Oct 2025+) ───
+    # The "Top Target States" dashboard filters RFP Data to the four target states
+    # (California, New York, Texas, Florida) with bidClosingDate / submissionDate
+    # on or after Oct 1 2025. Print a summary so you can verify every target state
+    # has data after each refresh — and catch typos in the Agency State column.
+    TARGET_STATES = ["California", "New York", "Texas", "Florida"]
+    OCT_2025 = datetime(2025, 10, 1)
+
+    def _to_dt(v):
+        if not v:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, date):
+            return datetime(v.year, v.month, v.day)
+        try:
+            # ISO string from serialize()
+            return datetime.fromisoformat(str(v).replace("Z", ""))
+        except (ValueError, TypeError):
+            return None
+
+    state_counts = {s: {"bids": 0, "won": 0} for s in TARGET_STATES}
+    for r in records:
+        state = (r.get("Agency State") or "").strip()
+        if state not in state_counts:
+            continue
+        ref_dt = _to_dt(r.get("Bid Closing Date")) or _to_dt(r.get("Submission Date"))
+        if not ref_dt or ref_dt < OCT_2025:
+            continue
+        state_counts[state]["bids"] += 1
+        if (r.get("Stage") or "").strip() == "Closed Won":
+            state_counts[state]["won"] += 1
+
+    print("\nTop Target States page — bids since Oct 2025:")
+    for s in TARGET_STATES:
+        c = state_counts[s]
+        flag = "" if c["bids"] > 0 else "  ⚠ no data"
+        print(f"  {s:<12}  {c['bids']:>4} bids  ({c['won']} won){flag}")
+
 if __name__ == "__main__":
     main()

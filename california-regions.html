@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>California Regions — CAPS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <style>
+    .chart-container { position: relative; width: 100%; }
+    .chart-container.h320 { height: 340px; }
+    .chart-container.h380 { height: 400px; }
+    .chart-container.h420 { height: 440px; }
+
+    .ca-section-label {
+      font-size: 1.1rem; font-weight: 700; color: var(--ca-navy);
+      margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ca-light-blue);
+    }
+
+    /* Filter bar */
+    .ca-global-filter {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); padding: 14px 20px;
+      margin-bottom: 20px; box-shadow: var(--shadow-sm); flex-wrap: wrap;
+    }
+    .ca-global-filter__label { font-size: 0.9rem; font-weight: 600; color: var(--ca-gray-700); }
+    .ca-global-filter select {
+      padding: 8px 14px; border: 1px solid var(--ca-gray-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.88rem; color: var(--ca-gray-700);
+      background: var(--ca-white); cursor: pointer; min-width: 180px;
+    }
+    .ca-global-filter select:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.12); outline: none; }
+    .ca-global-filter__count { font-size: 0.82rem; color: var(--ca-gray-500); margin-left: auto; }
+    .ca-global-filter__count strong { color: var(--ca-blue); font-weight: 700; }
+
+    /* Map */
+    .ca-map-svg { width: 100%; height: auto; display: block; }
+    .ca-map-county { stroke: #fff; stroke-width: 0.4; cursor: pointer; transition: opacity 0.15s; }
+    .ca-map-county:hover { opacity: 0.78; stroke: var(--ca-navy); stroke-width: 1.2; }
+    .ca-map-county.r-bay    { fill: #2D60C4; }
+    .ca-map-county.r-norcal { fill: #059669; }
+    .ca-map-county.r-socal  { fill: #C05621; }
+    .ca-map-county.r-other  { fill: #E4E7EC; }
+    .ca-map-county.dim      { fill-opacity: 0.22; pointer-events: none; }
+
+    .map-legend {
+      display: flex; justify-content: center; gap: 20px;
+      padding: 6px 0 2px; flex-wrap: wrap;
+    }
+    .map-legend__item { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: var(--ca-gray-700); font-weight: 500; }
+    .map-legend__sw  { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+    .map-legend__sw.bay    { background: #2D60C4; }
+    .map-legend__sw.norcal { background: #059669; }
+    .map-legend__sw.socal  { background: #C05621; }
+
+    #map-tooltip {
+      position: fixed; pointer-events: none; display: none;
+      background: var(--ca-navy); color: #fff;
+      padding: 10px 14px; border-radius: 8px; font-size: 0.82rem;
+      font-family: var(--font-family); line-height: 1.55;
+      box-shadow: var(--shadow-lg); z-index: 9999; max-width: 300px;
+    }
+    #map-tooltip strong { display: block; font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; }
+    #map-tooltip .tt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; font-size: 0.78rem; }
+    #map-tooltip .tt-row span.lbl { opacity: 0.65; }
+
+    /* Region scorecards */
+    .region-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 8px;
+    }
+    @media (max-width: 1024px) { .region-row { grid-template-columns: 1fr; } }
+    .region-card {
+      position: relative;
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-radius: var(--radius-lg); padding: 20px 22px 18px;
+      box-shadow: var(--shadow-sm); overflow: hidden; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .region-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .region-card.active { outline: 2px solid var(--ca-blue); outline-offset: -2px; }
+    .region-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .region-card.r-bay::before     { background: linear-gradient(90deg,#2D60C4,#4F80E0); }
+    .region-card.r-norcal::before  { background: linear-gradient(90deg,#059669,#10B981); }
+    .region-card.r-socal::before   { background: linear-gradient(90deg,#C05621,#F97316); }
+
+    .region-card__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .region-card__title {
+      font-size: 1.08rem; font-weight: 700; color: var(--ca-navy); display: flex; align-items: center; gap: 8px;
+    }
+    .region-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .r-bay    .region-dot { background: #2D60C4; }
+    .r-norcal .region-dot { background: #059669; }
+    .r-socal  .region-dot { background: #C05621; }
+    .region-card__pill {
+      font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+      background: var(--ca-gray-100); color: var(--ca-gray-700);
+    }
+    .region-card__grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .region-stat__lbl {
+      font-size: 0.66rem; font-weight: 600; color: var(--ca-gray-500);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px;
+    }
+    .region-stat__val {
+      font-size: 1.2rem; font-weight: 700; color: var(--ca-gray-900); line-height: 1.1;
+    }
+    .region-stat__val.won  { color: var(--ca-green); }
+    .region-stat__val.lost { color: var(--ca-red); }
+    .region-stat__val.ia   { color: var(--ca-orange); }
+    .region-stat__val.iv   { color: var(--ca-blue); }
+    .region-stat__sub { font-size: 0.7rem; color: var(--ca-gray-500); margin-top: 2px; }
+
+    .region-winrate {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--ca-gray-50);
+      border-radius: var(--radius-sm); border: 1px solid var(--ca-gray-100);
+    }
+    .region-winrate__lbl {
+      font-size: 0.74rem; font-weight: 600; color: var(--ca-gray-500);
+      text-transform: uppercase; letter-spacing: 0.05em; min-width: 70px;
+    }
+    .region-winrate__bar {
+      flex: 1; height: 8px; background: var(--ca-gray-200); border-radius: 4px; overflow: hidden;
+    }
+    .region-winrate__fill { height: 100%; border-radius: 4px; }
+    .region-winrate__fill.good  { background: var(--ca-green); }
+    .region-winrate__fill.amber { background: var(--ca-yellow); }
+    .region-winrate__fill.red   { background: var(--ca-red); }
+    .region-winrate__fill.none  { background: var(--ca-gray-300); }
+    .region-winrate__pct { font-size: 0.95rem; font-weight: 700; min-width: 52px; text-align: right; }
+    .region-winrate__pct.good  { color: var(--ca-green); }
+    .region-winrate__pct.amber { color: var(--ca-yellow); }
+    .region-winrate__pct.red   { color: var(--ca-red); }
+    .region-winrate__pct.none  { color: var(--ca-gray-400); }
+
+    /* Insights callouts */
+    .insights-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 6px 0 24px;
+    }
+    @media (max-width: 1024px) { .insights-row { grid-template-columns: 1fr; } }
+    .insight {
+      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
+      border-left: 4px solid var(--ca-blue);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .insight.good { border-left-color: var(--ca-green); }
+    .insight.warn { border-left-color: var(--ca-yellow); }
+    .insight.bad  { border-left-color: var(--ca-red); }
+    .insight__kicker {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ca-gray-500); margin-bottom: 4px;
+    }
+    .insight__title {
+      font-size: 0.98rem; font-weight: 700; color: var(--ca-gray-900); margin-bottom: 3px;
+    }
+    .insight__body { font-size: 0.82rem; color: var(--ca-gray-700); line-height: 1.5; }
+
+    /* Heatmap table */
+    .heatmap-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .heatmap-table thead th {
+      background: var(--ca-gray-50); color: var(--ca-gray-500); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+      padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap;
+    }
+    .heatmap-table thead th.left-col { text-align: left; }
+    .heatmap-table tbody td {
+      padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid var(--ca-gray-100);
+      text-align: center;
+    }
+    .heatmap-table tbody td.category-cell { text-align: left; font-weight: 600; color: var(--ca-gray-700); }
+    .heatmap-table .hm-cell {
+      display: inline-block; min-width: 60px; padding: 3px 10px;
+      border-radius: 6px; font-weight: 700; font-size: 0.82rem;
+    }
+    .heatmap-table .hm-cell.empty { color: var(--ca-gray-300); background: transparent; font-weight: 400; }
+    .hm-cell__sub {
+      display: block; font-size: 0.66rem; font-weight: 500; opacity: 0.75; margin-top: 1px;
+    }
+
+    /* Awards table */
+    .ca-table-scroll { overflow-x: auto; }
+    .aw-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .aw-table thead th {
+      background: var(--ca-gray-50); color: var(--ca-gray-500); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;
+      padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--ca-gray-200);
+      white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    .aw-table thead th.right { text-align: right; }
+    .aw-table thead th:hover { background: var(--ca-gray-100); color: var(--ca-gray-700); }
+    .aw-table thead th.sort-active { color: var(--ca-blue); background: rgba(46,80,144,0.06); }
+    .sort-arrows { display: inline-flex; flex-direction: column; margin-left: 4px; gap: 1px; vertical-align: middle; }
+    .sort-arrows .arr { font-size: 0.58rem; opacity: 0.3; line-height: 1; }
+    .sort-arrows .arr.on { opacity: 1; color: var(--ca-blue); }
+    .aw-table tbody tr { border-bottom: 1px solid var(--ca-gray-100); transition: background 0.12s; }
+    .aw-table tbody tr:hover { background: var(--ca-gray-50); }
+    .aw-table tbody td { padding: 10px 14px; color: var(--ca-gray-700); vertical-align: middle; }
+    .aw-table tbody td.right { text-align: right; font-family: 'SF Mono','Fira Code',monospace; font-size: 0.82rem; }
+    .aw-link { color: var(--ca-blue); font-weight: 600; text-decoration: none; }
+    .aw-link:hover { text-decoration: underline; }
+
+    .region-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 10px; border-radius: 12px; font-size: 0.74rem; font-weight: 600;
+    }
+    .region-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .region-chip.bay    { background: #DBEAFE; color: #1D4ED8; }
+    .region-chip.bay::before    { background: #2D60C4; }
+    .region-chip.norcal { background: #ECFDF5; color: #047857; }
+    .region-chip.norcal::before { background: #059669; }
+    .region-chip.socal  { background: #FFEDD5; color: #9A3412; }
+    .region-chip.socal::before  { background: #C05621; }
+
+    /* Search row */
+    .ca-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; padding: 0 4px; }
+    .ca-search-wrap { position: relative; display: flex; align-items: center; }
+    .ca-search-wrap svg { position: absolute; left: 10px; color: var(--ca-gray-400); pointer-events: none; }
+    .ca-search-input {
+      padding: 7px 12px 7px 34px; border: 1px solid var(--ca-gray-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.875rem; color: var(--ca-gray-700);
+      background: var(--ca-white); outline: none; min-width: 260px; transition: border-color 0.15s;
+    }
+    .ca-search-input:focus { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(46,80,144,0.1); }
+    .ca-search-clear { position: absolute; right: 8px; background: none; border: none; cursor: pointer; color: var(--ca-gray-400); font-size: 1rem; line-height: 1; padding: 0 2px; display: none; }
+    .ca-count-chip { font-size: 0.82rem; color: var(--ca-gray-500); }
+    .ca-count-chip strong { color: var(--ca-blue); font-weight: 700; }
+
+    /* 2-col grid for map + scorecards on large screens */
+    .ca-mapgrid {
+      display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 1100px) { .ca-mapgrid { grid-template-columns: 1fr; } }
+
+    /* Methodology */
+    .method-note {
+      background: #F8FAFC; border: 1px dashed var(--ca-gray-300); border-radius: var(--radius-sm);
+      padding: 10px 14px; font-size: 0.78rem; color: var(--ca-gray-500);
+      margin-bottom: 18px; line-height: 1.55;
+    }
+    .method-note strong { color: var(--ca-gray-700); }
+  </style>
+</head>
+<body>
+
+<div id="map-tooltip"></div>
+<main class="ca-main" id="dashboard">
+  <div class="ca-loading">
+    <div class="ca-loading__spinner"></div>
+    <div class="ca-loading__text">Loading California regional data...</div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/dashboard-common.js"></script>
+<script>
+  CAPS.renderHeader('California Regions');
+
+  Chart.register(ChartDataLabels);
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size   = 12;
+  Chart.defaults.color       = '#667085';
+  Chart.defaults.plugins.legend.labels.usePointStyle   = true;
+  Chart.defaults.plugins.legend.labels.pointStyleWidth = 10;
+  Chart.defaults.plugins.datalabels                    = { display: false };
+
+  const COLORS = {
+    navy: '#1B2F5E', blue: '#2D60C4', green: '#059669', red: '#DC2626',
+    yellow: '#D97706', orange: '#C05621',
+    blueAlpha:   'rgba(46,96,196,0.82)',
+    greenAlpha:  'rgba(5,150,105,0.82)',
+    redAlpha:    'rgba(220,38,38,0.75)',
+    orangeAlpha: 'rgba(192,86,33,0.82)',
+  };
+
+  /* ─────────────────────────────────────────────────────────────
+     AGENCY → REGION
+     ───────────────────────────────────────────────────────────── */
+  const REGION_MAP = {
+    // Bay Area
+    'bay area air quality management district': 'Bay Area',
+    'city of piedmont': 'Bay Area',
+    'city and county of san francisco': 'Bay Area',
+    'city of east palo alto': 'Bay Area',
+    'city of palo alto': 'Bay Area',
+    'city of san carlos': 'Bay Area',
+    'city of san ramon': 'Bay Area',
+    'city of santa clara': 'Bay Area',
+    'city of sunnyvale': 'Bay Area',
+    'contra costa county [ca]': 'Bay Area',
+    'contra costa county': 'Bay Area',
+    'county of san mateo': 'Bay Area',
+    'first 5 kids santa clara county': 'Bay Area',
+    'livermore-amador valley water management agency': 'Bay Area',
+    'port of oakland': 'Bay Area',
+    'san francisco superior court procurement unit': 'Bay Area',
+    'san mateo county transit district': 'Bay Area',
+    'the city of berkeley public library': 'Bay Area',
+    'university of california, berkeley': 'Bay Area',
+    // NorCal
+    'butte county': 'NorCal',
+    'california department of state hospitals': 'NorCal',
+    'california department of technology': 'NorCal',
+    'california housing finance agency (calhfa)': 'NorCal',
+    'california state auditor s office': 'NorCal',
+    "california state auditor's office": 'NorCal',
+    "california state teachers' retirement system": 'NorCal',
+    'city of lincoln': 'NorCal',
+    'city of pacific grove': 'NorCal',
+    'city of roseville': 'NorCal',
+    'city of sacramento': 'NorCal',
+    'judicial branch california': 'NorCal',
+    'marina coast water district': 'NorCal',
+    'mendocino county': 'NorCal',
+    'sacramento municipal utility district': 'NorCal',
+    'sacramento regional transit district': 'NorCal',
+    'san joaquin council of governments (sjcog)': 'NorCal',
+    'university of california merced': 'NorCal',
+    'fresno county': 'NorCal',
+    // SoCal
+    'caloptima': 'SoCal',
+    'city of adelanto': 'SoCal',
+    'city of blythe': 'SoCal',
+    'city of la cañada flintridge': 'SoCal',
+    'city of la canada flintridge': 'SoCal',
+    'city of lake forest': 'SoCal',
+    'city of long beach': 'SoCal',
+    'city of los angeles (city) information technology agency (ita)': 'SoCal',
+    'city of mcfarland': 'SoCal',
+    'city of pasadena': 'SoCal',
+    'city of rancho cucamonga': 'SoCal',
+    'city of santa monica': 'SoCal',
+    'city of south pasadena': 'SoCal',
+    'city of west hollywood': 'SoCal',
+    'community action partnership of kern': 'SoCal',
+    'community development department (city of santa ana)': 'SoCal',
+    'costa mesa sanitary district': 'SoCal',
+    'county of los angeles department of public works': 'SoCal',
+    'county of riverside purchasing & fleet services department': 'SoCal',
+    'culver city': 'SoCal',
+    'elsinore valley municipal water district': 'SoCal',
+    'foothill transit': 'SoCal',
+    'huntington park': 'SoCal',
+    'inland empire utilities agency': 'SoCal',
+    'la county- internal services department': 'SoCal',
+    'laguna beach': 'SoCal',
+    'los angeles county metropolitan transportation authority (lacmta)': 'SoCal',
+    'los angeles unified school district (lausd)': 'SoCal',
+    'mesa water district': 'SoCal',
+    'metropolitan water district of southern california': 'SoCal',
+    'municipal water district of orange county (mwdoc)': 'SoCal',
+    'orange county': 'SoCal',
+    'port of long beach': 'SoCal',
+    'port of san diego': 'SoCal',
+    'riverside county': 'SoCal',
+    'superior court of california, county of los angeles': 'SoCal',
+    'san bernardino county transportation authority': 'SoCal',
+    'san diego metropolitan transit system': 'SoCal',
+    'three valleys municipal water district': 'SoCal',
+    'western municipal water district': 'SoCal',
+  };
+  const BAY_KW    = ['san francisco','palo alto','san mateo','santa clara','sunnyvale','berkeley','oakland','piedmont','san ramon','contra costa','san carlos','livermore','bay area','east palo alto','alameda','marin','sonoma','napa','solano'];
+  const SOCAL_KW  = ['los angeles','la county','lausd','lacmta','long beach','san diego','riverside','san bernardino','orange county','santa ana','santa monica','pasadena','culver city','west hollywood','huntington','rancho cucamonga','lake forest','laguna','adelanto','blythe','mcfarland','kern','inland empire','costa mesa','mesa water','foothill','southern california','caloptima','la cañada','la canada','ventura','imperial','santa barbara','elsinore','three valleys','western municipal water'];
+  const NORCAL_KW = ['sacramento','calhfa','department of technology','state auditor',"teachers' retirement",'state hospitals','judicial branch','butte','mendocino','pacific grove','marina coast','roseville','lincoln','merced','fresno','san joaquin','placer','shasta','tehama','humboldt'];
+
+  function classifyRegion(agency) {
+    if (!agency) return null;
+    const k = agency.trim().toLowerCase();
+    if (REGION_MAP[k]) return REGION_MAP[k];
+    for (const kw of BAY_KW)    if (k.includes(kw)) return 'Bay Area';
+    for (const kw of SOCAL_KW)  if (k.includes(kw)) return 'SoCal';
+    for (const kw of NORCAL_KW) if (k.includes(kw)) return 'NorCal';
+    return null;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     CALIFORNIA COUNTY FIPS → REGION
+     (used for the map colouring)
+     ───────────────────────────────────────────────────────────── */
+  const CA_COUNTY_REGION = {
+    // Bay Area
+    '06001':'Bay Area', '06013':'Bay Area', '06041':'Bay Area', '06055':'Bay Area',
+    '06075':'Bay Area', '06081':'Bay Area', '06085':'Bay Area', '06095':'Bay Area', '06097':'Bay Area',
+    // SoCal
+    '06025':'SoCal', '06027':'SoCal', '06029':'SoCal', '06037':'SoCal', '06059':'SoCal',
+    '06065':'SoCal', '06071':'SoCal', '06073':'SoCal', '06079':'SoCal', '06083':'SoCal', '06111':'SoCal',
+  };
+  // NorCal = every other California county
+  const CA_NORCAL_FIPS = ['003','005','007','009','011','015','017','019','021','023','031','033',
+    '035','039','043','045','047','049','051','053','057','061','063','067','069','077','087',
+    '089','091','093','099','101','103','105','107','109','113','115'];
+  CA_NORCAL_FIPS.forEach(c => { CA_COUNTY_REGION['06' + c] = 'NorCal'; });
+
+  const REGIONS = ['Bay Area', 'NorCal', 'SoCal'];
+  const REGION_COLORS = {
+    'Bay Area': { solid: '#2D60C4', alpha: 'rgba(46,96,196,0.82)', cls: 'r-bay',    chip: 'bay',    cnty: 'r-bay' },
+    'NorCal':   { solid: '#059669', alpha: 'rgba(5,150,105,0.82)', cls: 'r-norcal', chip: 'norcal', cnty: 'r-norcal' },
+    'SoCal':    { solid: '#C05621', alpha: 'rgba(192,86,33,0.82)', cls: 'r-socal',  chip: 'socal',  cnty: 'r-socal' }
+  };
+
+  /* ── Active state ── */
+  let activeYearFilter   = '';
+  let activeRegionFilter = '';   // '' = all
+  let activeSearch       = '';
+  let activeSort         = 'amount';
+  let activeSortDir      = 'desc';
+
+  let chFunnel = null, chPipeline = null, chMatrix = null;
+
+  async function renderDashboard() {
+    const allData = await CAPS.loadData();
+    const OCT_2025 = new Date('2025-10-01');
+
+    /* Year options */
+    const yearSet = new Set();
+    allData.forEach(d => {
+      const ref = d.bidClosingDate || d.submissionDate;
+      if (!ref) return;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (dt >= OCT_2025) yearSet.add(dt.getFullYear());
+    });
+    const allYears = [...yearSet].sort((a,b) => b - a);
+
+    /* Base: California Oct-2025+ */
+    let base = allData.filter(d => {
+      const ref = d.bidClosingDate || d.submissionDate;
+      if (!ref) return false;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (dt < OCT_2025) return false;
+      return (d.agencyState || '').trim().toLowerCase() === 'california';
+    });
+
+    if (activeYearFilter) {
+      base = base.filter(d => {
+        const ref = d.bidClosingDate || d.submissionDate;
+        return ref && new Date(ref).getFullYear() == activeYearFilter;
+      });
+    }
+
+    const tagged = base.map(d => ({ ...d, _region: classifyRegion(d.agency) }));
+    const unclassified = tagged.filter(d => !d._region).length;
+    const data = activeRegionFilter
+      ? tagged.filter(d => d._region === activeRegionFilter)
+      : tagged;
+
+    /* Aggregate by region (always from tagged — for charts, scorecards, map tooltips) */
+    function emptyAgg() {
+      return { bids:0, won:0, lost:0, iv:0, ia:0, submitted:0, terminated:0, cancelled:0,
+               value:0, activeValue:0, wonAmounts: [], agencies:new Set() };
+    }
+    const regAgg = { 'Bay Area': emptyAgg(), 'NorCal': emptyAgg(), 'SoCal': emptyAgg(), 'Unclassified': emptyAgg() };
+    tagged.forEach(d => {
+      const r = d._region || 'Unclassified';
+      const a = regAgg[r];
+      a.bids++;
+      if (d.interviewFlag === 'Yes') a.iv++;
+      if (d.stage === 'Intent to Award') a.ia++;
+      if (d.stage === 'Closed Won')  { a.won++;  a.value += d.amount || 0; if (d.amount) a.wonAmounts.push(d.amount); }
+      if (d.stage === 'Closed Lost') a.lost++;
+      if (d.stage === 'Submitted')   a.submitted++;
+      if (d.stage === 'Terminated')  a.terminated++;
+      if (d.stage === 'RFx Cancelled') a.cancelled++;
+      // Active pipeline = in-flight $ (Submitted / Interview / IA)
+      if (['Submitted','Interview','Intent to Award'].includes(d.stage)) {
+        a.activeValue += d.amount || 0;
+      }
+      if (d.agency) a.agencies.add(d.agency.trim());
+    });
+    REGIONS.concat(['Unclassified']).forEach(r => {
+      const a = regAgg[r];
+      a.decided = a.won + a.lost;
+      a.winRate = a.decided > 0 ? a.won / a.decided : null;
+      a.avgWonAmt = a.wonAmounts.length > 0 ? a.wonAmounts.reduce((s,v)=>s+v,0)/a.wonAmounts.length : 0;
+      a.bidToInterview = a.bids > 0 ? a.iv / a.bids : 0;
+      a.interviewToIA  = a.iv   > 0 ? a.ia / a.iv  : 0;
+      a.bidToWin       = a.bids > 0 ? a.won / a.bids : 0;
+    });
+
+    /* Filtered CA totals (for KPIs) */
+    const caTotal = data.reduce((acc, d) => {
+      acc.bids++;
+      if (d.interviewFlag === 'Yes') acc.iv++;
+      if (d.stage === 'Intent to Award') acc.ia++;
+      if (d.stage === 'Closed Won')  { acc.won++; acc.value += d.amount || 0; }
+      if (d.stage === 'Closed Lost') acc.lost++;
+      if (['Submitted','Interview','Intent to Award'].includes(d.stage)) {
+        acc.activeValue += d.amount || 0;
+      }
+      return acc;
+    }, { bids:0, won:0, lost:0, iv:0, ia:0, value:0, activeValue:0 });
+    caTotal.decided = caTotal.won + caTotal.lost;
+    caTotal.winRate = caTotal.decided > 0 ? caTotal.won / caTotal.decided : 0;
+
+    /* Category × Region win-rate matrix */
+    const catRegion = {};  // cat -> { region -> {bids, won, lost} }
+    tagged.forEach(d => {
+      if (!d._region) return;
+      const cats = d.serviceCategory
+        ? d.serviceCategory.split(';').map(c => c.trim()).filter(Boolean)
+        : ['(No Category)'];
+      cats.forEach(cat => {
+        if (!catRegion[cat]) catRegion[cat] = {};
+        if (!catRegion[cat][d._region]) catRegion[cat][d._region] = { bids:0, won:0, lost:0 };
+        const c = catRegion[cat][d._region];
+        c.bids++;
+        if (d.stage === 'Closed Won')  c.won++;
+        if (d.stage === 'Closed Lost') c.lost++;
+      });
+    });
+
+    /* Insights — auto-derived highlights */
+    const insights = deriveInsights(regAgg);
+
+    /* Awards: closed-won only */
+    const awards = data.filter(d => d.stage === 'Closed Won');
+
+    /* ── BUILD HTML ── */
+    document.getElementById('dashboard').innerHTML = `
+      <div class="ca-page-header">
+        <h1 class="ca-page-header__title">California Regional Performance</h1>
+        <p class="ca-page-header__subtitle">
+          How we're performing across the three California sub-markets —
+          <strong>Bay Area</strong>, <strong>NorCal</strong>, and <strong>SoCal</strong> · Oct 2025 onwards
+        </p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="ca-metrics-row">
+        ${CAPS.metricCard('Total CA Bids', CAPS.formatNumber(caTotal.bids),
+          activeRegionFilter || 'across 3 regions', '',
+          'Total RFPs submitted in California from Oct 2025 onwards.')}
+        ${CAPS.metricCard('Active Pipeline', CAPS.formatCurrency(caTotal.activeValue),
+          'Submitted + Interview + IA', 'blue',
+          'Sum of deal $ still in flight — indicates potential revenue if we can close it.')}
+        ${CAPS.metricCard('Intent to Award', CAPS.formatNumber(caTotal.ia),
+          caTotal.bids > 0 ? CAPS.formatPercent(caTotal.ia / caTotal.bids) + ' of bids' : '—',
+          'orange', 'Deals at Intent to Award — very high probability of turning into revenue.')}
+        ${CAPS.metricCard('Closed Won', CAPS.formatNumber(caTotal.won),
+          caTotal.value > 0 ? CAPS.formatCurrency(caTotal.value) : '—',
+          'green', 'Number of awards + total contract value in California.')}
+        ${CAPS.metricCard('Win Rate', CAPS.formatPercent(caTotal.winRate),
+          caTotal.won + ' won / ' + caTotal.lost + ' lost', 'blue',
+          'Formula: Won / (Won + Lost). Excludes deals still in progress.')}
+      </div>
+
+      <!-- Filters -->
+      <div class="ca-global-filter">
+        <span class="ca-global-filter__label">Year:</span>
+        <select id="gf-year">
+          <option value="">All Years</option>
+          ${allYears.map(y => `<option value="${y}" ${activeYearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
+        </select>
+        <span class="ca-global-filter__label" style="margin-left:12px">Region:</span>
+        <select id="gf-region">
+          <option value="">All Regions</option>
+          <option value="Bay Area" ${activeRegionFilter === 'Bay Area' ? 'selected' : ''}>Bay Area (${regAgg['Bay Area'].bids})</option>
+          <option value="NorCal"   ${activeRegionFilter === 'NorCal'   ? 'selected' : ''}>NorCal (${regAgg['NorCal'].bids})</option>
+          <option value="SoCal"    ${activeRegionFilter === 'SoCal'    ? 'selected' : ''}>SoCal (${regAgg['SoCal'].bids})</option>
+        </select>
+        <span class="ca-global-filter__count">
+          Showing <strong>${data.length}</strong> of ${tagged.length} CA RFPs
+          ${unclassified > 0 ? ` · <span style="color:var(--ca-yellow)">${unclassified} unclassified</span>` : ''}
+        </span>
+      </div>
+
+      <!-- Map + Scorecards -->
+      <div class="ca-section-label">California, by Region</div>
+      <div class="method-note">
+        <strong>Regional definitions</strong> — Bay Area is the 9-county Bay Area Council definition.
+        SoCal covers LA, Orange, San Diego, Riverside, San Bernardino, Ventura, Santa Barbara, Kern, Imperial and Inyo.
+        NorCal covers the Sacramento region, Central Valley and all other northern counties.
+        Click any region card (or region on the map) to drill in.
+      </div>
+      <div class="ca-mapgrid">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">California Region Map</span>
+            <span class="ca-panel__badge" id="map-badge">${activeRegionFilter || 'All Regions'}</span>
+          </div>
+          <div class="ca-panel__body" id="map-wrap" style="padding:12px 12px 4px">
+            <div style="padding:40px;text-align:center;color:var(--ca-gray-400)">Loading map…</div>
+          </div>
+          <div class="map-legend" id="map-legend"></div>
+          <div style="padding:8px 20px 16px;font-size:0.75rem;color:var(--ca-gray-400);text-align:center">
+            Counties are coloured by region. Hover or click a county to see how we're performing in that region.
+          </div>
+        </div>
+        <div>
+          <div class="region-row" style="grid-template-columns:1fr">
+            ${REGIONS.map(r => regionCardHTML(r, regAgg[r])).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Business insights -->
+      <div class="ca-section-label">Signals for Business Decisions</div>
+      <div class="insights-row">
+        ${insights.map(i => `
+          <div class="insight ${i.tone}">
+            <div class="insight__kicker">${i.kicker}</div>
+            <div class="insight__title">${i.title}</div>
+            <div class="insight__body">${i.body}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Charts -->
+      <div class="ca-section-label">Conversion & Pipeline</div>
+      <div class="ca-grid ca-grid--2">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Conversion Funnel by Region</span>
+            <span class="ca-panel__badge">Bid → Interview → IA → Won</span>
+          </div>
+          <div class="ca-panel__body"><div class="chart-container h380"><canvas id="ch-funnel"></canvas></div></div>
+        </div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Active Pipeline $ by Region</span>
+            <span class="ca-panel__badge">Submitted + Interview + IA</span>
+          </div>
+          <div class="ca-panel__body"><div class="chart-container h380"><canvas id="ch-pipeline"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="ca-grid ca-grid--2">
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Where to Invest — Win Rate vs Avg Deal Size</span>
+            <span class="ca-panel__badge">bubble size = bid volume</span>
+          </div>
+          <div class="ca-panel__body"><div class="chart-container h420"><canvas id="ch-matrix"></canvas></div></div>
+        </div>
+        <div class="ca-panel">
+          <div class="ca-panel__header">
+            <span class="ca-panel__title">Category × Region Win Rate</span>
+            <span class="ca-panel__badge">wins / decided</span>
+          </div>
+          <div class="ca-panel__body ca-panel__body--no-pad">
+            <div id="heatmap-wrap" style="padding:4px 20px 16px;overflow-x:auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Awards table -->
+      <div class="ca-section-label">California Awards${activeRegionFilter ? ` — ${activeRegionFilter}` : ''}</div>
+      <div class="ca-panel">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">Closed-Won deals ${activeRegionFilter ? `in ${activeRegionFilter}` : 'across all California regions'}</span>
+          <span class="ca-panel__badge" id="tbl-count">${awards.length} award${awards.length === 1 ? '' : 's'}</span>
+        </div>
+        <div class="ca-panel__body" style="padding-bottom:8px">
+          <div class="ca-controls-row">
+            <div class="ca-search-wrap">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/>
+              </svg>
+              <input id="aw-search" class="ca-search-input" type="text" placeholder="Search deal / agency / category…" value="${activeSearch}" autocomplete="off">
+              <button class="ca-search-clear" id="search-clear" style="display:${activeSearch?'block':'none'}">✕</button>
+            </div>
+            <span class="ca-count-chip" id="search-count"></span>
+          </div>
+        </div>
+        <div class="ca-panel__body ca-panel__body--no-pad">
+          <div class="ca-table-scroll" id="aw-table"></div>
+        </div>
+      </div>
+    `;
+
+    /* Destroy old charts */
+    [chFunnel, chPipeline, chMatrix].forEach(c => c && c.destroy());
+    chFunnel = chPipeline = chMatrix = null;
+
+    buildFunnelChart(regAgg);
+    buildPipelineChart(regAgg);
+    buildMatrixChart(regAgg);
+    renderHeatmap(catRegion);
+
+    /* Map */
+    buildCaliforniaMap(regAgg);
+
+    /* Region card clicks → filter */
+    document.querySelectorAll('[data-region-card]').forEach(el => {
+      el.addEventListener('click', () => {
+        const r = el.dataset.regionCard;
+        activeRegionFilter = (activeRegionFilter === r) ? '' : r;
+        renderDashboard();
+      });
+    });
+
+    /* Filters */
+    document.getElementById('gf-year').addEventListener('change',   e => { activeYearFilter   = e.target.value; renderDashboard(); });
+    document.getElementById('gf-region').addEventListener('change', e => { activeRegionFilter = e.target.value; renderDashboard(); });
+
+    /* Awards table */
+    bindAwardsTable(awards);
+  }
+
+  /* ════════════════ Insights derivation ════════════════ */
+  function deriveInsights(regAgg) {
+    const insights = [];
+    const rows = REGIONS.map(r => ({ r, ...regAgg[r] }));
+
+    // 1) Best win rate among regions with ≥ 3 decided
+    const decided = rows.filter(x => x.decided >= 3);
+    if (decided.length > 0) {
+      const best = decided.slice().sort((a,b) => (b.winRate||0) - (a.winRate||0))[0];
+      insights.push({
+        tone: 'good',
+        kicker: 'Double down',
+        title: `${best.r} has the strongest win rate`,
+        body: `${(best.winRate*100).toFixed(1)}% win rate (${best.won} won / ${best.lost} lost).
+               Avg won deal size: ${CAPS.formatCurrency(best.avgWonAmt)}. Consider prioritising sales & delivery capacity here.`
+      });
+    } else {
+      insights.push({
+        tone: 'warn',
+        kicker: 'Not enough data',
+        title: 'Win-rate leaderboard still forming',
+        body: 'Most regions have fewer than 3 decided deals. Keep bidding — the picture gets clearer as deals decide.'
+      });
+    }
+
+    // 2) Highest-volume region (bids) — may or may not be winning
+    const byBids = rows.slice().sort((a,b) => b.bids - a.bids);
+    const topBid = byBids[0];
+    const wrStr = topBid.winRate !== null ? (topBid.winRate*100).toFixed(1) + '%' : 'n/a';
+    const tone = (topBid.winRate !== null && topBid.winRate < 0.3) ? 'bad'
+                : (topBid.winRate !== null && topBid.winRate < 0.5) ? 'warn' : 'good';
+    insights.push({
+      tone,
+      kicker: 'Where effort is going',
+      title: `${topBid.r}: ${topBid.bids} bids (${Math.round(100*topBid.bids/Math.max(1,rows.reduce((s,x)=>s+x.bids,0)))}% of CA effort)`,
+      body: `Win rate here is <strong>${wrStr}</strong>. Active pipeline $ = ${CAPS.formatCurrency(topBid.activeValue)}.
+             ${tone === 'bad' ? '⚠️ High effort + low conversion — is the RFP qualification tight enough?' :
+               tone === 'warn' ? 'Solid volume but win rate is average. Investigate what differentiates won vs lost bids.' :
+               'Strong volume and winning. Keep the engine running.'}`
+    });
+
+    // 3) Biggest active pipeline $ — potential revenue at risk
+    const byPipeline = rows.slice().sort((a,b) => b.activeValue - a.activeValue);
+    const topPipe = byPipeline[0];
+    if (topPipe.activeValue > 0) {
+      insights.push({
+        tone: 'good',
+        kicker: 'Revenue opportunity',
+        title: `${topPipe.r} holds ${CAPS.formatCurrency(topPipe.activeValue)} of active pipeline`,
+        body: `${topPipe.submitted + topPipe.iv + topPipe.ia} deals in flight (${topPipe.submitted} submitted, ${topPipe.iv} interview, ${topPipe.ia} intent-to-award).
+               Prioritise interview prep and IA follow-through to convert this pipeline into revenue.`
+      });
+    } else {
+      insights.push({
+        tone: 'warn',
+        kicker: 'Revenue opportunity',
+        title: 'Active pipeline $ is thin',
+        body: 'Many deals have no amount recorded, or the in-flight dollar value is low. Ensure amounts are logged in HubSpot when bids are submitted.'
+      });
+    }
+    return insights;
+  }
+
+  /* ════════════════ Region Scorecard HTML ════════════════ */
+  function regionCardHTML(region, a) {
+    const pct    = a.winRate !== null ? (a.winRate * 100).toFixed(1) + '%' : '—';
+    const wrcls  = a.winRate === null ? 'none' : a.winRate >= 0.6 ? 'good' : a.winRate >= 0.3 ? 'amber' : 'red';
+    const barW   = a.winRate !== null ? (a.winRate * 100).toFixed(1) : 0;
+    const cls    = REGION_COLORS[region].cls;
+    const ivRate = a.bids > 0 ? ((a.iv / a.bids) * 100).toFixed(0) : '0';
+    const activeClass = (activeRegionFilter === region) ? 'active' : '';
+
+    return `
+      <div class="region-card ${cls} ${activeClass}" data-region-card="${region}" title="Click to filter">
+        <div class="region-card__head">
+          <div class="region-card__title"><span class="region-dot"></span>${region}</div>
+          <span class="region-card__pill">${a.agencies.size} agenc${a.agencies.size === 1 ? 'y' : 'ies'}</span>
+        </div>
+        <div class="region-card__grid">
+          <div><div class="region-stat__lbl">Bids</div><div class="region-stat__val">${a.bids}</div></div>
+          <div><div class="region-stat__lbl">Interviews</div><div class="region-stat__val iv">${a.iv}</div>
+               <div class="region-stat__sub">${ivRate}% of bids</div></div>
+          <div><div class="region-stat__lbl">IA</div><div class="region-stat__val ia">${a.ia}</div></div>
+          <div><div class="region-stat__lbl">Won</div><div class="region-stat__val won">${a.won}</div>
+               <div class="region-stat__sub">${a.value > 0 ? CAPS.formatCurrency(a.value) : '—'}</div></div>
+          <div><div class="region-stat__lbl">Lost</div><div class="region-stat__val lost">${a.lost}</div></div>
+          <div><div class="region-stat__lbl">Active $</div><div class="region-stat__val">${a.activeValue > 0 ? CAPS.formatCurrency(a.activeValue) : '—'}</div></div>
+        </div>
+        <div class="region-winrate">
+          <span class="region-winrate__lbl">Win Rate</span>
+          <div class="region-winrate__bar"><div class="region-winrate__fill ${wrcls}" style="width:${barW}%"></div></div>
+          <span class="region-winrate__pct ${wrcls}">${pct}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ════════════════ California Map ════════════════ */
+  async function buildCaliforniaMap(regAgg) {
+    const wrap = document.getElementById('map-wrap');
+    const legendEl = document.getElementById('map-legend');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    let us;
+    try { us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json'); }
+    catch(e) {
+      wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ca-gray-400)">Map unavailable — check your connection.</div>';
+      return;
+    }
+
+    const counties = topojson.feature(us, us.objects.counties).features;
+    const caCounties = counties.filter(f => String(f.id).padStart(5,'0').startsWith('06'));
+
+    const W = 560, H = 620;
+    const fc = { type: 'FeatureCollection', features: caCounties };
+    const proj = d3.geoMercator().fitSize([W - 20, H - 20], fc);
+    const path = d3.geoPath().projection(proj);
+
+    const svg = d3.select('#map-wrap').append('svg')
+      .attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'ca-map-svg')
+      .style('max-height','620px');
+
+    const tooltip = document.getElementById('map-tooltip');
+
+    svg.selectAll('path.county').data(caCounties).enter()
+      .append('path')
+      .attr('class', d => {
+        const id = String(d.id).padStart(5,'0');
+        const reg = CA_COUNTY_REGION[id] || 'Other';
+        const base = 'ca-map-county ' + (REGION_COLORS[reg] ? REGION_COLORS[reg].cnty : 'r-other');
+        if (activeRegionFilter && reg !== activeRegionFilter) return base + ' dim';
+        return base;
+      })
+      .attr('d', path)
+      .on('mousemove', (event, d) => {
+        const id = String(d.id).padStart(5,'0');
+        const reg = CA_COUNTY_REGION[id];
+        if (!reg || !regAgg[reg]) return;
+        const r = regAgg[reg];
+        const wr = r.winRate !== null ? (r.winRate*100).toFixed(1) + '%' : '—';
+        const countyName = (d.properties && d.properties.name) ? d.properties.name + ' County' : '';
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 14) + 'px';
+        tooltip.style.top  = (event.clientY - 10) + 'px';
+        tooltip.innerHTML = `
+          <strong>${reg}${countyName ? ` <span style="opacity:.6;font-weight:500;font-size:0.8em">· ${countyName}</span>` : ''}</strong>
+          <div class="tt-row">
+            <span class="lbl">Bids</span><span><b>${r.bids}</b></span>
+            <span class="lbl">Interviews</span><span><b>${r.iv}</b></span>
+            <span class="lbl">Intent to Award</span><span><b>${r.ia}</b></span>
+            <span class="lbl">Won</span><span style="color:#6EE7B7"><b>${r.won}</b></span>
+            <span class="lbl">Lost</span><span style="color:#FCA5A5"><b>${r.lost}</b></span>
+            <span class="lbl">Win Rate</span><span><b>${wr}</b></span>
+            <span class="lbl">Active $</span><span><b>${r.activeValue > 0 ? CAPS.formatCurrency(r.activeValue) : '—'}</b></span>
+            <span class="lbl">Won $</span><span><b>${r.value > 0 ? CAPS.formatCurrency(r.value) : '—'}</b></span>
+          </div>
+        `;
+      })
+      .on('mouseleave', () => { tooltip.style.display = 'none'; })
+      .on('click', (event, d) => {
+        const id = String(d.id).padStart(5,'0');
+        const reg = CA_COUNTY_REGION[id];
+        if (!reg) return;
+        activeRegionFilter = (activeRegionFilter === reg) ? '' : reg;
+        renderDashboard();
+      });
+
+    /* Region labels - put centroid label for each region */
+    REGIONS.forEach(reg => {
+      const feats = caCounties.filter(f => CA_COUNTY_REGION[String(f.id).padStart(5,'0')] === reg);
+      if (feats.length === 0) return;
+      const merged = { type: 'FeatureCollection', features: feats };
+      const c = path.centroid({ type: 'GeometryCollection', geometries: feats.map(f => f.geometry) });
+      if (!c || isNaN(c[0]) || isNaN(c[1])) return;
+      const r = regAgg[reg];
+      const wr = r.winRate !== null ? (r.winRate*100).toFixed(0) + '%' : '—';
+      const g = svg.append('g').attr('pointer-events','none')
+        .attr('transform', `translate(${c[0]},${c[1]})`);
+      g.append('rect')
+        .attr('x', -54).attr('y', -22).attr('width', 108).attr('height', 44)
+        .attr('rx', 8).attr('fill', 'rgba(255,255,255,0.92)')
+        .attr('stroke', REGION_COLORS[reg].solid).attr('stroke-width', 1.5);
+      g.append('text').attr('text-anchor','middle').attr('y',-4)
+        .attr('font-family','Inter,sans-serif').attr('font-weight',700)
+        .attr('font-size',12).attr('fill', REGION_COLORS[reg].solid)
+        .text(reg);
+      g.append('text').attr('text-anchor','middle').attr('y',13)
+        .attr('font-family','Inter,sans-serif').attr('font-weight',600)
+        .attr('font-size',10).attr('fill', '#334155')
+        .text(`${r.bids} bids · WR ${wr}`);
+    });
+
+    /* State/region border overlay for crisp edges between regions */
+    const mesh = topojson.mesh(us, us.objects.counties, (a,b) => {
+      const aId = String(a.id).padStart(5,'0');
+      const bId = String(b.id).padStart(5,'0');
+      if (!aId.startsWith('06') || !bId.startsWith('06')) return false;
+      return CA_COUNTY_REGION[aId] !== CA_COUNTY_REGION[bId];
+    });
+    svg.append('path').datum(mesh)
+      .attr('fill','none').attr('stroke','#fff').attr('stroke-width',1.8).attr('d',path);
+
+    /* Legend */
+    legendEl.innerHTML = REGIONS.map(r => `
+      <span class="map-legend__item">
+        <span class="map-legend__sw ${REGION_COLORS[r].chip}"></span>
+        ${r} — <strong style="color:var(--ca-gray-900)">${regAgg[r].bids} bids</strong>
+      </span>
+    `).join('');
+  }
+
+  /* ════════════════ Funnel Chart ════════════════ */
+  function buildFunnelChart(regAgg) {
+    const stages = ['Bids', 'Interviews', 'Intent to Award', 'Closed Won'];
+    const datasets = REGIONS.map(r => ({
+      label: r,
+      data: [regAgg[r].bids, regAgg[r].iv, regAgg[r].ia, regAgg[r].won],
+      backgroundColor: REGION_COLORS[r].alpha,
+      borderColor: REGION_COLORS[r].solid,
+      borderWidth: 1, borderRadius: 5, barPercentage: 0.72, categoryPercentage: 0.82,
+    }));
+
+    chFunnel = new Chart(document.getElementById('ch-funnel'), {
+      type: 'bar',
+      data: { labels: stages, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 28, right: 12, left: 4, bottom: 4 } },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              afterBody: (items) => {
+                const stageIdx = items[0].dataIndex;
+                const reg = items[0].dataset.label;
+                const a = regAgg[reg];
+                if (stageIdx === 1 && a.bids > 0) return [`Bid → Interview: ${(a.bidToInterview*100).toFixed(1)}%`];
+                if (stageIdx === 2 && a.iv   > 0) return [`Interview → IA: ${(a.interviewToIA*100).toFixed(1)}%`];
+                if (stageIdx === 3 && a.bids > 0) return [`Bid → Won: ${(a.bidToWin*100).toFixed(1)}%`];
+                return null;
+              }
+            }
+          },
+          datalabels: {
+            display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+            anchor: 'end', align: 'end',
+            font: { weight: '700', size: 10 },
+            color: ctx => REGION_COLORS[ctx.dataset.label].solid,
+            clamp: true,
+          }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: '#F2F4F7' }, ticks: { stepSize: 1, precision: 0 },
+               title: { display: true, text: 'Deal count', font: { weight: '600', size: 11 } } }
+        }
+      }
+    });
+  }
+
+  /* ════════════════ Active Pipeline $ Chart ════════════════ */
+  function buildPipelineChart(regAgg) {
+    /* Stacked horizontal bar: per region, breakdown of active pipeline $ into
+       Submitted / Interview / IA (computed by summing amounts per stage). */
+    // Simpler: show total active $ per region as horizontal bar, plus won $ in muted color to compare
+    chPipeline = new Chart(document.getElementById('ch-pipeline'), {
+      type: 'bar',
+      data: {
+        labels: REGIONS,
+        datasets: [
+          {
+            label: 'Active pipeline $ (in flight)',
+            data: REGIONS.map(r => regAgg[r].activeValue || 0),
+            backgroundColor: REGIONS.map(r => REGION_COLORS[r].alpha),
+            borderColor:     REGIONS.map(r => REGION_COLORS[r].solid),
+            borderWidth: 1, borderRadius: 5, barPercentage: 0.55,
+          },
+          {
+            label: 'Closed Won $ (booked)',
+            data: REGIONS.map(r => regAgg[r].value || 0),
+            backgroundColor: REGIONS.map(() => 'rgba(5,150,105,0.45)'),
+            borderColor:     REGIONS.map(() => '#059669'),
+            borderWidth: 1, borderRadius: 5, barPercentage: 0.55,
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 10, right: 40, left: 4, bottom: 4 } },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${CAPS.formatCurrency(ctx.parsed.x)}`
+            }
+          },
+          datalabels: {
+            display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+            anchor: 'end', align: 'right',
+            formatter: v => CAPS.formatCurrency(v),
+            font: { weight: '700', size: 10 },
+            color: (ctx) => ctx.datasetIndex === 0
+              ? REGION_COLORS[REGIONS[ctx.dataIndex]].solid
+              : '#059669',
+            clamp: true,
+          }
+        },
+        scales: {
+          x: { beginAtZero: true, grid: { color: '#F2F4F7' },
+               ticks: { callback: v => CAPS.formatCurrency(v) } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  /* ════════════════ Win-Rate vs Avg-Deal Matrix ════════════════ */
+  function buildMatrixChart(regAgg) {
+    const points = REGIONS.map(r => {
+      const a = regAgg[r];
+      return {
+        x: a.winRate !== null ? +(a.winRate * 100).toFixed(1) : 0,
+        y: a.avgWonAmt || 0,
+        r: Math.max(8, Math.sqrt(a.bids) * 6),
+        label: r
+      };
+    });
+
+    chMatrix = new Chart(document.getElementById('ch-matrix'), {
+      type: 'bubble',
+      data: {
+        datasets: REGIONS.map((r, i) => ({
+          label: r,
+          data: [points[i]],
+          backgroundColor: REGION_COLORS[r].alpha,
+          borderColor: REGION_COLORS[r].solid,
+          borderWidth: 2,
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 24, right: 20, left: 8, bottom: 8 } },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const r = ctx.dataset.label, a = regAgg[r];
+                return [
+                  `${r}`,
+                  `Win rate: ${a.winRate !== null ? (a.winRate*100).toFixed(1) + '%' : '—'}`,
+                  `Avg won deal: ${CAPS.formatCurrency(a.avgWonAmt)}`,
+                  `Bid volume: ${a.bids}`,
+                ];
+              }
+            }
+          },
+          datalabels: {
+            display: true, align: 'top', anchor: 'center',
+            offset: ctx => ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex].options.radius + 4,
+            font: { weight: '700', size: 11 },
+            color: ctx => REGION_COLORS[ctx.dataset.label].solid,
+            formatter: (v, ctx) => ctx.dataset.label
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Win rate (%)', font: { weight: '600', size: 11 } },
+            beginAtZero: true, suggestedMax: 100,
+            grid: { color: '#F2F4F7' },
+            ticks: { callback: v => v + '%' }
+          },
+          y: {
+            title: { display: true, text: 'Avg won deal size ($)', font: { weight: '600', size: 11 } },
+            beginAtZero: true,
+            grid: { color: '#F2F4F7' },
+            ticks: { callback: v => CAPS.formatCurrency(v) }
+          }
+        }
+      }
+    });
+  }
+
+  /* ════════════════ Category × Region Heatmap ════════════════ */
+  function renderHeatmap(catRegion) {
+    // keep top 12 categories by total decided deals
+    const rows = Object.entries(catRegion).map(([cat, rMap]) => {
+      let totalDecided = 0, totalBids = 0, totalWon = 0;
+      REGIONS.forEach(r => {
+        const c = rMap[r] || { bids:0, won:0, lost:0 };
+        totalBids    += c.bids;
+        totalWon     += c.won;
+        totalDecided += c.won + c.lost;
+      });
+      return { cat, rMap, totalBids, totalDecided, totalWon };
+    }).filter(r => r.totalBids >= 2).sort((a,b) => b.totalBids - a.totalBids).slice(0, 12);
+
+    if (rows.length === 0) {
+      document.getElementById('heatmap-wrap').innerHTML =
+        '<div style="padding:40px;text-align:center;color:var(--ca-gray-400)">Not enough category data yet.</div>';
+      return;
+    }
+
+    function cellHTML(cell) {
+      if (!cell || cell.bids === 0) return '<span class="hm-cell empty">—</span>';
+      const decided = cell.won + cell.lost;
+      if (decided === 0) {
+        return `<span class="hm-cell" style="background:#F1F5F9;color:#64748B">
+                  ${cell.bids} bid${cell.bids===1?'':'s'}
+                  <span class="hm-cell__sub">in progress</span>
+                </span>`;
+      }
+      const wr = cell.won / decided;
+      const bg = wr >= 0.6 ? '#ECFDF5' : wr >= 0.3 ? '#FFFBEB' : '#FEF2F2';
+      const fg = wr >= 0.6 ? '#047857' : wr >= 0.3 ? '#B45309' : '#B91C1C';
+      return `<span class="hm-cell" style="background:${bg};color:${fg}">
+                ${(wr*100).toFixed(0)}%
+                <span class="hm-cell__sub">${cell.won}W / ${cell.lost}L · ${cell.bids} bid${cell.bids===1?'':'s'}</span>
+              </span>`;
+    }
+
+    let html = '<table class="heatmap-table"><thead><tr><th class="left-col">Service Category</th>';
+    REGIONS.forEach(r => html += `<th>${r}</th>`);
+    html += '<th>CA Total</th></tr></thead><tbody>';
+    rows.forEach(row => {
+      html += `<tr><td class="category-cell">${escapeHTML(row.cat)}</td>`;
+      REGIONS.forEach(reg => {
+        html += `<td>${cellHTML(row.rMap[reg])}</td>`;
+      });
+      const totWR = row.totalDecided > 0 ? (row.totalWon/row.totalDecided*100).toFixed(0) + '%' : '—';
+      html += `<td><strong>${totWR}</strong><div style="font-size:0.66rem;color:var(--ca-gray-500)">${row.totalBids} bid${row.totalBids===1?'':'s'}</div></td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('heatmap-wrap').innerHTML = html;
+  }
+
+  /* ════════════════ Awards Table ════════════════ */
+  function bindAwardsTable(awards) {
+    function sortArrows(col) {
+      const active = activeSort === col;
+      return `<span class="sort-arrows">
+        <span class="arr${active && activeSortDir==='asc' ?' on':''}">▲</span>
+        <span class="arr${active && activeSortDir==='desc'?' on':''}">▼</span>
+      </span>`;
+    }
+
+    function buildTable(rows) {
+      if (!rows.length) return '<div style="text-align:center;padding:48px;color:var(--ca-gray-500)">No California awards yet in the selected filters.</div>';
+      return `<table class="aw-table">
+        <thead><tr>
+          <th style="width:36px">#</th>
+          <th class="${activeSort==='deal'?'sort-active':''}" data-sort="deal">Deal ${sortArrows('deal')}</th>
+          <th class="${activeSort==='agency'?'sort-active':''}" data-sort="agency">Agency ${sortArrows('agency')}</th>
+          <th class="${activeSort==='region'?'sort-active':''}" data-sort="region">Region ${sortArrows('region')}</th>
+          <th class="${activeSort==='category'?'sort-active':''}" data-sort="category">Category ${sortArrows('category')}</th>
+          <th class="${activeSort==='awardedDate'?'sort-active':''}" data-sort="awardedDate">Awarded ${sortArrows('awardedDate')}</th>
+          <th class="right ${activeSort==='amount'?'sort-active':''}" data-sort="amount">Amount ${sortArrows('amount')}</th>
+          <th class="${activeSort==='owner'?'sort-active':''}" data-sort="owner">Owner ${sortArrows('owner')}</th>
+        </tr></thead>
+        <tbody>${rows.map((d, i) => {
+          const chip = d._region === 'Bay Area' ? 'bay' : d._region === 'NorCal' ? 'norcal' : d._region === 'SoCal' ? 'socal' : '';
+          const dealCell = d.hubspotLink
+            ? `<a class="aw-link" href="${escapeAttr(d.hubspotLink)}" target="_blank" rel="noreferrer noopener">${escapeHTML(d.dealName || '(Untitled)')}</a>`
+            : escapeHTML(d.dealName || '(Untitled)');
+          const dt = d.awardedDate || d.bidClosingDate || d.submissionDate;
+          return `<tr>
+            <td style="color:var(--ca-gray-400);font-size:0.8rem">${i+1}</td>
+            <td>${dealCell}</td>
+            <td>${escapeHTML(d.agency || '—')}</td>
+            <td>${chip ? `<span class="region-chip ${chip}">${d._region}</span>` : `<span style="color:var(--ca-gray-400);font-size:0.8rem">${d._region || 'Unclassified'}</span>`}</td>
+            <td>${escapeHTML(d.serviceCategory || '—')}</td>
+            <td>${dt ? CAPS.formatDate(dt) : '—'}</td>
+            <td class="right">${d.amount ? CAPS.formatCurrency(d.amount) : '—'}</td>
+            <td>${escapeHTML(d.owner || '—')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    }
+
+    function getSortedFiltered() {
+      let rows = [...awards];
+      if (activeSearch) {
+        const q = activeSearch.toLowerCase();
+        rows = rows.filter(d =>
+          (d.dealName || '').toLowerCase().includes(q) ||
+          (d.agency || '').toLowerCase().includes(q) ||
+          (d.serviceCategory || '').toLowerCase().includes(q) ||
+          (d._region || '').toLowerCase().includes(q) ||
+          (d.owner || '').toLowerCase().includes(q)
+        );
+      }
+      rows.sort((a, b) => {
+        function cmp(x, y) {
+          if (x instanceof Date && y instanceof Date) return x - y;
+          if (typeof x === 'number' && typeof y === 'number') return x - y;
+          return String(x || '').localeCompare(String(y || ''));
+        }
+        let va, vb;
+        if (activeSort === 'deal')         { va = a.dealName; vb = b.dealName; }
+        else if (activeSort === 'agency')  { va = a.agency;   vb = b.agency; }
+        else if (activeSort === 'region')  { va = a._region;  vb = b._region; }
+        else if (activeSort === 'category'){ va = a.serviceCategory; vb = b.serviceCategory; }
+        else if (activeSort === 'awardedDate') {
+          va = a.awardedDate || a.bidClosingDate || a.submissionDate || new Date(0);
+          vb = b.awardedDate || b.bidClosingDate || b.submissionDate || new Date(0);
+        }
+        else if (activeSort === 'amount') { va = a.amount || 0; vb = b.amount || 0; }
+        else if (activeSort === 'owner')  { va = a.owner;       vb = b.owner; }
+        const c = cmp(va, vb);
+        return activeSortDir === 'desc' ? -c : c;
+      });
+      return rows;
+    }
+
+    function refreshTable() {
+      const rows = getSortedFiltered();
+      document.getElementById('aw-table').innerHTML = buildTable(rows);
+      document.getElementById('tbl-count').textContent = rows.length + ' award' + (rows.length === 1 ? '' : 's');
+      document.getElementById('search-count').innerHTML = activeSearch ? `<strong>${rows.length}</strong> of ${awards.length}` : '';
+      document.querySelectorAll('.aw-table thead th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.sort;
+          if (activeSort === col) activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc';
+          else {
+            activeSort = col;
+            activeSortDir = (col === 'amount' || col === 'awardedDate') ? 'desc' : 'asc';
+          }
+          refreshTable();
+        });
+      });
+    }
+    refreshTable();
+
+    /* Search */
+    const searchEl = document.getElementById('aw-search');
+    const clearEl  = document.getElementById('search-clear');
+    searchEl.addEventListener('input', e => {
+      activeSearch = e.target.value;
+      clearEl.style.display = activeSearch ? 'block' : 'none';
+      refreshTable();
+    });
+    clearEl.addEventListener('click', () => { activeSearch = ''; searchEl.value = ''; clearEl.style.display = 'none'; refreshTable(); });
+  }
+
+  /* ════════════════ Helpers ════════════════ */
+  function escapeHTML(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s) { return escapeHTML(s); }
+
+  renderDashboard();
+</script>
+</body>
+</html>
