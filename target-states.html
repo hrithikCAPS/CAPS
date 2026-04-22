@@ -18,29 +18,6 @@
       margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--ca-light-blue);
     }
 
-    /* State-picker tabs at the top */
-    .state-tabs {
-      display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
-    }
-    .state-tab {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--ca-white); border: 1px solid var(--ca-gray-200);
-      border-radius: 24px; padding: 8px 18px;
-      font-size: 0.9rem; font-weight: 600; color: var(--ca-gray-700);
-      cursor: pointer; text-decoration: none;
-      transition: all 0.15s;
-      font-family: var(--font-family);
-    }
-    .state-tab:hover { background: var(--ca-gray-50); border-color: var(--ca-gray-300); color: var(--ca-gray-900); }
-    .state-tab.active { background: var(--ca-navy); color: #fff; border-color: var(--ca-navy); }
-    .state-tab__flag { font-size: 1rem; line-height: 1; }
-    .state-tab__count {
-      font-size: 0.72rem; font-weight: 700;
-      background: var(--ca-gray-100); color: var(--ca-gray-500);
-      padding: 2px 8px; border-radius: 10px;
-    }
-    .state-tab.active .state-tab__count { background: rgba(255,255,255,0.2); color: #fff; }
-
     /* Filter bar */
     .ca-global-filter {
       display: flex; align-items: center; gap: 12px;
@@ -58,13 +35,14 @@
     .ca-global-filter__count { font-size: 0.82rem; color: var(--ca-gray-500); margin-left: auto; }
     .ca-global-filter__count strong { color: var(--ca-blue); font-weight: 700; }
 
-    /* State region map — on-brand muted palette (navy / blue / teal) shared across all target states */
+    /* State region map — on-brand blue palette sampled from the same #DBEAFE → #1B2F5E
+       gradient used by awards.html and state-analysis.html US maps, so all maps feel consistent. */
     .ca-map-svg { width: 100%; height: auto; display: block; }
     .ca-map-county { stroke: #fff; stroke-width: 0.4; cursor: pointer; transition: opacity 0.15s; }
     .ca-map-county:hover { opacity: 0.82; stroke: var(--ca-navy); stroke-width: 1.2; }
-    .ca-map-county.r-1     { fill: #1B2F5E; }   /* navy   (primary region) */
-    .ca-map-county.r-2     { fill: #2D60C4; }   /* blue   (secondary region) */
-    .ca-map-county.r-3     { fill: #0891B2; }   /* teal   (tertiary region) */
+    .ca-map-county.r-1     { fill: #1B2F5E; }   /* navy         (primary region)   */
+    .ca-map-county.r-2     { fill: #4472CA; }   /* medium blue  (secondary region) */
+    .ca-map-county.r-3     { fill: #93B4E4; }   /* light blue   (tertiary region)  */
     .ca-map-county.r-other { fill: #E4E7EC; }
     .ca-map-county.dim     { fill-opacity: 0.25; pointer-events: none; }
 
@@ -75,8 +53,8 @@
     .map-legend__item { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: var(--ca-gray-700); font-weight: 500; }
     .map-legend__sw  { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
     .map-legend__sw.r-1 { background: #1B2F5E; }
-    .map-legend__sw.r-2 { background: #2D60C4; }
-    .map-legend__sw.r-3 { background: #0891B2; }
+    .map-legend__sw.r-2 { background: #4472CA; }
+    .map-legend__sw.r-3 { background: #93B4E4; }
 
     #map-tooltip {
       position: fixed; pointer-events: none; display: none;
@@ -107,16 +85,16 @@
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
-    .region-card.r-1::before { background: linear-gradient(90deg,#1B2F5E,#2D60C4); }
-    .region-card.r-2::before { background: linear-gradient(90deg,#2D60C4,#6B93E6); }
-    .region-card.r-3::before { background: linear-gradient(90deg,#0891B2,#22B6D6); }
+    .region-card.r-1::before { background: linear-gradient(90deg,#1B2F5E,#4472CA); }
+    .region-card.r-2::before { background: linear-gradient(90deg,#4472CA,#6B93E6); }
+    .region-card.r-3::before { background: linear-gradient(90deg,#93B4E4,#C7D7EF); }
 
     .region-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .region-card__title { font-size: 1.08rem; font-weight: 700; color: var(--ca-navy); display: flex; align-items: center; gap: 8px; }
     .region-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .r-1 .region-dot { background: #1B2F5E; }
-    .r-2 .region-dot { background: #2D60C4; }
-    .r-3 .region-dot { background: #0891B2; }
+    .r-2 .region-dot { background: #4472CA; }
+    .r-3 .region-dot { background: #93B4E4; }
     .region-card__pill {
       font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 12px;
       background: var(--ca-gray-100); color: var(--ca-gray-700);
@@ -208,10 +186,10 @@
     .region-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
     .region-chip.r-1 { background: #E0E7F1; color: #1B2F5E; }
     .region-chip.r-1::before { background: #1B2F5E; }
-    .region-chip.r-2 { background: #DBEAFE; color: #1D4ED8; }
-    .region-chip.r-2::before { background: #2D60C4; }
-    .region-chip.r-3 { background: #CFFAFE; color: #0E7490; }
-    .region-chip.r-3::before { background: #0891B2; }
+    .region-chip.r-2 { background: #DBEAFE; color: #1E40AF; }
+    .region-chip.r-2::before { background: #4472CA; }
+    .region-chip.r-3 { background: #EFF4FC; color: #2D4A8C; }
+    .region-chip.r-3::before { background: #93B4E4; }
     .region-chip.none { background: var(--ca-gray-100); color: var(--ca-gray-500); }
     .region-chip.none::before { background: var(--ca-gray-300); }
 
@@ -256,6 +234,101 @@
     .coming-soon__title { font-size: 1.1rem; font-weight: 700; color: var(--ca-navy); margin-bottom: 4px; }
     .coming-soon__body { font-size: 0.88rem; color: var(--ca-gray-500); line-height: 1.55; max-width: 540px; margin: 0 auto; }
     .coming-soon__pill { display: inline-block; margin-top: 12px; padding: 4px 12px; background: var(--ca-blue); color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 12px; }
+
+    /* ═════════ Award pins on state map ═════════ */
+    .award-pin {
+      cursor: pointer; transition: r 0.15s ease, opacity 0.15s ease;
+      stroke: #fff; stroke-width: 1.5;
+    }
+    .award-pin.won { fill: #059669; }
+    .award-pin.ia  { fill: #F59E0B; }
+    .award-pin:hover { stroke-width: 2.5; }
+    .award-pin-glow {
+      fill: none; stroke-width: 2; opacity: 0.35; pointer-events: none;
+    }
+    .award-pin-glow.won { stroke: #059669; }
+    .award-pin-glow.ia  { stroke: #F59E0B; }
+
+    .pin-legend {
+      display: inline-flex; align-items: center; gap: 14px;
+      font-size: 0.78rem; color: var(--ca-gray-600);
+      margin-left: auto; flex-wrap: wrap;
+    }
+    .pin-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+    .pin-legend__dot {
+      width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #fff;
+      box-shadow: 0 0 0 1px var(--ca-gray-300);
+    }
+    .pin-legend__dot.won { background: #059669; }
+    .pin-legend__dot.ia  { background: #F59E0B; }
+
+    /* ═════════ Top States Table ═════════ */
+    .top-states-table {
+      width: 100%; border-collapse: collapse; font-size: 0.88rem;
+      font-family: 'Inter', sans-serif;
+    }
+    .top-states-table thead th {
+      background: #F8FAFC; color: var(--ca-navy); font-weight: 700;
+      text-align: left; padding: 10px 14px;
+      border-bottom: 2px solid var(--ca-gray-200);
+      font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      position: sticky; top: 0; z-index: 2;
+    }
+    .top-states-table thead th:hover { background: #EEF2F6; }
+    .top-states-table thead th .sort-arrow {
+      display: inline-block; margin-left: 5px; font-size: 0.72rem;
+      color: var(--ca-gray-400); transition: color 0.12s;
+    }
+    .top-states-table thead th.is-sorted .sort-arrow { color: var(--ca-navy); }
+    .top-states-table thead th.num { text-align: right; }
+    .top-states-table .filter-row th {
+      background: #fff; padding: 6px 10px; border-bottom: 1px solid var(--ca-gray-200);
+      cursor: default; text-transform: none; letter-spacing: 0; font-weight: 400;
+      position: sticky; top: 38px; z-index: 2;
+    }
+    .top-states-table .filter-row th:hover { background: #fff; }
+    .top-states-table .col-filter {
+      width: 100%; padding: 5px 8px; border: 1px solid var(--ca-gray-200);
+      border-radius: 6px; font-size: 0.78rem; font-family: inherit;
+      color: var(--ca-gray-700); background: #fff; outline: none;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .top-states-table .col-filter:focus {
+      border-color: var(--ca-blue);
+      box-shadow: 0 0 0 2px rgba(45,96,196,0.15);
+    }
+    .top-states-table tbody td {
+      padding: 8px 14px; border-bottom: 1px solid var(--ca-gray-100);
+      color: var(--ca-gray-700);
+    }
+    .top-states-table tbody tr { cursor: pointer; }
+    .top-states-table tbody tr:hover { background: #F8FAFC; }
+    .top-states-table tbody tr.is-target { background: #FFFBEB; }
+    .top-states-table tbody tr.is-target:hover { background: #FEF3C7; }
+    .top-states-table tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .top-states-table tbody td.state-name { font-weight: 600; color: var(--ca-navy); }
+    .top-states-table tbody td .target-star { color: #F59E0B; margin-left: 4px; }
+    /* Active (currently-selected) state row — strong highlight, overrides target tint */
+    .top-states-table tbody tr.is-active,
+    .top-states-table tbody tr.is-active:hover,
+    .top-states-table tbody tr.is-active.is-target,
+    .top-states-table tbody tr.is-active.is-target:hover {
+      background: #DBEAFE;
+      box-shadow: inset 4px 0 0 0 var(--ca-navy);
+    }
+    .top-states-table tbody tr.is-active td.state-name { color: var(--ca-navy); }
+    .top-states-table tfoot td {
+      padding: 10px 14px; font-weight: 700; color: var(--ca-navy);
+      background: #F8FAFC; border-top: 2px solid var(--ca-gray-200);
+    }
+    .top-states-table tfoot td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .top-states-wrap {
+      max-height: 520px; overflow-y: auto; border-radius: 0 0 10px 10px;
+    }
+    .top-states-empty {
+      padding: 30px; text-align: center; color: var(--ca-gray-400); font-size: 0.88rem;
+    }
   </style>
 </head>
 <body>
@@ -299,8 +372,9 @@
      Every target state has 3 regions. The page renders the same
      analysis stack (map, scorecards, funnel/pipeline/matrix charts,
      category heatmap, awards table) for each. Region colour slots
-     (r-1 navy, r-2 blue, r-3 teal) come from a shared on-brand
-     palette so every state map looks cohesive.
+     (r-1 navy, r-2 medium blue, r-3 light blue) come from the same
+     #DBEAFE → #1B2F5E palette used on awards.html + state-analysis.html,
+     so every map on the dashboard feels cohesive.
      ═══════════════════════════════════════════════════════════════ */
   const TARGET_STATES = [
     { key: 'California', flag: '🌴' },
@@ -309,13 +383,14 @@
     { key: 'Florida',    flag: '🌞' },
   ];
 
-  /* Shared, on-brand region colour palette (navy → blue → teal).
+  /* Shared, on-brand region colour palette (three shades of blue, sampled from the
+     same #DBEAFE → #1B2F5E gradient used by awards.html + state-analysis.html US maps).
      Each state's regions map to slot 0/1/2 in this palette in the
      order defined in STATE_CONFIG[state].regions. */
   const REGION_PALETTE = [
-    { solid: '#1B2F5E', alpha: 'rgba(27,47,94,0.82)',  cls: 'r-1' }, /* navy */
-    { solid: '#2D60C4', alpha: 'rgba(45,96,196,0.82)', cls: 'r-2' }, /* blue */
-    { solid: '#0891B2', alpha: 'rgba(8,145,178,0.82)', cls: 'r-3' }, /* teal */
+    { solid: '#1B2F5E', alpha: 'rgba(27,47,94,0.82)',   cls: 'r-1' }, /* navy       */
+    { solid: '#4472CA', alpha: 'rgba(68,114,202,0.82)', cls: 'r-2' }, /* medium blue */
+    { solid: '#93B4E4', alpha: 'rgba(147,180,228,0.82)', cls: 'r-3' }, /* light blue  */
   ];
 
   /* ─────── California: agency → region mapping ─────── */
@@ -506,7 +581,7 @@
   /* ═══════════════════════════════════════════════════
      Master STATE_CONFIG — single source of truth.
      regions: ordered array; the index is the colour slot
-     in REGION_PALETTE (0=navy, 1=blue, 2=teal).
+     in REGION_PALETTE (0=navy, 1=medium blue, 2=light blue).
      ═══════════════════════════════════════════════════ */
   const STATE_CONFIG = {
     'California': {
@@ -581,7 +656,7 @@
   let activeSort         = 'amount';
   let activeSortDir      = 'desc';
 
-  let chFunnel = null, chPipeline = null, chMatrix = null;
+  let chPipeline = null;
 
   /* ══════════════════════════════════════════════════════════════ */
   async function renderDashboard() {
@@ -598,25 +673,41 @@
     });
     const allYears = [...yearSet].sort((a,b) => b - a);
 
-    /* Bids per state (for the state tab pill counters) */
+    /* Bids per state — counts for both the 4 target-state pill tabs AND
+       for every other state (so the state dropdown lists the whole universe).
+       State names are normalised via normStateName so typos (TEXAS, Missourie,
+       Washington DC, CA, etc.) collapse into a single canonical entry. */
     const stateCounts = {};
     TARGET_STATES.forEach(s => stateCounts[s.key] = 0);
+    const allStateCounts = {};
     allData.forEach(d => {
       const ref = d.bidClosingDate || d.submissionDate;
       if (!ref) return;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (dt < OCT_2025) return;
-      const st = (d.agencyState || '').trim();
+      const raw = (d.agencyState || '').trim();
+      if (!raw) return;
+      const st = normStateName(raw) || raw;
       if (stateCounts.hasOwnProperty(st)) stateCounts[st]++;
+      allStateCounts[st] = (allStateCounts[st] || 0) + 1;
     });
+    // Sorted list of all states with bids, target states first then the rest by count desc.
+    const targetKeys = TARGET_STATES.map(s => s.key);
+    const otherStates = Object.keys(allStateCounts)
+      .filter(s => !targetKeys.includes(s))
+      .sort((a, b) => allStateCounts[b] - allStateCounts[a] || a.localeCompare(b));
 
-    /* Base = selected state, Oct 2025+, (optionally year-filtered) */
+    /* Base = selected state, Oct 2025+, (optionally year-filtered).
+       Normalise agencyState so typos/variants (TEXAS, CA, Missourie, Washington DC)
+       still match the canonical activeState name. */
     let base = allData.filter(d => {
       const ref = d.bidClosingDate || d.submissionDate;
       if (!ref) return false;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (dt < OCT_2025) return false;
-      return (d.agencyState || '').trim() === activeState;
+      const raw = (d.agencyState || '').trim();
+      const st = normStateName(raw) || raw;
+      return st === activeState;
     });
     if (activeYearFilter) {
       base = base.filter(d => {
@@ -625,9 +716,9 @@
       });
     }
 
+    const hasRegions = !!STATE_CONFIG[activeState];           // only target states have regional breakdowns
     const stateCfg = STATE_CONFIG[activeState] || STATE_CONFIG['California'];
-    const REGIONS  = stateCfg.regions;              // per-state region list (3 items)
-    const hasRegions = true;                        // every target state now has regions
+    const REGIONS  = hasRegions ? stateCfg.regions : [];       // empty for non-target states
 
     /* Tag every record with its region (state-aware classifier) */
     const tagged = base.map(d => ({
@@ -705,32 +796,36 @@
       });
     }
 
-    const insights = deriveRegionalInsights(activeState, regAgg, REGIONS);
+    const insights = hasRegions ? deriveRegionalInsights(activeState, regAgg, REGIONS) : [];
     const awards = data.filter(d => d.stage === 'Closed Won');
+    const stateActiveBidCount = allStateCounts[activeState] || 0;
+
+    /* Build dropdown <options> — target states first, then all other states with data */
+    const stateOptionsHtml = [
+      '<optgroup label="Target States">',
+      TARGET_STATES.map(s =>
+        `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.flag} ${s.key} (${stateCounts[s.key] || 0})</option>`
+      ).join(''),
+      '</optgroup>',
+      otherStates.length ? '<optgroup label="Other States">' : '',
+      otherStates.map(st =>
+        `<option value="${escapeHTML(st)}" ${activeState === st ? 'selected' : ''}>${escapeHTML(st)} (${allStateCounts[st]})</option>`
+      ).join(''),
+      otherStates.length ? '</optgroup>' : '',
+      // If the active state is somehow not in target or other (e.g. no Oct-2025+ data), add it so the dropdown stays in sync
+      (!stateCounts.hasOwnProperty(activeState) && !allStateCounts[activeState])
+        ? `<option value="${escapeHTML(activeState)}" selected>${escapeHTML(activeState)} (0)</option>`
+        : ''
+    ].join('');
 
     /* ── BUILD HTML ── */
     document.getElementById('dashboard').innerHTML = `
       <div class="ca-page-header">
-        <h1 class="ca-page-header__title">Top Target States</h1>
+        <h1 class="ca-page-header__title">State Analysis</h1>
         <p class="ca-page-header__subtitle">
-          Deep-dive into the four states we're actively targeting —
-          <strong>California</strong> (Bay Area · NorCal · SoCal),
-          <strong>New York</strong> (NYC Metro · Hudson Valley · Upstate),
-          <strong>Texas</strong> (DFW · Houston/Gulf · Central/South/West) and
-          <strong>Florida</strong> (South · Central · North).
-          Oct 2025 onwards.
+          Deep-dive into any state where we're bidding — pick a state from the filter below.
+          Target states (California, New York, Texas, Florida) get the full regional breakdown. Oct 2025 onwards.
         </p>
-      </div>
-
-      <!-- State tabs -->
-      <div class="state-tabs" id="state-tabs">
-        ${TARGET_STATES.map(s => `
-          <button class="state-tab ${s.key === activeState ? 'active' : ''}" data-state="${s.key}">
-            <span class="state-tab__flag">${s.flag}</span>
-            ${s.key}
-            <span class="state-tab__count">${stateCounts[s.key] || 0}</span>
-          </button>
-        `).join('')}
       </div>
 
       <!-- KPIs -->
@@ -756,25 +851,27 @@
       <div class="ca-global-filter">
         <span class="ca-global-filter__label">State:</span>
         <select id="gf-state">
-          ${TARGET_STATES.map(s => `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.flag} ${s.key}</option>`).join('')}
+          ${stateOptionsHtml}
         </select>
         <span class="ca-global-filter__label" style="margin-left:12px">Year:</span>
         <select id="gf-year">
           <option value="">All Years</option>
           ${allYears.map(y => `<option value="${y}" ${activeYearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
         </select>
+        ${hasRegions ? `
         <span class="ca-global-filter__label" style="margin-left:12px">Region:</span>
         <select id="gf-region">
           <option value="">All ${activeState} Regions</option>
           ${REGIONS.map(r => `<option value="${r}" ${activeRegionFilter === r ? 'selected' : ''}>${r} (${regAgg[r].bids})</option>`).join('')}
-        </select>
+        </select>` : ''}
         <span class="ca-global-filter__count">
           Showing <strong>${data.length}</strong> of ${tagged.length} ${activeState} RFPs
           ${unclassified > 0 ? ` · <span style="color:var(--ca-yellow)">${unclassified} unclassified</span>` : ''}
         </span>
       </div>
 
-      <!-- Map + Scorecards -->
+      ${hasRegions ? `
+      <!-- Map + Scorecards (target states only) -->
       <div class="ca-section-label">${activeState}, by Region</div>
       <div class="method-note">
         <strong>Regional definitions</strong> — ${stateCfg.methodology}
@@ -792,6 +889,7 @@
           <div class="map-legend" id="map-legend"></div>
           <div style="padding:8px 20px 16px;font-size:0.75rem;color:var(--ca-gray-400);text-align:center">
             Counties are coloured by region. Hover or click a county to see how we're performing in that region.
+            Pins show Closed Won (green) and Intent to Award (amber) deals — pin size ≈ deal $.
           </div>
         </div>
         <div>
@@ -812,34 +910,45 @@
           </div>
         `).join('')}
       </div>
-
-      <!-- Region charts -->
-      <div class="ca-section-label">Conversion & Pipeline</div>
-      <div class="ca-grid ca-grid--2">
-        <div class="ca-panel">
-          <div class="ca-panel__header">
-            <span class="ca-panel__title">Conversion Funnel by Region</span>
-            <span class="ca-panel__badge">Bid → Interview → IA → Won</span>
-          </div>
-          <div class="ca-panel__body"><div class="chart-container h380"><canvas id="ch-funnel"></canvas></div></div>
-        </div>
-        <div class="ca-panel">
-          <div class="ca-panel__header">
-            <span class="ca-panel__title">Active Pipeline $ by Region</span>
-            <span class="ca-panel__badge">Submitted + Interview + IA</span>
-          </div>
-          <div class="ca-panel__body"><div class="chart-container h380"><canvas id="ch-pipeline"></canvas></div></div>
-        </div>
+      ` : `
+      <!-- Non-target state: show a simple info note -->
+      <div class="method-note" style="margin-top:4px">
+        <strong>${escapeHTML(activeState)}</strong> isn't one of our four primary target states, so the regional
+        breakdown, regional map and pipeline-by-region chart are hidden. You'll still see the state's KPIs above,
+        its ranking in the <em>Top States</em> table below, and the list of its Closed-Won deals.
       </div>
+      `}
 
-      <div class="ca-grid ca-grid--2">
+      <!-- States by Awards (always visible) -->
+      <div class="ca-section-label">States by Revenue & Award Count</div>
+      <div class="ca-grid ${hasRegions ? 'ca-grid--2' : ''}">
         <div class="ca-panel">
           <div class="ca-panel__header">
-            <span class="ca-panel__title">Where to Invest — Win Rate vs Avg Deal Size</span>
-            <span class="ca-panel__badge">bubble size = bid volume</span>
+            <span class="ca-panel__title">Top States by Awards</span>
+            <span class="ca-panel__badge" id="top-states-badge">Closed Won + Intent to Award</span>
           </div>
-          <div class="ca-panel__body"><div class="chart-container h420"><canvas id="ch-matrix"></canvas></div></div>
+          <div class="ca-panel__body ca-panel__body--no-pad">
+            <div class="top-states-wrap">
+              <table class="top-states-table" id="top-states-table">
+                <thead>
+                  <tr>
+                    <th data-sort-key="state" class="is-sorted">State <span class="sort-arrow">▲</span></th>
+                    <th data-sort-key="count" class="num">Awards <span class="sort-arrow">↕</span></th>
+                    <th data-sort-key="value" class="num">Revenue <span class="sort-arrow">↕</span></th>
+                  </tr>
+                  <tr class="filter-row">
+                    <th><input type="text" class="col-filter" data-col="state" placeholder="Filter state…"></th>
+                    <th><input type="text" class="col-filter" data-col="count" placeholder="e.g. ≥5 or 3-10"></th>
+                    <th><input type="text" class="col-filter" data-col="value" placeholder="e.g. ≥100000"></th>
+                  </tr>
+                </thead>
+                <tbody id="top-states-tbody"></tbody>
+                <tfoot><tr id="top-states-foot"></tr></tfoot>
+              </table>
+            </div>
+          </div>
         </div>
+        ${hasRegions ? `
         <div class="ca-panel">
           <div class="ca-panel__header">
             <span class="ca-panel__title">Category × Region Win Rate</span>
@@ -849,7 +958,20 @@
             <div id="heatmap-wrap" style="padding:4px 20px 16px;overflow-x:auto"></div>
           </div>
         </div>
+        ` : ''}
       </div>
+
+      ${hasRegions ? `
+      <!-- Pipeline chart (target states only) -->
+      <div class="ca-section-label">Pipeline $ by Region</div>
+      <div class="ca-panel">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title">Active Pipeline $ by Region</span>
+          <span class="ca-panel__badge">Submitted + Interview + IA</span>
+        </div>
+        <div class="ca-panel__body"><div class="chart-container h380"><canvas id="ch-pipeline"></canvas></div></div>
+      </div>
+      ` : ''}
 
       <!-- Awards table -->
       <div class="ca-section-label">${activeState} Awards${hasRegions && activeRegionFilter ? ` — ${activeRegionFilter}` : ''}</div>
@@ -874,17 +996,20 @@
           <div class="ca-table-scroll" id="aw-table"></div>
         </div>
       </div>
+
     `;
 
     /* Destroy previous charts */
-    [chFunnel, chPipeline, chMatrix].forEach(c => c && c.destroy());
-    chFunnel = chPipeline = chMatrix = null;
+    [chPipeline].forEach(c => c && c.destroy());
+    chPipeline = null;
 
-    buildFunnelChart(activeState, regAgg, REGIONS);
-    buildPipelineChart(activeState, regAgg, REGIONS);
-    buildMatrixChart(activeState, regAgg, REGIONS);
-    renderHeatmap(activeState, catRegion, REGIONS);
-    buildStateMap(activeState, regAgg, REGIONS);
+    if (hasRegions) {
+      buildPipelineChart(activeState, regAgg, REGIONS);
+      renderHeatmap(activeState, catRegion, REGIONS);
+      buildStateMap(activeState, regAgg, REGIONS);
+    }
+    buildTopStatesTable();
+    bindTopStatesTable();
 
     /* Region card click → drill */
     document.querySelectorAll('[data-region-card]').forEach(el => {
@@ -895,22 +1020,12 @@
       });
     });
 
-    document.getElementById('gf-region').addEventListener('change', e => {
-      activeRegionFilter = e.target.value; renderDashboard();
-    });
-
-    /* State tabs */
-    document.querySelectorAll('#state-tabs .state-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const nextState = btn.dataset.state;
-        if (nextState !== activeState) {
-          activeState = nextState;
-          activeRegionFilter = '';
-          activeSearch = '';
-          renderDashboard();
-        }
+    const gfRegion = document.getElementById('gf-region');
+    if (gfRegion) {
+      gfRegion.addEventListener('change', e => {
+        activeRegionFilter = e.target.value; renderDashboard();
       });
-    });
+    }
 
     /* Filters */
     document.getElementById('gf-state').addEventListener('change', e => {
@@ -1126,6 +1241,106 @@
     });
     svg.append('path').datum(mesh).attr('fill','none').attr('stroke','#fff').attr('stroke-width',1.8).attr('d',path);
 
+    /* ═════════ Award pins (Closed Won + Intent to Award for this state) ═════════ */
+    // Pre-compute centroids for each region (uses the path already built above).
+    const regionCentroids = {};
+    REGIONS.forEach(reg => {
+      const feats = stateCounties.filter(f => regionFor(String(f.id).padStart(5,'0')) === reg);
+      if (feats.length === 0) return;
+      const c = path.centroid({ type: 'GeometryCollection', geometries: feats.map(f => f.geometry) });
+      if (!c || isNaN(c[0]) || isNaN(c[1])) return;
+      regionCentroids[reg] = c;
+    });
+
+    // Filter awards for this state (all-time Closed Won + Intent to Award).
+    const awardsRaw = Array.isArray(window.CAPS_AWARDS_DATA) ? window.CAPS_AWARDS_DATA : [];
+    const stateAwards = awardsRaw.filter(r => {
+      const raw = r['Agency State'] || r['agencyState'] || '';
+      const stName = normStateName(raw);
+      const stage = r['Stage'] || r['stage'] || '';
+      return stName === state && (stage === 'Closed Won' || stage === 'Intent to Award');
+    });
+
+    // Deterministic pseudo-random jitter from an ID string, so pins don't move between renders.
+    const pinHash = (str) => {
+      const s = String(str || '');
+      let h = 0;
+      for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+      return h;
+    };
+    const jitterFor = (id, span) => {
+      const h = Math.abs(pinHash(id));
+      const u = ((h % 10000) / 10000);                // 0..1
+      const v = (((h >> 8) % 10000) / 10000);         // 0..1
+      const angle = u * Math.PI * 2;
+      const radius = Math.sqrt(v) * span;
+      return [ Math.cos(angle) * radius, Math.sin(angle) * radius ];
+    };
+
+    // Size scale: sqrt of amount → radius. Base radius 5 if no amount.
+    const maxAmt = stateAwards.reduce((m, r) => {
+      const v = parseFloat(String(r['Amount ($)'] ?? r.amount ?? '').replace(/[,$]/g, '')) || 0;
+      return v > m ? v : m;
+    }, 0);
+    const radiusFor = (amount) => {
+      if (!amount || !maxAmt) return 5;
+      const t = Math.sqrt(amount) / Math.sqrt(maxAmt);
+      return Math.max(4.5, Math.min(13, 4.5 + t * 9));
+    };
+
+    const pinLayer = svg.append('g').attr('class', 'award-pins');
+
+    stateAwards.forEach(aw => {
+      const agency = aw['Agency'] || aw['agency'] || '';
+      const reg = classifyRegion(state, agency);
+      const c = regionCentroids[reg] || regionCentroids[REGIONS[REGIONS.length - 1]];
+      if (!c) return;
+
+      const id = aw['HubSpot ID'] || aw['hubspotId'] || aw['Deal Name'] || agency;
+      const [jx, jy] = jitterFor(id, 36);  // pins drift up to 36px from the regional centroid
+      // Push pins down a bit so they don't overlap the region-label plate at y=-22..+22
+      const x = c[0] + jx;
+      const y = c[1] + jy + 34;
+
+      const stage = aw['Stage'] || aw['stage'] || '';
+      const isWon = stage === 'Closed Won';
+      const stageCls = isWon ? 'won' : 'ia';
+      const amountNum = parseFloat(String(aw['Amount ($)'] ?? aw.amount ?? '').replace(/[,$]/g, '')) || 0;
+      const r = radiusFor(amountNum);
+
+      // Outer glow ring (larger deals get a bigger ring)
+      pinLayer.append('circle')
+        .attr('class', `award-pin-glow ${stageCls}`)
+        .attr('cx', x).attr('cy', y).attr('r', r + 3);
+
+      // Main pin
+      const pin = pinLayer.append('circle')
+        .attr('class', `award-pin ${stageCls}`)
+        .attr('cx', x).attr('cy', y).attr('r', r)
+        .datum({ award: aw, agency, stage, amountNum, region: reg });
+
+      pin.on('mousemove', (event, d) => {
+        const dealName = d.award['Deal Name'] || d.award['dealName'] || '—';
+        const awardedDate = d.award['Awarded Date'] || d.award['awardedDate'] || d.award['Intent to Award Date'] || '';
+        const cat = d.award['Service Category'] || d.award['serviceCategory'] || '';
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 14) + 'px';
+        tooltip.style.top  = (event.clientY - 10) + 'px';
+        const stageColor = d.stage === 'Closed Won' ? '#059669' : '#F59E0B';
+        tooltip.innerHTML = `
+          <strong>${escapeHTML(dealName)}</strong>
+          <div class="tt-row">
+            <span class="lbl">Agency</span><span><b>${escapeHTML(d.agency)}</b></span>
+            ${d.region ? `<span class="lbl">Region</span><span><b>${escapeHTML(d.region)}</b></span>` : ''}
+            <span class="lbl">Stage</span><span style="color:${stageColor}"><b>${escapeHTML(d.stage)}</b></span>
+            ${d.amountNum > 0 ? `<span class="lbl">Amount</span><span><b>${CAPS.formatCurrency(d.amountNum)}</b></span>` : ''}
+            ${cat ? `<span class="lbl">Category</span><span><b>${escapeHTML(cat)}</b></span>` : ''}
+            ${awardedDate ? `<span class="lbl">Date</span><span><b>${escapeHTML(String(awardedDate).slice(0,10))}</b></span>` : ''}
+          </div>
+        `;
+      }).on('mouseleave', () => { tooltip.style.display = 'none'; });
+    });
+
     legendEl.innerHTML = REGIONS.map(r => {
       const palette = regionPalette(state, r);
       return `
@@ -1134,60 +1349,55 @@
           ${r} — <strong style="color:var(--ca-gray-900)">${regAgg[r].bids} bids</strong>
         </span>
       `;
-    }).join('');
+    }).join('') + `
+      <span class="pin-legend">
+        <span class="pin-legend__item"><span class="pin-legend__dot won"></span>Closed Won (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Closed Won').length})</span>
+        <span class="pin-legend__item"><span class="pin-legend__dot ia"></span>Intent to Award (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Intent to Award').length})</span>
+        <span class="pin-legend__item" style="color:var(--ca-gray-400);font-size:0.72rem">pin size ≈ deal $</span>
+      </span>
+    `;
+  }
+
+  /* ═════════ Awards state-name normaliser ═════════
+     Maps raw HubSpot "Agency State" values (abbreviations, typos, etc.)
+     to canonical full state names so we can aggregate the Awards data. */
+  const US_STATE_FIPS = {
+    '01':'Alabama','02':'Alaska','04':'Arizona','05':'Arkansas','06':'California',
+    '08':'Colorado','09':'Connecticut','10':'Delaware','11':'District of Columbia',
+    '12':'Florida','13':'Georgia','15':'Hawaii','16':'Idaho','17':'Illinois',
+    '18':'Indiana','19':'Iowa','20':'Kansas','21':'Kentucky','22':'Louisiana',
+    '23':'Maine','24':'Maryland','25':'Massachusetts','26':'Michigan','27':'Minnesota',
+    '28':'Mississippi','29':'Missouri','30':'Montana','31':'Nebraska','32':'Nevada',
+    '33':'New Hampshire','34':'New Jersey','35':'New Mexico','36':'New York',
+    '37':'North Carolina','38':'North Dakota','39':'Ohio','40':'Oklahoma','41':'Oregon',
+    '42':'Pennsylvania','44':'Rhode Island','45':'South Carolina','46':'South Dakota',
+    '47':'Tennessee','48':'Texas','49':'Utah','50':'Vermont','51':'Virginia',
+    '53':'Washington','54':'West Virginia','55':'Wisconsin','56':'Wyoming',
+    '72':'Puerto Rico'
+  };
+  const US_STATE_ALIAS = {
+    'ca':'California','n.y.':'New York','ny':'New York','nys':'New York',
+    'tx':'Texas','fl':'Florida','wa':'Washington','d.c.':'District of Columbia',
+    'dc':'District of Columbia','washington dc':'District of Columbia',
+    'illinios':'Illinois','massachussetts':'Massachusetts','masssachusetts':'Massachusetts',
+    'chicago':'Illinois', 'missourie':'Missouri', 'missouri ':'Missouri',
+    'texas ':'Texas','kansas ':'Kansas','new york':'New York',
+    'missouri':'Missouri','oregon':'Oregon'
+  };
+  const TARGET_STATE_SET = new Set(['California','New York','Texas','Florida']);
+
+  function normStateName(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const lower = s.toLowerCase();
+    if (US_STATE_ALIAS[lower]) return US_STATE_ALIAS[lower];
+    for (const name of Object.values(US_STATE_FIPS)) {
+      if (name.toLowerCase() === lower) return name;
+    }
+    return s;
   }
 
   /* ════════════════ Regional charts (state-agnostic) ════════════════ */
-  function buildFunnelChart(state, regAgg, REGIONS) {
-    const stages = ['Bids', 'Interviews', 'Intent to Award', 'Closed Won'];
-    const datasets = REGIONS.map(r => {
-      const p = regionPalette(state, r);
-      return {
-        label: r,
-        data: [regAgg[r].bids, regAgg[r].iv, regAgg[r].ia, regAgg[r].won],
-        backgroundColor: p.alpha,
-        borderColor: p.solid,
-        borderWidth: 1, borderRadius: 5, barPercentage: 0.72, categoryPercentage: 0.82,
-      };
-    });
-    chFunnel = new Chart(document.getElementById('ch-funnel'), {
-      type: 'bar',
-      data: { labels: stages, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 28, right: 12, left: 4, bottom: 4 } },
-        plugins: {
-          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
-          tooltip: {
-            callbacks: {
-              afterBody: (items) => {
-                const stageIdx = items[0].dataIndex;
-                const reg = items[0].dataset.label;
-                const a = regAgg[reg];
-                if (stageIdx === 1 && a.bids > 0) return [`Bid → Interview: ${(a.bidToInterview*100).toFixed(1)}%`];
-                if (stageIdx === 2 && a.iv   > 0) return [`Interview → IA: ${(a.interviewToIA*100).toFixed(1)}%`];
-                if (stageIdx === 3 && a.bids > 0) return [`Bid → Won: ${(a.bidToWin*100).toFixed(1)}%`];
-                return null;
-              }
-            }
-          },
-          datalabels: {
-            display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
-            anchor: 'end', align: 'end',
-            font: { weight: '700', size: 10 },
-            color: ctx => regionPalette(state, ctx.dataset.label).solid,
-            clamp: true,
-          }
-        },
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, grid: { color: '#F2F4F7' }, ticks: { stepSize: 1, precision: 0 },
-               title: { display: true, text: 'Deal count', font: { weight: '600', size: 11 } } }
-        }
-      }
-    });
-  }
-
   function buildPipelineChart(state, regAgg, REGIONS) {
     chPipeline = new Chart(document.getElementById('ch-pipeline'), {
       type: 'bar',
@@ -1229,66 +1439,6 @@
         scales: {
           x: { beginAtZero: true, grid: { color: '#F2F4F7' }, ticks: { callback: v => CAPS.formatCurrency(v) } },
           y: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  function buildMatrixChart(state, regAgg, REGIONS) {
-    const points = REGIONS.map(r => {
-      const a = regAgg[r];
-      return {
-        x: a.winRate !== null ? +(a.winRate * 100).toFixed(1) : 0,
-        y: a.avgWonAmt || 0,
-        r: Math.max(8, Math.sqrt(a.bids) * 6),
-        label: r
-      };
-    });
-    chMatrix = new Chart(document.getElementById('ch-matrix'), {
-      type: 'bubble',
-      data: {
-        datasets: REGIONS.map((r, i) => {
-          const p = regionPalette(state, r);
-          return {
-            label: r,
-            data: [points[i]],
-            backgroundColor: p.alpha,
-            borderColor: p.solid,
-            borderWidth: 2,
-          };
-        })
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 24, right: 20, left: 8, bottom: 8 } },
-        plugins: {
-          legend: { position: 'top', align: 'end', labels: { padding: 14, font: { size: 12 } } },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const r = ctx.dataset.label, a = regAgg[r];
-                return [
-                  `${r}`,
-                  `Win rate: ${a.winRate !== null ? (a.winRate*100).toFixed(1) + '%' : '—'}`,
-                  `Avg won deal: ${CAPS.formatCurrency(a.avgWonAmt)}`,
-                  `Bid volume: ${a.bids}`,
-                ];
-              }
-            }
-          },
-          datalabels: {
-            display: true, align: 'top', anchor: 'center',
-            offset: ctx => ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex].options.radius + 4,
-            font: { weight: '700', size: 11 },
-            color: ctx => regionPalette(state, ctx.dataset.label).solid,
-            formatter: (v, ctx) => ctx.dataset.label
-          }
-        },
-        scales: {
-          x: { title: { display: true, text: 'Win rate (%)', font: { weight: '600', size: 11 } },
-               beginAtZero: true, suggestedMax: 100, grid: { color: '#F2F4F7' }, ticks: { callback: v => v + '%' } },
-          y: { title: { display: true, text: 'Avg won deal size ($)', font: { weight: '600', size: 11 } },
-               beginAtZero: true, grid: { color: '#F2F4F7' }, ticks: { callback: v => CAPS.formatCurrency(v) } }
         }
       }
     });
@@ -1342,6 +1492,199 @@
     });
     html += '</tbody></table>';
     document.getElementById('heatmap-wrap').innerHTML = html;
+  }
+
+  /* ════════════════ States Awards Table ════════════════
+     Aggregates CAPS_AWARDS_DATA (Closed Won + Intent to Award, all-time) by
+     normalised state name and shows ALL states with awards. The currently-
+     selected state row is highlighted and auto-scrolled into view. Each
+     column header is clickable-to-sort, and each column has a filter input. */
+  const TOP_STATES_STATE = {
+    sortKey: 'count',
+    sortDir: 'desc',
+    filters: { state: '', count: '', value: '' }
+  };
+
+  function aggregateAwardsByState() {
+    const awardsRaw = Array.isArray(window.CAPS_AWARDS_DATA) ? window.CAPS_AWARDS_DATA : [];
+    const perState = {};
+    let totalWonCount = 0, totalIaCount = 0, totalWonValue = 0, totalIaValue = 0;
+    awardsRaw.forEach(r => {
+      const raw = r['Agency State'] || r['agencyState'] || '';
+      const stage = r['Stage'] || r['stage'] || '';
+      const amount = parseFloat(String(r['Amount ($)'] ?? r.amount ?? '').replace(/[,$]/g, '')) || 0;
+      const isWon = stage === 'Closed Won';
+      const isIA  = stage === 'Intent to Award';
+      if (!isWon && !isIA) return;
+      const name = normStateName(raw) || '(Unknown)';
+      if (!perState[name]) perState[name] = { state: name, count: 0, value: 0, won: 0, ia: 0, wonValue: 0, iaValue: 0 };
+      const s = perState[name];
+      s.count++; s.value += amount;
+      if (isWon) { s.won++; s.wonValue += amount; totalWonCount++; totalWonValue += amount; }
+      else       { s.ia++;  s.iaValue  += amount; totalIaCount++;  totalIaValue  += amount; }
+    });
+    return {
+      rows: Object.values(perState),
+      totals: {
+        count: totalWonCount + totalIaCount,
+        value: totalWonValue + totalIaValue,
+        won: totalWonCount, ia: totalIaCount
+      }
+    };
+  }
+
+  /* Parse a numeric filter like "≥5", ">=100", ">5", "<20", "5-10", "=3", or "50000".
+     Returns a predicate (v) => bool. Empty / invalid → pass-through. */
+  function parseNumericFilter(raw) {
+    const s = String(raw || '').trim().replace(/[\s,$_]/g, '');
+    if (!s) return () => true;
+    let m;
+    if ((m = s.match(/^(?:>=|≥)(-?\d+(?:\.\d+)?)$/))) { const n = +m[1]; return v => v >= n; }
+    if ((m = s.match(/^(?:<=|≤)(-?\d+(?:\.\d+)?)$/))) { const n = +m[1]; return v => v <= n; }
+    if ((m = s.match(/^>(-?\d+(?:\.\d+)?)$/)))        { const n = +m[1]; return v => v >  n; }
+    if ((m = s.match(/^<(-?\d+(?:\.\d+)?)$/)))        { const n = +m[1]; return v => v <  n; }
+    if ((m = s.match(/^=?(-?\d+(?:\.\d+)?)$/)))       { const n = +m[1]; return v => v === n; }
+    if ((m = s.match(/^(-?\d+(?:\.\d+)?)[-–to]+(-?\d+(?:\.\d+)?)$/i))) {
+      const a = +m[1], b = +m[2]; const lo = Math.min(a,b), hi = Math.max(a,b);
+      return v => v >= lo && v <= hi;
+    }
+    const n = parseFloat(s);
+    if (!isNaN(n)) return v => v >= n;   // bare number treated as ≥
+    return () => true;
+  }
+
+  function buildTopStatesTable() {
+    const tbody = document.getElementById('top-states-tbody');
+    const foot  = document.getElementById('top-states-foot');
+    const badge = document.getElementById('top-states-badge');
+    if (!tbody) return;
+
+    const { rows: allRows, totals } = aggregateAwardsByState();
+
+    // Show ALL states that have awards (was previously top 4 only)
+    const allStates = allRows.slice();
+
+    // Apply filters
+    const stateQ  = (TOP_STATES_STATE.filters.state || '').trim().toLowerCase();
+    const countOK = parseNumericFilter(TOP_STATES_STATE.filters.count);
+    const valueOK = parseNumericFilter(TOP_STATES_STATE.filters.value);
+
+    let filtered = allStates.filter(r =>
+      (!stateQ || r.state.toLowerCase().includes(stateQ)) &&
+      countOK(r.count) &&
+      valueOK(r.value)
+    );
+
+    // Sort
+    const dir = TOP_STATES_STATE.sortDir === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      const k = TOP_STATES_STATE.sortKey;
+      if (k === 'state') return dir * a.state.localeCompare(b.state);
+      return dir * ((a[k] || 0) - (b[k] || 0));
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="top-states-empty">No states match these filters.</td></tr>`;
+      foot.innerHTML = '';
+    } else {
+      tbody.innerHTML = filtered.map(r => {
+        const isTarget = TARGET_STATE_SET.has(r.state);
+        const isActive = r.state === activeState;
+        const cls = [isTarget ? 'is-target' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
+        const star = isTarget ? '<span class="target-star" title="target state">★</span>' : '';
+        const activeBadge = isActive ? ' <span style="font-size:0.65rem;font-weight:700;color:var(--ca-navy);background:#fff;padding:1px 6px;border-radius:10px;border:1px solid var(--ca-navy);margin-left:4px;vertical-align:middle">SELECTED</span>' : '';
+        return `
+          <tr class="${cls}" data-state-name="${escapeHTML(r.state)}" title="Click to drill into ${escapeHTML(r.state)}">
+            <td class="state-name">${escapeHTML(r.state)}${star}${activeBadge}
+              <div style="font-size:0.7rem;font-weight:500;color:var(--ca-gray-500);margin-top:2px">
+                ${r.won} won · ${r.ia} IA
+              </div>
+            </td>
+            <td class="num"><strong>${r.count}</strong></td>
+            <td class="num">${r.value > 0 ? CAPS.formatCurrency(r.value) : '—'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const totalCount = filtered.reduce((s, r) => s + r.count, 0);
+      const totalValue = filtered.reduce((s, r) => s + r.value, 0);
+      foot.innerHTML = `
+        <td class="state-name">${filtered.length === allStates.length ? 'All states' : filtered.length + ' of ' + allStates.length + ' states'}</td>
+        <td class="num">${totalCount}</td>
+        <td class="num">${totalValue > 0 ? CAPS.formatCurrency(totalValue) : '—'}</td>
+      `;
+    }
+
+    // Sort arrow rendering
+    const table = document.getElementById('top-states-table');
+    table.querySelectorAll('thead tr:first-child th').forEach(th => {
+      const key = th.dataset.sortKey;
+      if (!key) return;
+      const arrow = th.querySelector('.sort-arrow');
+      if (key === TOP_STATES_STATE.sortKey) {
+        th.classList.add('is-sorted');
+        arrow.textContent = TOP_STATES_STATE.sortDir === 'asc' ? '▲' : '▼';
+      } else {
+        th.classList.remove('is-sorted');
+        arrow.textContent = '↕';
+      }
+    });
+
+    if (badge) {
+      badge.textContent = `${allStates.length} states · ${totals.count} awards total (${totals.won} won · ${totals.ia} IA)`;
+    }
+
+    // Scroll the selected row into view inside the scrollable wrap
+    const wrap = document.querySelector('.top-states-wrap');
+    const activeRow = tbody.querySelector('tr.is-active');
+    if (wrap && activeRow) {
+      const rowTop = activeRow.offsetTop;
+      const rowBot = rowTop + activeRow.offsetHeight;
+      if (rowTop < wrap.scrollTop || rowBot > wrap.scrollTop + wrap.clientHeight) {
+        wrap.scrollTop = Math.max(0, rowTop - wrap.clientHeight / 2 + activeRow.offsetHeight / 2);
+      }
+    }
+  }
+
+  function bindTopStatesTable() {
+    const table = document.getElementById('top-states-table');
+    if (!table || table.dataset.bound === '1') return;
+    table.dataset.bound = '1';
+
+    // Header sort
+    table.querySelectorAll('thead tr:first-child th').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sortKey; if (!key) return;
+        if (TOP_STATES_STATE.sortKey === key) {
+          TOP_STATES_STATE.sortDir = TOP_STATES_STATE.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          TOP_STATES_STATE.sortKey = key;
+          TOP_STATES_STATE.sortDir = (key === 'state') ? 'asc' : 'desc';
+        }
+        buildTopStatesTable();
+      });
+    });
+
+    // Per-column filter inputs
+    table.querySelectorAll('.col-filter').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const col = inp.dataset.col;
+        TOP_STATES_STATE.filters[col] = inp.value;
+        buildTopStatesTable();
+      });
+    });
+
+    // Click any state row → switch the active state (target states get full regional view,
+    // other states get the basic stats view)
+    document.getElementById('top-states-tbody').addEventListener('click', (ev) => {
+      const tr = ev.target.closest('tr[data-state-name]'); if (!tr) return;
+      const nm = tr.dataset.stateName;
+      if (nm && nm !== activeState) {
+        activeState = nm; activeRegionFilter = ''; activeSearch = '';
+        renderDashboard();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
   }
 
   /* ════════════════ Awards Table ════════════════ */

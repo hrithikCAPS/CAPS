@@ -293,19 +293,31 @@
       });
     }
 
-    /* State options — restricted to our 4 target states (CA, NY, TX, FL)
-       since similar deep-dive analysis is being rolled out for all of them. */
+    /* State options — ALL states present in the data so users can drill into any one. */
     const TARGET_STATE_ABBRS = ['CA', 'NY', 'TX', 'FL'];
+    const TARGET_SET = new Set(TARGET_STATE_ABBRS);
     const stateOptMap = {};
     base.forEach(d => {
       const abbr = toAbbr(d.agencyState);
       if (abbr) stateOptMap[abbr] = (stateOptMap[abbr] || 0) + 1;
     });
-    const stateOptions = TARGET_STATE_ABBRS.map(abbr => ({
+    // Target states first (in fixed order), then all other states with data (by bid count desc, then name asc).
+    const targetOpts = TARGET_STATE_ABBRS.map(abbr => ({
       abbr,
       name: ABBR_TO_NAME[abbr] || abbr,
       cnt: stateOptMap[abbr] || 0,
+      group: 'target'
     }));
+    const otherOpts = Object.keys(stateOptMap)
+      .filter(abbr => !TARGET_SET.has(abbr))
+      .map(abbr => ({
+        abbr,
+        name: ABBR_TO_NAME[abbr] || abbr,
+        cnt: stateOptMap[abbr] || 0,
+        group: 'other'
+      }))
+      .sort((a, b) => b.cnt - a.cnt || a.name.localeCompare(b.name));
+    const stateOptions = [...targetOpts, ...otherOpts];
 
     /* Apply state filter */
     let data = activeStateFilter
@@ -458,10 +470,15 @@
           <option value="">All Years</option>
           ${allYears.map(y => `<option value="${y}" ${activeYearFilter == y ? 'selected' : ''}>${y}</option>`).join('')}
         </select>
-        <span class="ca-global-filter__label" style="margin-left:12px">Target State:</span>
+        <span class="ca-global-filter__label" style="margin-left:12px">State:</span>
         <select id="gf-state">
-          <option value="">All Target States</option>
-          ${stateOptions.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
+          <option value="">All States</option>
+          <optgroup label="Target States">
+            ${targetOpts.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
+          </optgroup>
+          ${otherOpts.length ? `<optgroup label="Other States">
+            ${otherOpts.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
+          </optgroup>` : ''}
         </select>
         <span class="ca-global-filter__count">
           ${activeStateFilter ? `<strong>${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}</strong> — ` : ''}
