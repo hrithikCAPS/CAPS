@@ -93,10 +93,10 @@ def main():
     print(f"Last updated: {last_updated}")
 
     # ─── Target-states page: per-state summary (Oct 2025+) ───
-    # The "Top Target States" dashboard filters RFP Data to the four target states
-    # (California, New York, Texas, Florida) with bidClosingDate / submissionDate
-    # on or after Oct 1 2025. Print a summary so you can verify every target state
-    # has data after each refresh — and catch typos in the Agency State column.
+    # The "Top Target States" dashboard filters RFP Data to the target states
+    # with bidClosingDate / submissionDate on or after Oct 1 2025. Print a summary
+    # so you can verify every target state has data after each refresh — and catch
+    # typos in the Agency State column.
     TARGET_STATES = ["California", "New York", "Texas", "Florida"]
     OCT_2025 = datetime(2025, 10, 1)
 

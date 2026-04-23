@@ -236,18 +236,23 @@
     .coming-soon__pill { display: inline-block; margin-top: 12px; padding: 4px 12px; background: var(--ca-blue); color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 12px; }
 
     /* ═════════ Award pins on state map ═════════ */
-    .award-pin {
-      cursor: pointer; transition: r 0.15s ease, opacity 0.15s ease;
-      stroke: #fff; stroke-width: 1.5;
+    /* Teardrop map-style pins — anchored so the tip sits on the county centroid.
+       No positional hover animation — the pin stays put so it's easy to read and click.
+       The hovered pin is highlighted via stroke width + a deeper shadow instead. */
+    .award-pin-g { cursor: pointer; }
+    .award-pin-body {
+      stroke: #fff; stroke-width: 1.6; stroke-linejoin: round;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.28));
+      transition: stroke-width 0.12s ease, filter 0.12s ease;
     }
-    .award-pin.won { fill: #059669; }
-    .award-pin.ia  { fill: #F59E0B; }
-    .award-pin:hover { stroke-width: 2.5; }
-    .award-pin-glow {
-      fill: none; stroke-width: 2; opacity: 0.35; pointer-events: none;
+    .award-pin-body.won { fill: #059669; }
+    .award-pin-body.ia  { fill: #F59E0B; }
+    .award-pin-g:hover .award-pin-body {
+      stroke-width: 2.4;
+      filter: drop-shadow(0 3px 5px rgba(0,0,0,0.42));
     }
-    .award-pin-glow.won { stroke: #059669; }
-    .award-pin-glow.ia  { stroke: #F59E0B; }
+    .award-pin-dot { fill: #fff; pointer-events: none; }
+    .award-pin-shadow { fill: rgba(15,23,42,0.22); pointer-events: none; }
 
     .pin-legend {
       display: inline-flex; align-items: center; gap: 14px;
@@ -255,12 +260,16 @@
       margin-left: auto; flex-wrap: wrap;
     }
     .pin-legend__item { display: inline-flex; align-items: center; gap: 6px; }
-    .pin-legend__dot {
-      width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #fff;
-      box-shadow: 0 0 0 1px var(--ca-gray-300);
+    .pin-legend__mark {
+      display: inline-block; width: 12px; height: 16px; position: relative;
     }
-    .pin-legend__dot.won { background: #059669; }
-    .pin-legend__dot.ia  { background: #F59E0B; }
+    .pin-legend__mark::before {
+      content:''; position:absolute; left:50%; top:0; width:12px; height:12px;
+      border-radius:50% 50% 50% 0; transform: translateX(-50%) rotate(-45deg);
+      border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+    .pin-legend__mark.won::before { background: #059669; }
+    .pin-legend__mark.ia::before  { background: #F59E0B; }
 
     /* ═════════ Top States Table ═════════ */
     .top-states-table {
@@ -377,10 +386,13 @@
      so every map on the dashboard feels cohesive.
      ═══════════════════════════════════════════════════════════════ */
   const TARGET_STATES = [
-    { key: 'California', flag: '🌴' },
-    { key: 'New York',   flag: '🗽' },
-    { key: 'Texas',      flag: '🤠' },
-    { key: 'Florida',    flag: '🌞' },
+    { key: 'California' },
+    { key: 'New York' },
+    { key: 'Texas' },
+    { key: 'Florida' },
+    { key: 'Virginia' },
+    { key: 'Oregon' },
+    { key: 'South Carolina' },
   ];
 
   /* Shared, on-brand region colour palette (three shades of blue, sampled from the
@@ -579,13 +591,94 @@
   };
 
   /* ═══════════════════════════════════════════════════
+     VIRGINIA — 3 regions
+     Northern VA = DC/NoVa metro; Hampton Roads = Tidewater / Port metro;
+     Central / Western VA = Richmond, Charlottesville, Roanoke, Shenandoah, SW VA.
+     ═══════════════════════════════════════════════════ */
+  const VA_COUNTY_REGION = buildCountyMap('51', {
+    'Northern VA': [
+      '51013','51059','51107','51153','51177','51179','51187','51061','51043','51047',
+      '51113','51137','51157','51510','51600','51610','51630','51683','51685'
+    ],
+    'Hampton Roads': [
+      '51073','51093','51095','51115','51199','51550','51650','51700','51710','51735',
+      '51740','51800','51810','51830','51001','51131','51175'
+    ],
+  }, 'Central / Western VA');
+
+  const VA_KEYWORDS = {
+    'Northern VA':          ['arlington','alexandria','fairfax','loudoun','prince william','stafford',
+                             'fauquier','manassas','falls church','herndon','reston','george mason',
+                             'northern virginia','nova'],
+    'Hampton Roads':        ['virginia beach','norfolk','newport news','hampton','chesapeake','portsmouth',
+                             'suffolk','hampton roads','christopher newport','williamsburg','gloucester',
+                             'tidewater','virginia port authority'],
+    'Central / Western VA': ['richmond','charlottesville','roanoke','lynchburg','danville','virginia tech',
+                             'blacksburg','virginia it agency','harrisonburg','staunton','shenandoah',
+                             'southwest virginia','friends of southwest','virginia outdoors','central virginia'],
+  };
+
+  /* ═══════════════════════════════════════════════════
+     OREGON — 3 regions
+     Portland Metro, Willamette Valley (Salem / Eugene / Corvallis),
+     Coastal / Eastern / Southern OR = everything else (default).
+     ═══════════════════════════════════════════════════ */
+  const OR_COUNTY_REGION = buildCountyMap('41', {
+    'Portland Metro': [
+      '41051','41067','41005','41009','41071'   // Multnomah, Washington, Clackamas, Columbia, Yamhill
+    ],
+    'Willamette Valley': [
+      '41047','41053','41003','41043','41039'   // Marion, Polk, Benton, Linn, Lane
+    ],
+  }, 'Coastal / Eastern / Southern OR');
+
+  const OR_KEYWORDS = {
+    'Portland Metro':                   ['portland','multnomah','washington county','clackamas','beaverton',
+                                         'hillsboro','gresham','tigard','tualatin','oregon city','columbia county',
+                                         'yamhill','tri-county metropolitan','trimet'],
+    'Willamette Valley':                ['salem','marion county','eugene','lane county','corvallis','benton',
+                                         'linn county','albany','polk county','willamette','oregon judicial',
+                                         'oregon league','state of oregon','northwest senior'],
+    'Coastal / Eastern / Southern OR':  ['bend','deschutes','coos','medford','jackson county','klamath',
+                                         'josephine','lincoln county','tillamook','clatsop','warrenton','astoria',
+                                         'port of newport','coquille','umatilla','grants pass','roseburg','douglas county'],
+  };
+
+  /* ═══════════════════════════════════════════════════
+     SOUTH CAROLINA — 3 regions
+     Upstate (Greenville/Spartanburg), Midlands (Columbia, central SC),
+     Coastal / Lowcountry / Pee Dee (Charleston, Myrtle Beach, Hilton Head, Florence).
+     ═══════════════════════════════════════════════════ */
+  const SC_COUNTY_REGION = buildCountyMap('45', {
+    'Upstate': [
+      '45045','45083','45007','45077','45073','45021','45087','45059','45045'
+    ],
+    'Coastal / Lowcountry': [
+      '45019','45013','45015','45035','45029','45049','45053','45041','45051','45043',
+      '45031','45033','45069','45025','45067','45089'
+    ],
+  }, 'Midlands');
+
+  const SC_KEYWORDS = {
+    'Upstate':             ['greenville','spartanburg','anderson','pickens','oconee','cherokee',
+                            'upstate','inman','laurens'],
+    'Midlands':            ['columbia','richland','lexington','midlands','state of south carolina',
+                            'state fiscal accountability','insurance reserve','university of south carolina',
+                            'aiken','orangeburg','sumter','newberry','kershaw','saluda','calhoun','fairfield'],
+    'Coastal / Lowcountry':['charleston','beaufort','berkeley','dorchester','colleton','hampton county',
+                            'jasper','hilton head','palmetto breeze','mount pleasant','lowcountry',
+                            'myrtle beach','horry','florence','georgetown','pee dee','darlington',
+                            'marlboro','chesterfield','dillon','marion county','williamsburg sc'],
+  };
+
+  /* ═══════════════════════════════════════════════════
      Master STATE_CONFIG — single source of truth.
      regions: ordered array; the index is the colour slot
      in REGION_PALETTE (0=navy, 1=medium blue, 2=light blue).
      ═══════════════════════════════════════════════════ */
   const STATE_CONFIG = {
     'California': {
-      flag: '🌴', stateFips: '06',
+      stateFips: '06',
       regions:    ['Bay Area', 'NorCal', 'SoCal'],
       countyMap:  (function(){
         const m = { __default: 'NorCal', __state: '06' };
@@ -598,7 +691,7 @@
       methodology: 'Bay Area is the 9-county Bay Area Council definition. SoCal covers LA, Orange, San Diego, Riverside, San Bernardino, Ventura, Santa Barbara, Kern, Imperial and Inyo. NorCal covers the Sacramento region, Central Valley and all other northern counties.'
     },
     'New York': {
-      flag: '🗽', stateFips: '36',
+      stateFips: '36',
       regions:    ['NYC Metro', 'Hudson Valley', 'Upstate NY'],
       countyMap:  NY_COUNTY_REGION,
       agencyMap:  {},
@@ -606,7 +699,7 @@
       methodology: 'NYC Metro covers the five boroughs plus Nassau and Suffolk on Long Island. Hudson Valley covers Westchester, Rockland, Putnam, Orange, Dutchess, Ulster, Sullivan, Columbia, Greene plus the Capital Region (Albany, Saratoga, Schenectady, Rensselaer, Warren, Washington). Upstate NY covers Western NY, Finger Lakes, Central NY, Southern Tier, Mohawk Valley and the North Country.'
     },
     'Texas': {
-      flag: '🤠', stateFips: '48',
+      stateFips: '48',
       regions:    ['DFW / North TX', 'Houston / Gulf Coast', 'Central / South / West TX'],
       countyMap:  TX_COUNTY_REGION,
       agencyMap:  {},
@@ -614,14 +707,522 @@
       methodology: 'DFW / North TX is the 16-county Dallas–Fort Worth metroplex. Houston / Gulf Coast is the 13-county Upper Gulf Coast region around Houston. Central / South / West TX covers Austin, San Antonio, El Paso, the Panhandle, West Texas, and the Rio Grande Valley.'
     },
     'Florida': {
-      flag: '🌞', stateFips: '12',
+      stateFips: '12',
       regions:    ['South FL', 'Central FL', 'North FL'],
       countyMap:  FL_COUNTY_REGION,
       agencyMap:  {},
       keywords:   FL_KEYWORDS,
       methodology: 'South FL covers Miami-Dade, Broward, Palm Beach and Monroe (Keys). Central FL covers Orlando, Tampa Bay, the Space Coast, SW Florida (Fort Myers, Naples, Sarasota) and the Treasure Coast. North FL covers Jacksonville, Tallahassee, Gainesville, the Panhandle and surrounding counties.'
     },
+    'Virginia': {
+      stateFips: '51',
+      regions:    ['Northern VA', 'Hampton Roads', 'Central / Western VA'],
+      countyMap:  VA_COUNTY_REGION,
+      agencyMap:  {},
+      keywords:   VA_KEYWORDS,
+      methodology: 'Northern VA covers the DC-metro counties (Arlington, Alexandria, Fairfax, Loudoun, Prince William) plus Fredericksburg and surrounding exurban counties. Hampton Roads is the Tidewater region (Virginia Beach, Norfolk, Newport News, Hampton, Chesapeake, Portsmouth, Suffolk, Williamsburg, Gloucester). Central / Western VA covers Richmond, Charlottesville, Roanoke, Lynchburg, the Shenandoah Valley and Southwest Virginia.'
+    },
+    'Oregon': {
+      stateFips: '41',
+      regions:    ['Portland Metro', 'Willamette Valley', 'Coastal / Eastern / Southern OR'],
+      countyMap:  OR_COUNTY_REGION,
+      agencyMap:  {},
+      keywords:   OR_KEYWORDS,
+      methodology: 'Portland Metro covers Multnomah, Washington, Clackamas, Columbia and Yamhill counties. Willamette Valley covers Marion (Salem), Polk, Benton (Corvallis), Linn and Lane (Eugene). Coastal / Eastern / Southern OR covers the Oregon coast, Central Oregon (Bend / Deschutes), Southern Oregon (Medford / Jackson / Josephine) and all Eastern Oregon counties.'
+    },
+    'South Carolina': {
+      stateFips: '45',
+      regions:    ['Upstate', 'Midlands', 'Coastal / Lowcountry'],
+      countyMap:  SC_COUNTY_REGION,
+      agencyMap:  {},
+      keywords:   SC_KEYWORDS,
+      methodology: 'Upstate covers Greenville, Spartanburg, Anderson, Pickens and the northwestern SC counties. Midlands covers Columbia (Richland / Lexington) and the central belt. Coastal / Lowcountry covers Charleston, Beaufort, Berkeley, Dorchester, Hilton Head plus the Pee Dee region (Florence, Myrtle Beach / Horry, Georgetown).'
+    },
   };
+
+  /* ─────── Agency → county hints (substring → county name, lowercase) ───────
+     Used to place award pins on the exact county where the agency is located.
+     Keys are lowercase substrings checked against the agency name in order;
+     values are the lowercase name of the county (as it appears in TopoJSON).
+     Order matters — more specific substrings must come before more general ones. */
+  const AGENCY_COUNTY_HINTS = {
+    'California': [
+      ['city and county of san francisco', 'san francisco'],
+      ['san francisco superior court', 'san francisco'],
+      ['san francisco', 'san francisco'],
+      ['city of east palo alto', 'san mateo'],
+      ['san carlos', 'san mateo'],
+      ['county of san mateo', 'san mateo'],
+      ['san mateo county', 'san mateo'],
+      ['san mateo', 'san mateo'],
+      ['sunnyvale', 'santa clara'],
+      ['first 5 kids santa clara', 'santa clara'],
+      ['santa clara county', 'santa clara'],
+      ['city of santa clara', 'santa clara'],
+      ['san jose', 'santa clara'],
+      ['palo alto', 'santa clara'],
+      ['santa clara valley', 'santa clara'],
+      ['santa clara', 'santa clara'],
+      ['berkeley', 'alameda'],
+      ['oakland', 'alameda'],
+      ['piedmont', 'alameda'],
+      ['livermore', 'alameda'],
+      ['alameda', 'alameda'],
+      ['contra costa', 'contra costa'],
+      ['san ramon', 'contra costa'],
+      ['marin', 'marin'],
+      ['sonoma', 'sonoma'],
+      ['napa', 'napa'],
+      ['solano', 'solano'],
+      ['bay area air quality', 'san francisco'],
+      ['sacramento regional transit', 'sacramento'],
+      ['sacramento municipal utility', 'sacramento'],
+      ['city of sacramento', 'sacramento'],
+      ['california housing finance agency', 'sacramento'],
+      ['calhfa', 'sacramento'],
+      ['california department of technology', 'sacramento'],
+      ['california state auditor', 'sacramento'],
+      ['california state teachers', 'sacramento'],
+      ['california department of state hospitals', 'sacramento'],
+      ['judicial branch california', 'sacramento'],
+      ['sacramento', 'sacramento'],
+      ['roseville', 'placer'],
+      ['city of lincoln', 'placer'],
+      ['placer', 'placer'],
+      ['butte', 'butte'],
+      ['mendocino', 'mendocino'],
+      ['pacific grove', 'monterey'],
+      ['marina coast', 'monterey'],
+      ['monterey', 'monterey'],
+      ['university of california merced', 'merced'],
+      ['merced', 'merced'],
+      ['fresno', 'fresno'],
+      ['san joaquin council of governments', 'san joaquin'],
+      ['san joaquin', 'san joaquin'],
+      ['stockton', 'san joaquin'],
+      ['shasta', 'shasta'],
+      ['tehama', 'tehama'],
+      ['humboldt', 'humboldt'],
+      ['county of los angeles', 'los angeles'],
+      ['la county', 'los angeles'],
+      ['lausd', 'los angeles'],
+      ['los angeles unified', 'los angeles'],
+      ['lacmta', 'los angeles'],
+      ['los angeles county metropolitan', 'los angeles'],
+      ['superior court of california, county of los angeles', 'los angeles'],
+      ['port of long beach', 'los angeles'],
+      ['long beach', 'los angeles'],
+      ['south pasadena', 'los angeles'],
+      ['pasadena', 'los angeles'],
+      ['santa monica', 'los angeles'],
+      ['west hollywood', 'los angeles'],
+      ['culver city', 'los angeles'],
+      ['huntington park', 'los angeles'],
+      ['la cañada', 'los angeles'],
+      ['la canada', 'los angeles'],
+      ['foothill transit', 'los angeles'],
+      ['metropolitan water district of southern', 'los angeles'],
+      ['three valleys', 'los angeles'],
+      ['los angeles', 'los angeles'],
+      ['caloptima', 'orange'],
+      ['municipal water district of orange', 'orange'],
+      ['mwdoc', 'orange'],
+      ['community development department (city of santa ana)', 'orange'],
+      ['santa ana', 'orange'],
+      ['costa mesa', 'orange'],
+      ['mesa water', 'orange'],
+      ['laguna', 'orange'],
+      ['city of lake forest', 'orange'],
+      ['orange county', 'orange'],
+      ['port of san diego', 'san diego'],
+      ['san diego', 'san diego'],
+      ['blythe', 'riverside'],
+      ['elsinore', 'riverside'],
+      ['western municipal water', 'riverside'],
+      ['county of riverside', 'riverside'],
+      ['riverside', 'riverside'],
+      ['rancho cucamonga', 'san bernardino'],
+      ['adelanto', 'san bernardino'],
+      ['inland empire utilities', 'san bernardino'],
+      ['san bernardino county transportation', 'san bernardino'],
+      ['san bernardino', 'san bernardino'],
+      ['ventura', 'ventura'],
+      ['mcfarland', 'kern'],
+      ['community action partnership of kern', 'kern'],
+      ['kern', 'kern'],
+      ['imperial', 'imperial'],
+      ['santa barbara', 'santa barbara'],
+      ['palo verde', 'riverside'],
+    ],
+    'New York': [
+      ['new york city', 'new york'],
+      ['nyc', 'new york'],
+      ['manhattan', 'new york'],
+      ['port authority of ny', 'new york'],
+      ['port authority of new york', 'new york'],
+      ['metropolitan transportation authority', 'new york'],
+      ['92nd street y', 'new york'],
+      ['administration for children', 'new york'],
+      ['brooklyn', 'kings'],
+      ['kings county', 'kings'],
+      ['queens', 'queens'],
+      ['bronx', 'bronx'],
+      ['staten island', 'richmond'],
+      ['nassau', 'nassau'],
+      ['suffolk', 'suffolk'],
+      ['long island', 'nassau'],
+      ['westchester', 'westchester'],
+      ['rockland', 'rockland'],
+      ['putnam', 'putnam'],
+      ['dutchess', 'dutchess'],
+      ['ulster', 'ulster'],
+      ['sullivan county', 'sullivan'],
+      ['columbia county', 'columbia'],
+      ['greene county', 'greene'],
+      ['niskayuna', 'schenectady'],
+      ['schenectady', 'schenectady'],
+      ['albany', 'albany'],
+      ['saratoga', 'saratoga'],
+      ['rensselaer', 'rensselaer'],
+      ['warren county', 'warren'],
+      ['washington county', 'washington'],
+      ['buffalo', 'erie'],
+      ['erie county', 'erie'],
+      ['irondequoit', 'monroe'],
+      ['rochester', 'monroe'],
+      ['monroe county', 'monroe'],
+      ['syracuse', 'onondaga'],
+      ['onondaga', 'onondaga'],
+      ['niagara', 'niagara'],
+      ['binghamton', 'broome'],
+      ['broome', 'broome'],
+      ['ithaca', 'tompkins'],
+      ['tompkins', 'tompkins'],
+      ['utica', 'oneida'],
+      ['oneida', 'oneida'],
+      ['cortland', 'cortland'],
+      ['canastota', 'madison'],
+      ['orange county', 'orange'],
+      ['roswell park', 'erie'],
+      ['new york department', 'new york'],
+      ['new york state office of the state comptroller', 'albany'],
+      ['nys office', 'albany'],
+      ['new york state', 'albany'],
+    ],
+    'Texas': [
+      ['city of mansfield', 'tarrant'],
+      ['fort worth', 'tarrant'],
+      ['arlington', 'tarrant'],
+      ['tarrant', 'tarrant'],
+      ['irving', 'dallas'],
+      ['garland', 'dallas'],
+      ['richardson', 'dallas'],
+      ['grand prairie', 'dallas'],
+      ['carrollton', 'dallas'],
+      ['dallas', 'dallas'],
+      ['plano', 'collin'],
+      ['frisco', 'collin'],
+      ['mckinney', 'collin'],
+      ['collin', 'collin'],
+      ['lewisville', 'denton'],
+      ['denton', 'denton'],
+      ['rockwall', 'rockwall'],
+      ['houston', 'harris'],
+      ['harris county', 'harris'],
+      ['texas city', 'galveston'],
+      ['galveston', 'galveston'],
+      ['sugar land', 'fort bend'],
+      ['fort bend', 'fort bend'],
+      ['pearland', 'brazoria'],
+      ['brazoria', 'brazoria'],
+      ['the woodlands', 'montgomery'],
+      ['conroe', 'montgomery'],
+      ['montgomery county', 'montgomery'],
+      ['beaumont', 'jefferson'],
+      ['port arthur', 'jefferson'],
+      ['kyle', 'hays'],
+      ['san marcos', 'hays'],
+      ['hays county', 'hays'],
+      ['new braunfels', 'comal'],
+      ['comal', 'comal'],
+      ['round rock', 'williamson'],
+      ['williamson', 'williamson'],
+      ['electric reliability council', 'travis'],
+      ['austin', 'travis'],
+      ['travis', 'travis'],
+      ['san antonio', 'bexar'],
+      ['bexar', 'bexar'],
+      ['el paso', 'el paso'],
+      ['corpus christi', 'nueces'],
+      ['nueces', 'nueces'],
+      ['lubbock', 'lubbock'],
+      ['region 16 education', 'potter'],
+      ['amarillo', 'potter'],
+      ['waco', 'mclennan'],
+      ['mclennan', 'mclennan'],
+      ['mcallen', 'hidalgo'],
+      ['hidalgo', 'hidalgo'],
+      ['brownsville', 'cameron'],
+      ['cameron county', 'cameron'],
+      ['laredo', 'webb'],
+      ['webb county', 'webb'],
+      ['odessa', 'ector'],
+      ['midland', 'midland'],
+      ['abilene', 'taylor'],
+      ['killeen', 'bell'],
+      ['bell county', 'bell'],
+      ['college station', 'brazos'],
+      ['texas a&m', 'brazos'],
+      ['brazos', 'brazos'],
+      ['olmos park', 'bexar'],
+      ['texas department of public safety', 'travis'],
+      ['texas department', 'travis'],
+    ],
+    'Florida': [
+      ['miami-dade', 'miami-dade'],
+      ['miami dade', 'miami-dade'],
+      ['hialeah', 'miami-dade'],
+      ['homestead', 'miami-dade'],
+      ['coral gables', 'miami-dade'],
+      ['aventura', 'miami-dade'],
+      ['miami', 'miami-dade'],
+      ['fort lauderdale', 'broward'],
+      ['hollywood fl', 'broward'],
+      ['dania beach', 'broward'],
+      ['memorial healthcare', 'broward'],
+      ['broward', 'broward'],
+      ['boca raton', 'palm beach'],
+      ['boynton', 'palm beach'],
+      ['delray', 'palm beach'],
+      ['west palm', 'palm beach'],
+      ['palm beach metropolitan', 'palm beach'],
+      ['palm beach', 'palm beach'],
+      ['key west', 'monroe'],
+      ['florida keys', 'monroe'],
+      ['monroe county', 'monroe'],
+      ['orlando', 'orange'],
+      ['orange county fl', 'orange'],
+      ['orange county, fl', 'orange'],
+      ['tampa', 'hillsborough'],
+      ['hillsborough', 'hillsborough'],
+      ['st petersburg', 'pinellas'],
+      ['st. petersburg', 'pinellas'],
+      ['pinellas', 'pinellas'],
+      ['pasco', 'pasco'],
+      ['hernando', 'hernando'],
+      ['melbourne', 'brevard'],
+      ['cocoa', 'brevard'],
+      ['brevard', 'brevard'],
+      ['lakeland', 'polk'],
+      ['florida department of citrus', 'polk'],
+      ['polk', 'polk'],
+      ['daytona', 'volusia'],
+      ['volusia', 'volusia'],
+      ['sarasota', 'sarasota'],
+      ['manatee', 'manatee'],
+      ['charlotte', 'charlotte'],
+      ['fort myers', 'lee'],
+      ['cape coral', 'lee'],
+      ['lee county', 'lee'],
+      ['naples', 'collier'],
+      ['collier', 'collier'],
+      ['kissimmee', 'osceola'],
+      ['osceola', 'osceola'],
+      ['seminole', 'seminole'],
+      ['port st lucie', 'st. lucie'],
+      ['port st. lucie', 'st. lucie'],
+      ['st. lucie', 'st. lucie'],
+      ['vero beach', 'indian river'],
+      ['indian river', 'indian river'],
+      ['stuart', 'martin'],
+      ['martin county', 'martin'],
+      ['ocala', 'marion'],
+      ['marion county', 'marion'],
+      ['jacksonville', 'duval'],
+      ['duval', 'duval'],
+      ['tallahassee', 'leon'],
+      ['leon county', 'leon'],
+      ['gainesville', 'alachua'],
+      ['alachua', 'alachua'],
+      ['pensacola', 'escambia'],
+      ['escambia', 'escambia'],
+      ['destin', 'okaloosa'],
+      ['okaloosa', 'okaloosa'],
+      ['panama city', 'bay'],
+      ['early learning coalition of northwest florida', 'bay'],
+      ['bay county', 'bay'],
+      ['st. augustine', 'st. johns'],
+      ['st augustine', 'st. johns'],
+      ['st. johns', 'st. johns'],
+      ['santa rosa', 'santa rosa'],
+      ['walton', 'walton'],
+      ['howey-in-the-hills', 'lake'],
+      ['lake county', 'lake'],
+      ['florida department of revenue', 'leon'],
+      ['florida department of management services', 'leon'],
+      ['florida department', 'leon'],
+    ],
+    'Virginia': [
+      ['virginia beach', 'virginia beach'],
+      ['hampton roads', 'norfolk'],
+      ['christopher newport', 'newport news'],
+      ['newport news', 'newport news'],
+      ['norfolk', 'norfolk'],
+      ['city of hampton', 'hampton'],
+      ['chesapeake', 'chesapeake'],
+      ['portsmouth', 'portsmouth'],
+      ['suffolk', 'suffolk'],
+      ['williamsburg', 'williamsburg'],
+      ['gloucester', 'gloucester'],
+      ['virginia port authority', 'norfolk'],
+      ['arlington', 'arlington'],
+      ['alexandria', 'alexandria'],
+      ['fairfax', 'fairfax'],
+      ['george mason', 'fairfax'],
+      ['loudoun', 'loudoun'],
+      ['prince william', 'prince william'],
+      ['manassas', 'manassas'],
+      ['stafford', 'stafford'],
+      ['george washington regional', 'stafford'],
+      ['fredericksburg', 'fredericksburg'],
+      ['spotsylvania', 'spotsylvania'],
+      ['fauquier', 'fauquier'],
+      ['culpeper', 'culpeper'],
+      ['richmond', 'richmond'],
+      ['virginia it agency', 'richmond'],
+      ['virginia outdoors', 'richmond'],
+      ['charlottesville', 'charlottesville'],
+      ['albemarle', 'albemarle'],
+      ['roanoke', 'roanoke'],
+      ['lynchburg', 'lynchburg'],
+      ['danville', 'danville'],
+      ['virginia tech', 'montgomery'],
+      ['blacksburg', 'montgomery'],
+      ['harrisonburg', 'harrisonburg'],
+      ['staunton', 'staunton'],
+      ['winchester', 'winchester'],
+      ['friends of southwest', 'washington'],
+      ['southwest virginia', 'washington'],
+    ],
+    'Oregon': [
+      ['tri-county metropolitan', 'multnomah'],
+      ['trimet', 'multnomah'],
+      ['port of portland', 'multnomah'],
+      ['city of portland', 'multnomah'],
+      ['portland public schools', 'multnomah'],
+      ['portland community college', 'multnomah'],
+      ['portland', 'multnomah'],
+      ['multnomah', 'multnomah'],
+      ['washington county solid waste', 'washington'],
+      ['city of beaverton', 'washington'],
+      ['beaverton', 'washington'],
+      ['hillsboro', 'washington'],
+      ['tigard', 'washington'],
+      ['clackamas', 'clackamas'],
+      ['oregon city', 'clackamas'],
+      ['columbia county', 'columbia'],
+      ['yamhill', 'yamhill'],
+      ['mcminnville', 'yamhill'],
+      ['state of oregon', 'marion'],
+      ['oregon judicial', 'marion'],
+      ['oregon league', 'marion'],
+      ['northwest senior', 'marion'],
+      ['salem', 'marion'],
+      ['marion county', 'marion'],
+      ['polk county', 'polk'],
+      ['eugene', 'lane'],
+      ['lane county', 'lane'],
+      ['corvallis', 'benton'],
+      ['benton county', 'benton'],
+      ['linn county', 'linn'],
+      ['albany', 'linn'],
+      ['bend', 'deschutes'],
+      ['deschutes', 'deschutes'],
+      ['medford', 'jackson'],
+      ['jackson county', 'jackson'],
+      ['grants pass', 'josephine'],
+      ['josephine', 'josephine'],
+      ['roseburg', 'douglas'],
+      ['douglas county', 'douglas'],
+      ['klamath', 'klamath'],
+      ['port of newport', 'lincoln'],
+      ['lincoln county', 'lincoln'],
+      ['tillamook', 'tillamook'],
+      ['astoria', 'clatsop'],
+      ['warrenton', 'clatsop'],
+      ['clatsop', 'clatsop'],
+      ['coquille', 'coos'],
+      ['coos', 'coos'],
+      ['umatilla', 'umatilla'],
+      ['pendleton', 'umatilla'],
+    ],
+    'South Carolina': [
+      ['spartanburg community college', 'spartanburg'],
+      ['spartanburg housing', 'spartanburg'],
+      ['spartanburg', 'spartanburg'],
+      ['city of inman', 'spartanburg'],
+      ['greenville county schools', 'greenville'],
+      ['school district of greenville', 'greenville'],
+      ['greenville county', 'greenville'],
+      ['city of greenville', 'greenville'],
+      ['greenville', 'greenville'],
+      ['anderson', 'anderson'],
+      ['pickens', 'pickens'],
+      ['oconee', 'oconee'],
+      ['cherokee county', 'cherokee'],
+      ['laurens', 'laurens'],
+      ['state of south carolina', 'richland'],
+      ['state fiscal accountability', 'richland'],
+      ['insurance reserve fund', 'richland'],
+      ['central midlands', 'richland'],
+      ['midlands technical', 'richland'],
+      ['university of south carolina', 'richland'],
+      ['columbia', 'richland'],
+      ['richland', 'richland'],
+      ['lexington county', 'lexington'],
+      ['newberry', 'newberry'],
+      ['kershaw', 'kershaw'],
+      ['sumter', 'sumter'],
+      ['aiken', 'aiken'],
+      ['orangeburg', 'orangeburg'],
+      ['charleston', 'charleston'],
+      ['north charleston', 'charleston'],
+      ['beaufort', 'beaufort'],
+      ['hilton head', 'beaufort'],
+      ['palmetto breeze', 'beaufort'],
+      ['berkeley county', 'berkeley'],
+      ['dorchester', 'dorchester'],
+      ['colleton', 'colleton'],
+      ['jasper', 'jasper'],
+      ['hampton county', 'hampton'],
+      ['myrtle beach', 'horry'],
+      ['horry', 'horry'],
+      ['florence', 'florence'],
+      ['darlington', 'darlington'],
+      ['georgetown', 'georgetown'],
+    ],
+  };
+
+  /* Resolve an agency to a specific county feature.
+     Returns the TopoJSON feature, or null if no match found. */
+  function resolveCountyFeature(state, agency, countyByName) {
+    if (!agency || !countyByName) return null;
+    const k = agency.toLowerCase();
+    const hints = AGENCY_COUNTY_HINTS[state] || [];
+    for (const [sub, cname] of hints) {
+      if (k.includes(sub)) {
+        const f = countyByName[cname];
+        if (f) return f;
+      }
+    }
+    // Fallback: agency contains "<county> county" → match directly against the TopoJSON name
+    const m = k.match(/([a-z\.' \-]+?)\s+county/);
+    if (m) {
+      const f = countyByName[m[1].trim()];
+      if (f) return f;
+    }
+    return null;
+  }
 
   /* Classify an agency into one of its state's regions.
      Order: explicit agency-name lookup → county-map default (n/a for agency names) → keyword match. */
@@ -673,7 +1274,7 @@
     });
     const allYears = [...yearSet].sort((a,b) => b - a);
 
-    /* Bids per state — counts for both the 4 target-state pill tabs AND
+    /* Bids per state — counts for both the target-state pill tabs AND
        for every other state (so the state dropdown lists the whole universe).
        State names are normalised via normStateName so typos (TEXAS, Missourie,
        Washington DC, CA, etc.) collapse into a single canonical entry. */
@@ -804,7 +1405,7 @@
     const stateOptionsHtml = [
       '<optgroup label="Target States">',
       TARGET_STATES.map(s =>
-        `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.flag} ${s.key} (${stateCounts[s.key] || 0})</option>`
+        `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.key} (${stateCounts[s.key] || 0})</option>`
       ).join(''),
       '</optgroup>',
       otherStates.length ? '<optgroup label="Other States">' : '',
@@ -824,7 +1425,7 @@
         <h1 class="ca-page-header__title">State Analysis</h1>
         <p class="ca-page-header__subtitle">
           Deep-dive into any state where we're bidding — pick a state from the filter below.
-          Target states (California, New York, Texas, Florida) get the full regional breakdown. Oct 2025 onwards.
+          Target states (California, New York, Texas, Florida, Virginia, Oregon, South Carolina) get the full regional breakdown. Oct 2025 onwards.
         </p>
       </div>
 
@@ -913,7 +1514,7 @@
       ` : `
       <!-- Non-target state: show a simple info note -->
       <div class="method-note" style="margin-top:4px">
-        <strong>${escapeHTML(activeState)}</strong> isn't one of our four primary target states, so the regional
+        <strong>${escapeHTML(activeState)}</strong> isn't one of our primary target states, so the regional
         breakdown, regional map and pipeline-by-region chart are hidden. You'll still see the state's KPIs above,
         its ranking in the <em>Top States</em> table below, and the list of its Closed-Won deals.
       </div>
@@ -1242,14 +1843,20 @@
     svg.append('path').datum(mesh).attr('fill','none').attr('stroke','#fff').attr('stroke-width',1.8).attr('d',path);
 
     /* ═════════ Award pins (Closed Won + Intent to Award for this state) ═════════ */
-    // Pre-compute centroids for each region (uses the path already built above).
-    const regionCentroids = {};
+    // Build a county-name → feature lookup so we can place each pin on the exact county.
+    const countyByName = {};
+    stateCounties.forEach(f => {
+      const nm = (f.properties && f.properties.name || '').toLowerCase().trim();
+      if (nm && !countyByName[nm]) countyByName[nm] = f;
+    });
+
+    // Pre-compute region centroids as a safety-net when we can't resolve a specific county.
+    const regionCentroidsFallback = {};
     REGIONS.forEach(reg => {
       const feats = stateCounties.filter(f => regionFor(String(f.id).padStart(5,'0')) === reg);
       if (feats.length === 0) return;
       const c = path.centroid({ type: 'GeometryCollection', geometries: feats.map(f => f.geometry) });
-      if (!c || isNaN(c[0]) || isNaN(c[1])) return;
-      regionCentroids[reg] = c;
+      if (c && !isNaN(c[0]) && !isNaN(c[1])) regionCentroidsFallback[reg] = c;
     });
 
     // Filter awards for this state (all-time Closed Won + Intent to Award).
@@ -1261,84 +1868,113 @@
       return stName === state && (stage === 'Closed Won' || stage === 'Intent to Award');
     });
 
-    // Deterministic pseudo-random jitter from an ID string, so pins don't move between renders.
-    const pinHash = (str) => {
-      const s = String(str || '');
-      let h = 0;
-      for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
-      return h;
-    };
-    const jitterFor = (id, span) => {
-      const h = Math.abs(pinHash(id));
-      const u = ((h % 10000) / 10000);                // 0..1
-      const v = (((h >> 8) % 10000) / 10000);         // 0..1
-      const angle = u * Math.PI * 2;
-      const radius = Math.sqrt(v) * span;
-      return [ Math.cos(angle) * radius, Math.sin(angle) * radius ];
-    };
-
-    // Size scale: sqrt of amount → radius. Base radius 5 if no amount.
+    // Size scale: sqrt of amount → head radius. Base radius if no amount.
     const maxAmt = stateAwards.reduce((m, r) => {
       const v = parseFloat(String(r['Amount ($)'] ?? r.amount ?? '').replace(/[,$]/g, '')) || 0;
       return v > m ? v : m;
     }, 0);
     const radiusFor = (amount) => {
-      if (!amount || !maxAmt) return 5;
+      if (!amount || !maxAmt) return 7;
       const t = Math.sqrt(amount) / Math.sqrt(maxAmt);
-      return Math.max(4.5, Math.min(13, 4.5 + t * 9));
+      return Math.max(6, Math.min(11, 6 + t * 5));
     };
+
+    // Teardrop path — tip at origin (0,0), circular head of radius r centered at (0, -hc).
+    // Requires hc > r so the external tangent is well-defined.
+    function teardropPath(r, hc) {
+      const s = r / hc;
+      const c = Math.sqrt(Math.max(0, 1 - s * s));
+      const tx = +(r * c).toFixed(2);
+      const ty = +(-hc + r * s).toFixed(2);
+      return `M 0,0 L ${-tx},${ty} A ${r},${r} 0 1 1 ${tx},${ty} Z`;
+    }
+
+    // Group awards by resolved county FIPS (fall back to region centroid if none).
+    const pinGroups = new Map();
+    stateAwards.forEach(aw => {
+      const agency = aw['Agency'] || aw['agency'] || '';
+      const feat = resolveCountyFeature(state, agency, countyByName);
+      let key, anchor;
+      if (feat) {
+        key = 'c:' + String(feat.id).padStart(5, '0');
+        anchor = path.centroid(feat);
+      } else {
+        const reg = classifyRegion(state, agency) || REGIONS[REGIONS.length - 1];
+        key = 'r:' + reg;
+        anchor = regionCentroidsFallback[reg];
+      }
+      if (!anchor || isNaN(anchor[0]) || isNaN(anchor[1])) return;
+      if (!pinGroups.has(key)) pinGroups.set(key, { anchor, items: [] });
+      pinGroups.get(key).items.push(aw);
+    });
 
     const pinLayer = svg.append('g').attr('class', 'award-pins');
 
-    stateAwards.forEach(aw => {
-      const agency = aw['Agency'] || aw['agency'] || '';
-      const reg = classifyRegion(state, agency);
-      const c = regionCentroids[reg] || regionCentroids[REGIONS[REGIONS.length - 1]];
-      if (!c) return;
+    // Sort groups by y so later (lower) pins render on top — nicer stacking on the map.
+    const sortedGroups = Array.from(pinGroups.values()).sort((a, b) => a.anchor[1] - b.anchor[1]);
+    sortedGroups.forEach(({ anchor, items }) => {
+      const [cx, cy] = anchor;
+      const n = items.length;
+      const step = 11;  // horizontal stagger between pins in the same county
+      items.forEach((aw, i) => {
+        const offset = (i - (n - 1) / 2) * step;
+        const x = cx + offset;
+        const y = cy;  // tip anchored exactly at the county centroid
 
-      const id = aw['HubSpot ID'] || aw['hubspotId'] || aw['Deal Name'] || agency;
-      const [jx, jy] = jitterFor(id, 36);  // pins drift up to 36px from the regional centroid
-      // Push pins down a bit so they don't overlap the region-label plate at y=-22..+22
-      const x = c[0] + jx;
-      const y = c[1] + jy + 34;
+        const amountNum = parseFloat(String(aw['Amount ($)'] ?? aw.amount ?? '').replace(/[,$]/g, '')) || 0;
+        const r = radiusFor(amountNum);
+        const hc = r * 1.9;                     // head-center distance from tip
+        const dotR = Math.max(2.2, r * 0.34);
 
-      const stage = aw['Stage'] || aw['stage'] || '';
-      const isWon = stage === 'Closed Won';
-      const stageCls = isWon ? 'won' : 'ia';
-      const amountNum = parseFloat(String(aw['Amount ($)'] ?? aw.amount ?? '').replace(/[,$]/g, '')) || 0;
-      const r = radiusFor(amountNum);
+        const stage = aw['Stage'] || aw['stage'] || '';
+        const isWon = stage === 'Closed Won';
+        const stageCls = isWon ? 'won' : 'ia';
+        const agency = aw['Agency'] || aw['agency'] || '';
+        const region = classifyRegion(state, agency);
 
-      // Outer glow ring (larger deals get a bigger ring)
-      pinLayer.append('circle')
-        .attr('class', `award-pin-glow ${stageCls}`)
-        .attr('cx', x).attr('cy', y).attr('r', r + 3);
+        const g = pinLayer.append('g')
+          .attr('class', 'award-pin-g')
+          .attr('transform', `translate(${x.toFixed(2)},${y.toFixed(2)})`)
+          .datum({ award: aw, agency, stage, amountNum, region });
 
-      // Main pin
-      const pin = pinLayer.append('circle')
-        .attr('class', `award-pin ${stageCls}`)
-        .attr('cx', x).attr('cy', y).attr('r', r)
-        .datum({ award: aw, agency, stage, amountNum, region: reg });
+        // Soft ground shadow under the tip
+        g.append('ellipse')
+          .attr('class', 'award-pin-shadow')
+          .attr('cx', 0).attr('cy', 1.5)
+          .attr('rx', r * 0.55).attr('ry', r * 0.18);
 
-      pin.on('mousemove', (event, d) => {
-        const dealName = d.award['Deal Name'] || d.award['dealName'] || '—';
-        const awardedDate = d.award['Awarded Date'] || d.award['awardedDate'] || d.award['Intent to Award Date'] || '';
-        const cat = d.award['Service Category'] || d.award['serviceCategory'] || '';
-        tooltip.style.display = 'block';
-        tooltip.style.left = (event.clientX + 14) + 'px';
-        tooltip.style.top  = (event.clientY - 10) + 'px';
-        const stageColor = d.stage === 'Closed Won' ? '#059669' : '#F59E0B';
-        tooltip.innerHTML = `
-          <strong>${escapeHTML(dealName)}</strong>
-          <div class="tt-row">
-            <span class="lbl">Agency</span><span><b>${escapeHTML(d.agency)}</b></span>
-            ${d.region ? `<span class="lbl">Region</span><span><b>${escapeHTML(d.region)}</b></span>` : ''}
-            <span class="lbl">Stage</span><span style="color:${stageColor}"><b>${escapeHTML(d.stage)}</b></span>
-            ${d.amountNum > 0 ? `<span class="lbl">Amount</span><span><b>${CAPS.formatCurrency(d.amountNum)}</b></span>` : ''}
-            ${cat ? `<span class="lbl">Category</span><span><b>${escapeHTML(cat)}</b></span>` : ''}
-            ${awardedDate ? `<span class="lbl">Date</span><span><b>${escapeHTML(String(awardedDate).slice(0,10))}</b></span>` : ''}
-          </div>
-        `;
-      }).on('mouseleave', () => { tooltip.style.display = 'none'; });
+        // Teardrop body (tip sits exactly on the county centroid)
+        g.append('path')
+          .attr('class', `award-pin-body ${stageCls}`)
+          .attr('d', teardropPath(r, hc));
+
+        // White inner dot at the centre of the head
+        g.append('circle')
+          .attr('class', 'award-pin-dot')
+          .attr('cx', 0).attr('cy', -hc)
+          .attr('r', dotR);
+
+        g.on('mousemove', (event, d) => {
+          const dealName = d.award['Deal Name'] || d.award['dealName'] || '—';
+          const awardedDate = d.award['Awarded Date'] || d.award['awardedDate'] || d.award['Intent to Award Date'] || '';
+          const cat = d.award['Service Category'] || d.award['serviceCategory'] || '';
+          tooltip.style.display = 'block';
+          tooltip.style.left = (event.clientX + 14) + 'px';
+          tooltip.style.top  = (event.clientY - 10) + 'px';
+          const stageColor = d.stage === 'Closed Won' ? '#059669' : '#F59E0B';
+          tooltip.innerHTML = `
+            <strong>${escapeHTML(dealName)}</strong>
+            <div class="tt-row">
+              <span class="lbl">Agency</span><span><b>${escapeHTML(d.agency)}</b></span>
+              ${d.region ? `<span class="lbl">Region</span><span><b>${escapeHTML(d.region)}</b></span>` : ''}
+              <span class="lbl">Stage</span><span style="color:${stageColor}"><b>${escapeHTML(d.stage)}</b></span>
+              ${d.amountNum > 0 ? `<span class="lbl">Amount</span><span><b>${CAPS.formatCurrency(d.amountNum)}</b></span>` : ''}
+              ${cat ? `<span class="lbl">Category</span><span><b>${escapeHTML(cat)}</b></span>` : ''}
+              ${awardedDate ? `<span class="lbl">Date</span><span><b>${escapeHTML(String(awardedDate).slice(0,10))}</b></span>` : ''}
+            </div>
+          `;
+        }).on('mouseleave', () => { tooltip.style.display = 'none'; });
+      });
     });
 
     legendEl.innerHTML = REGIONS.map(r => {
@@ -1351,8 +1987,8 @@
       `;
     }).join('') + `
       <span class="pin-legend">
-        <span class="pin-legend__item"><span class="pin-legend__dot won"></span>Closed Won (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Closed Won').length})</span>
-        <span class="pin-legend__item"><span class="pin-legend__dot ia"></span>Intent to Award (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Intent to Award').length})</span>
+        <span class="pin-legend__item"><span class="pin-legend__mark won"></span>Closed Won (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Closed Won').length})</span>
+        <span class="pin-legend__item"><span class="pin-legend__mark ia"></span>Intent to Award (${stateAwards.filter(a => (a['Stage']||a['stage']) === 'Intent to Award').length})</span>
         <span class="pin-legend__item" style="color:var(--ca-gray-400);font-size:0.72rem">pin size ≈ deal $</span>
       </span>
     `;
