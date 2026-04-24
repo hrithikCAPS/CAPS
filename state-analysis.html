@@ -269,28 +269,28 @@
     const allData = await CAPS.loadData();
     const OCT_2025 = new Date('2025-10-01');
 
-    /* Year options */
+    /* Year options — by submission date */
     const yearSet = new Set();
     allData.forEach(d => {
-      const ref = d.bidClosingDate || d.submissionDate;
+      const ref = d.submissionDate || d.bidClosingDate;
       if (!ref) return;
       const dt = ref instanceof Date ? ref : new Date(ref);
-      if (dt >= OCT_2025) yearSet.add(dt.getFullYear());
+      if (dt >= OCT_2025) yearSet.add(dt.getUTCFullYear());
     });
     const allYears = [...yearSet].sort((a,b) => b - a);
 
-    /* Base = Oct 2025+ */
-    let base = allData.filter(d => {
-      const ref = d.bidClosingDate || d.submissionDate;
-      if (!ref) return false;
-      return (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025;
-    });
+    /* Base = submission date Oct 2025+ — use UTC month string to match getSubMonth logic */
+    function subMonthUTC(d) {
+      const ref = d.submissionDate || d.bidClosingDate;
+      if (!ref) return null;
+      const dt = ref instanceof Date ? ref : new Date(ref);
+      if (isNaN(dt.getTime())) return null;
+      return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0');
+    }
+    let base = allData.filter(d => { const m = subMonthUTC(d); return m && m >= '2025-10'; });
 
     if (activeYearFilter) {
-      base = base.filter(d => {
-        const ref = d.bidClosingDate || d.submissionDate;
-        return ref && new Date(ref).getFullYear() == activeYearFilter;
-      });
+      base = base.filter(d => { const m = subMonthUTC(d); return m && m.startsWith(String(activeYearFilter)); });
     }
 
     /* State options — ALL states present in the data so users can drill into any one. */
@@ -611,32 +611,32 @@
     const _start = new Date('2025-10-01');
     const _now   = new Date();
     _now.setDate(1);
-    for (let m = new Date(_start); m <= _now; m.setMonth(m.getMonth() + 1)) {
-      const key = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+    for (let m = new Date(_start); m <= _now; m.setUTCMonth(m.getUTCMonth() + 1)) {
+      const key = `${m.getUTCFullYear()}-${String(m.getUTCMonth()+1).padStart(2,'0')}`;
       const label = m.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       ivMonthBuckets[key] = 0;
       ivMonthLabels.push({ key, label });
     }
 
-    // Count interviews — use interviewDate if set, fall back to bidClosingDate
+    // Count interviews — use interviewDate if set, fall back to submissionDate
     const awdMonthBuckets = Object.fromEntries(ivMonthLabels.map(m => [m.key, 0]));
 
     data.filter(d => d.interviewFlag === 'Yes').forEach(d => {
-      const ref = d.interviewDate || d.bidClosingDate || d.submissionDate;
+      const ref = d.interviewDate || d.submissionDate || d.bidClosingDate;
       if (!ref) return;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (isNaN(dt)) return;
-      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`;
       if (key in ivMonthBuckets) ivMonthBuckets[key]++;
     });
 
-    // Count awards (Closed Won) by awardedDate, fall back to bidClosingDate
+    // Count awards (Closed Won) by awardedDate, fall back to submissionDate
     data.filter(d => d.stage === 'Closed Won').forEach(d => {
-      const ref = d.awardedDate || d.bidClosingDate || d.submissionDate;
+      const ref = d.awardedDate || d.submissionDate || d.bidClosingDate;
       if (!ref) return;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (isNaN(dt)) return;
-      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`;
       if (key in awdMonthBuckets) awdMonthBuckets[key]++;
     });
 

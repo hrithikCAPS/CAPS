@@ -133,12 +133,14 @@
     let intentSortDir = 'desc';
 
     /* ── Helper: get submission month (when proposal was submitted) ── */
+    /* Uses UTC methods to avoid timezone shift — e.g. midnight UTC Oct 1 must
+       not appear as September in a US timezone browser. */
     function getSubMonth(d) {
       const dt = d.submissionDate || d.bidClosingDate || d.createdDate;
       if (!dt) return null;
       const date = dt instanceof Date ? dt : new Date(dt);
       if (isNaN(date.getTime())) return null;
-      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+      return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0');
     }
 
     function monthLabel(ym) {
@@ -159,7 +161,7 @@
         const ref = d.submissionDate || d.bidClosingDate;
         if (!ref) return;
         const dt = ref instanceof Date ? ref : new Date(ref);
-        if (dt >= OCT_2025_FOR_YEARS) { const y = dt.getFullYear(); if (!isNaN(y)) yearSet.add(y); }
+        if (dt >= OCT_2025_FOR_YEARS) { const y = dt.getUTCFullYear(); if (!isNaN(y)) yearSet.add(y); }
       });
       const allYears = [...yearSet].sort((a,b) => b - a);
 
@@ -171,7 +173,7 @@
       if (yearFilter) {
         baseData = baseData.filter(d => {
           const ref = d.submissionDate || d.bidClosingDate || d.createdDate;
-          return ref && new Date(ref).getFullYear() == yearFilter;
+          return ref && new Date(ref).getUTCFullYear() == yearFilter;
         });
       }
       /* Category filter applied last; baseData used for category dropdown options */

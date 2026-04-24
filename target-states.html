@@ -1264,57 +1264,48 @@
     const allData = await CAPS.loadData();
     const OCT_2025 = new Date('2025-10-01');
 
-    /* Year options (across entire target-state universe, Oct 2025+) */
-    const yearSet = new Set();
-    allData.forEach(d => {
-      const ref = d.bidClosingDate || d.submissionDate;
-      if (!ref) return;
+    /* UTC-safe helper — matches rfp-overview getSubMonth logic exactly */
+    function subMonthUTC(d) {
+      const ref = d.submissionDate || d.bidClosingDate;
+      if (!ref) return null;
       const dt = ref instanceof Date ? ref : new Date(ref);
-      if (dt >= OCT_2025) yearSet.add(dt.getFullYear());
-    });
+      if (isNaN(dt.getTime())) return null;
+      return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0');
+    }
+
+    /* Year options — by submission date, Oct 2025+ */
+    const yearSet = new Set();
+    allData.forEach(d => { const m = subMonthUTC(d); if (m && m >= '2025-10') yearSet.add(parseInt(m.split('-')[0])); });
     const allYears = [...yearSet].sort((a,b) => b - a);
 
-    /* Bids per state — counts for both the target-state pill tabs AND
-       for every other state (so the state dropdown lists the whole universe).
-       State names are normalised via normStateName so typos (TEXAS, Missourie,
-       Washington DC, CA, etc.) collapse into a single canonical entry. */
+    /* Bids per state — by submission date Oct 2025+ */
     const stateCounts = {};
     TARGET_STATES.forEach(s => stateCounts[s.key] = 0);
     const allStateCounts = {};
     allData.forEach(d => {
-      const ref = d.bidClosingDate || d.submissionDate;
-      if (!ref) return;
-      const dt = ref instanceof Date ? ref : new Date(ref);
-      if (dt < OCT_2025) return;
+      const m = subMonthUTC(d);
+      if (!m || m < '2025-10') return;
       const raw = (d.agencyState || '').trim();
       if (!raw) return;
       const st = normStateName(raw) || raw;
       if (stateCounts.hasOwnProperty(st)) stateCounts[st]++;
       allStateCounts[st] = (allStateCounts[st] || 0) + 1;
     });
-    // Sorted list of all states with bids, target states first then the rest by count desc.
     const targetKeys = TARGET_STATES.map(s => s.key);
     const otherStates = Object.keys(allStateCounts)
       .filter(s => !targetKeys.includes(s))
       .sort((a, b) => allStateCounts[b] - allStateCounts[a] || a.localeCompare(b));
 
-    /* Base = selected state, Oct 2025+, (optionally year-filtered).
-       Normalise agencyState so typos/variants (TEXAS, CA, Missourie, Washington DC)
-       still match the canonical activeState name. */
+    /* Base = selected state, submission date Oct 2025+, (optionally year-filtered) */
     let base = allData.filter(d => {
-      const ref = d.bidClosingDate || d.submissionDate;
-      if (!ref) return false;
-      const dt = ref instanceof Date ? ref : new Date(ref);
-      if (dt < OCT_2025) return false;
+      const m = subMonthUTC(d);
+      if (!m || m < '2025-10') return false;
       const raw = (d.agencyState || '').trim();
       const st = normStateName(raw) || raw;
       return st === activeState;
     });
     if (activeYearFilter) {
-      base = base.filter(d => {
-        const ref = d.bidClosingDate || d.submissionDate;
-        return ref && new Date(ref).getFullYear() == activeYearFilter;
-      });
+      base = base.filter(d => { const m = subMonthUTC(d); return m && m.startsWith(String(activeYearFilter)); });
     }
 
     const hasRegions = !!STATE_CONFIG[activeState];           // only target states have regional breakdowns
@@ -2347,7 +2338,7 @@
           const dealCell = d.hubspotLink
             ? `<a class="aw-link" href="${escapeHTML(d.hubspotLink)}" target="_blank" rel="noreferrer noopener">${escapeHTML(d.dealName || '(Untitled)')}</a>`
             : escapeHTML(d.dealName || '(Untitled)');
-          const dt = d.awardedDate || d.bidClosingDate || d.submissionDate;
+          const dt = d.awardedDate || d.submissionDate || d.bidClosingDate;
           return `<tr>
             <td style="color:var(--ca-gray-400);font-size:0.8rem">${i+1}</td>
             <td>${dealCell}</td>
@@ -2385,8 +2376,8 @@
         else if (activeSort === 'region')  { va = a._region;  vb = b._region; }
         else if (activeSort === 'category'){ va = a.serviceCategory; vb = b.serviceCategory; }
         else if (activeSort === 'awardedDate') {
-          va = a.awardedDate || a.bidClosingDate || a.submissionDate || new Date(0);
-          vb = b.awardedDate || b.bidClosingDate || b.submissionDate || new Date(0);
+          va = a.awardedDate || a.submissionDate || a.bidClosingDate || new Date(0);
+          vb = b.awardedDate || b.submissionDate || b.bidClosingDate || new Date(0);
         }
         else if (activeSort === 'amount') { va = a.amount || 0; vb = b.amount || 0; }
         const c = cmp(va, vb);
