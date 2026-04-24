@@ -323,7 +323,7 @@
         if (!dt) return null;
         const date = dt instanceof Date ? dt : new Date(dt);
         if (isNaN(date.getTime())) return null;
-        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0');
       }
       const data   = allData.filter(d => { const m = subMonth(d); return m && m >= OCT_2025; });
       const active = data.filter(d => ['Submitted','Interview','Intent to Award'].includes(d.stage));
