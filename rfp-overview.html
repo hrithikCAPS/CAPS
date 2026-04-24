@@ -152,25 +152,25 @@
       const allData = await CAPS.loadData();
       destroyCharts();
 
-      /* Compute unique years from bid closing date — Oct 2025+ scope only */
+      /* Base pool: submission date Oct 2025+ (submission date is the primary date throughout) */
       const OCT_2025_FOR_YEARS = new Date('2025-10-01');
       const yearSet = new Set();
       allData.forEach(d => {
-        const ref = d.bidClosingDate || d.submissionDate;
+        const ref = d.submissionDate || d.bidClosingDate;
         if (!ref) return;
         const dt = ref instanceof Date ? ref : new Date(ref);
         if (dt >= OCT_2025_FOR_YEARS) { const y = dt.getFullYear(); if (!isNaN(y)) yearSet.add(y); }
       });
       const allYears = [...yearSet].sort((a,b) => b - a);
 
-      /* Apply filters — base set is always Oct 2025+ (RFP Data sheet scope) */
+      /* Apply filters — base set is always submission date Oct 2025+ */
       let baseData = allData.filter(d => {
-        const ref = d.bidClosingDate || d.submissionDate;
+        const ref = d.submissionDate || d.bidClosingDate;
         return ref && (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025_FOR_YEARS;
       });
       if (yearFilter) {
         baseData = baseData.filter(d => {
-          const ref = d.bidClosingDate || d.submissionDate || d.createdDate;
+          const ref = d.submissionDate || d.bidClosingDate || d.createdDate;
           return ref && new Date(ref).getFullYear() == yearFilter;
         });
       }
@@ -180,17 +180,20 @@
         : baseData;
 
       const container = document.getElementById('dashboard');
-      const total = data.length;
-      const withAmount = data.filter(d => d.amount !== null);
+      /* All KPIs are scoped to submission date >= Oct 2025 to match the monthly chart */
+      const submissionCutoff = yearFilter ? String(yearFilter) + '-01' : '2025-10';
+      const subData = data.filter(d => { const m = getSubMonth(d); return m && m >= submissionCutoff; });
+      const totalBySubmission = subData.length;
+      const withAmount = subData.filter(d => d.amount !== null);
       const totalValue = withAmount.reduce((s, d) => s + d.amount, 0);
-      const submittedCount = data.filter(d => d.stage === 'Submitted').length;
-      const inInterviewCount = data.filter(d => d.stage === 'Interview').length;
+      const submittedCount    = subData.filter(d => d.stage === 'Submitted').length;
+      const inInterviewCount  = subData.filter(d => d.stage === 'Interview').length;
       const resultsAwaitingCount = submittedCount + inInterviewCount;
-      const interviewCount = data.filter(d => d.interviewFlag === 'Yes').length;
-      const wonCount = data.filter(d => d.stage === 'Closed Won').length;
-      const lostCount = data.filter(d => d.stage === 'Closed Lost').length;
+      const interviewCount    = subData.filter(d => d.interviewFlag === 'Yes').length;
+      const wonCount          = subData.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award').length;
+      const lostCount         = subData.filter(d => d.stage === 'Closed Lost').length;
       const winRate = (wonCount + lostCount) > 0 ? wonCount / (wonCount + lostCount) : 0;
-      const awardedCount = data.filter(d => d.awardedDate).length;
+      const awardedCount      = subData.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award').length;
 
       /* Compute categories from year-filtered base (before category filter) */
       const allCats = {};
@@ -201,18 +204,17 @@
       });
       const catOptions = CAPS.sortedEntries(allCats);
 
-      /* Monthly data */
+      /* Monthly data — all by submission date */
       const monthSet = new Set();
-      data.forEach(d => { const m = getSubMonth(d); if (m) monthSet.add(m); });
-      const cutoff = yearFilter ? String(yearFilter) + '-01' : '2025-10';
-      const months = [...monthSet].sort().filter(m => m >= cutoff);
+      subData.forEach(d => { const m = getSubMonth(d); if (m) monthSet.add(m); });
+      const months = [...monthSet].sort().filter(m => m >= submissionCutoff);
 
       const monthSubmissions = {}, monthInterviews = {}, monthBAFO = {}, monthWon = {}, monthLost = {};
       months.forEach(m => { monthSubmissions[m]=0; monthInterviews[m]=0; monthBAFO[m]=0; monthWon[m]=0; monthLost[m]=0; });
 
-      data.forEach(d => {
+      subData.forEach(d => {
         const m = getSubMonth(d);
-        if (!m || m < cutoff) return;
+        if (!m || m < submissionCutoff) return;
         if (!monthSubmissions.hasOwnProperty(m)) return;
         monthSubmissions[m]++;
         if (d.interviewFlag === 'Yes') {
@@ -223,12 +225,12 @@
         if (d.stage === 'Closed Lost') monthLost[m]++;
       });
 
-      /* Stage data */
-      const stageCounts = CAPS.countBy(data, 'stage');
-      const stageValues = CAPS.sumBy(data, 'stage', 'amount');
+      /* Stage data — submission date filtered */
+      const stageCounts = CAPS.countBy(subData, 'stage');
+      const stageValues = CAPS.sumBy(subData, 'stage', 'amount');
 
-      /* Intent to Award deals */
-      const intentDeals = data.filter(d => d.stage === 'Intent to Award').sort((a, b) => (b.intentToAwardDate || 0) - (a.intentToAwardDate || 0));
+      /* Intent to Award deals — submission date filtered */
+      const intentDeals = subData.filter(d => d.stage === 'Intent to Award').sort((a, b) => (b.intentToAwardDate || 0) - (a.intentToAwardDate || 0));
       const intentCount = intentDeals.length;
 
       /* ═══ BUILD HTML ═══ */
@@ -250,21 +252,21 @@
             <option value="">All Categories</option>
             ${catOptions.map(([c, n]) => `<option value="${c}" ${categoryFilter === c ? 'selected' : ''}>${c} (${n})</option>`).join('')}
           </select>
-          <span class="ca-global-filter__count">Showing <strong>${total}</strong> of ${baseData.length} RFPs (Oct 2025+)</span>
+          <span class="ca-global-filter__count">Showing <strong>${totalBySubmission}</strong> of ${baseData.filter(d => { const m = getSubMonth(d); return m && m >= submissionCutoff; }).length} RFPs (by submission date, Oct 2025+)</span>
         </div>
 
         <!-- KPI Cards -->
         <div class="ca-metrics-row">
-          ${CAPS.metricCard('Total Submissions', CAPS.formatNumber(total), `${CAPS.formatNumber(withAmount.length)} with amount data`, '',
-            'Total number of RFPs submitted with bid closing date from Oct 2025 onwards, across all stages.')}
+          ${CAPS.metricCard('Total Submissions', CAPS.formatNumber(totalBySubmission), `${CAPS.formatNumber(withAmount.length)} with amount data`, '',
+            'Total number of RFPs with a submission date from October 2025 onwards. Matches the monthly chart totals.')}
           ${CAPS.metricCard('Results Awaiting', CAPS.formatNumber(resultsAwaitingCount), `${submittedCount} submitted · ${inInterviewCount} in interview`, 'blue',
             'Number of bids currently awaiting a result — deals still in Submitted or Interview stage in HubSpot.')}
-          ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate), `${wonCount} won / ${lostCount} lost`, 'green',
-            'Percentage of decided deals that were won. Formula: Closed Won / (Closed Won + Closed Lost). Excludes deals still in progress.')}
-          ${CAPS.metricCard('Interview Shortlists', CAPS.formatNumber(interviewCount), `${CAPS.formatPercent(total > 0 ? interviewCount / total : 0)} of submissions`, 'crimson',
+          ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate), `${wonCount} won or IA / ${lostCount} lost`, 'green',
+            'Percentage of decided deals that were won. Formula: (Closed Won + Intent to Award) / (Closed Won + Intent to Award + Closed Lost).')}
+          ${CAPS.metricCard('Interview Shortlists', CAPS.formatNumber(interviewCount), `${CAPS.formatPercent(totalBySubmission > 0 ? interviewCount / totalBySubmission : 0)} of submissions`, 'crimson',
             'Number of RFPs where the Interview Flag is Yes — meaning we were shortlisted for an interview or BAFO at any point.')}
-          ${CAPS.metricCard('Deals Awarded', CAPS.formatNumber(awardedCount), `${CAPS.formatCurrency(data.filter(d => d.awardedDate && d.amount).reduce((s,d) => s + d.amount, 0))} total value`, '',
-            'Number of deals that have an Awarded Date set in HubSpot, regardless of current stage. Total value is sum of awarded deal amounts.')}
+          ${CAPS.metricCard('Deals Awarded', CAPS.formatNumber(awardedCount), `${CAPS.formatCurrency(subData.filter(d => (d.stage === 'Closed Won' || d.stage === 'Intent to Award') && d.amount).reduce((s,d) => s + d.amount, 0))} total value`, '',
+            'Deals with an Awarded Date or currently at Intent to Award stage, among RFPs submitted from October 2025 onwards.')}
         </div>
 
         <!-- Section: Monthly Trends -->
@@ -274,7 +276,7 @@
         <div class="ca-panel" style="margin-bottom:20px">
           <div class="ca-panel__header">
             <span class="ca-panel__title">Month-on-Month RFP Submissions</span>
-            <span class="ca-panel__badge">${total} total</span>
+            <span class="ca-panel__badge">${totalBySubmission} total</span>
           </div>
           <div class="ca-panel__body">
             <div class="chart-container h300"><canvas id="chart-monthly-subs"></canvas></div>
@@ -475,17 +477,17 @@
             legend: { position: 'right', labels: { padding: 18, font: { size: 12 }, boxWidth: 12, boxHeight: 12 } },
             tooltip: { callbacks: {
               label: ctx => {
-                const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                const pct = ((ctx.parsed / totalBySubmission) * 100).toFixed(1);
                 return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
               }
             }},
             datalabels: {
-              display: ctx => (ctx.dataset.data[ctx.dataIndex] / total) > 0.04,
+              display: ctx => (ctx.dataset.data[ctx.dataIndex] / totalBySubmission) > 0.04,
               color: '#fff',
               font: { weight: '700', size: 11 },
               anchor: 'center', align: 'center',
               formatter: (val) => {
-                const pct = ((val / total) * 100).toFixed(0);
+                const pct = ((val / totalBySubmission) * 100).toFixed(0);
                 return [String(val), pct + '%'];
               },
               textAlign: 'center'

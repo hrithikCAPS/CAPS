@@ -94,6 +94,21 @@ AWARDS SHEET (separate HubSpot query — ALL TIME, no date filter):
 AFTER EXCEL UPDATE:
 Run: cd dashboard && python3 refresh-data.py
 Then verify: total records, stage breakdown, confirm data.js was regenerated.
+
+DASHBOARD KPI LOGIC (applied in JS, not in HubSpot query):
+All RFP Overview KPIs are scoped to deals where submission_date >= 2025-10-01.
+The HubSpot query uses closedate >= 2025-10-01 because submission_date is a custom
+property that cannot be filtered server-side — the submission date filter is applied
+after the data is pulled, in the dashboard JS (and printed by refresh-data.py).
+
+KPI definitions (all require submission date Oct 2025+):
+- Total Submissions  : count of deals with submission_date >= 2025-10
+- Results Awaiting   : Submitted + Interview stage (by submission date)
+- Win Rate           : (Closed Won + Intent to Award) / (Closed Won + Intent to Award + Closed Lost)
+- Interview Shortlists: deals where interview_flag = Yes
+- Deals Awarded      : Closed Won + Intent to Award stage (NOT awardedDate field — unreliable)
+
+Note: update_excel_v2.py prints all these counts after each run for verification.
 ```
 
 ---

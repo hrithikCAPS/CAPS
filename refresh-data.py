@@ -88,7 +88,21 @@ def main():
     with open(OUTPUT_PATH, "w") as f:
         f.write(js)
 
+    # Count records by submission date >= Oct 2025 (matches dashboard KPI)
+    OCT_2025_STR = "2025-10"
+    def _sub_month_str(r):
+        v = r.get("Submission Date") or r.get("Bid Closing Date") or r.get("Created Date")
+        return str(v)[:7] if v else ""
+
+    records_by_submission = sum(1 for r in records if _sub_month_str(r) >= OCT_2025_STR)
+    records_awarded = sum(
+        1 for r in records
+        if _sub_month_str(r) >= OCT_2025_STR
+        and (r.get("Stage") or "").strip() in ("Closed Won", "Intent to Award")
+    )
     print(f"Done! {len(records)} records written to js/data.js")
+    print(f"  Submissions Oct 2025+          : {records_by_submission}  (matches dashboard KPI)")
+    print(f"  Deals Awarded (CW + IA)        : {records_awarded}")
     print(f"Awards sheet: {len(awards_records)} records written to CAPS_AWARDS_DATA")
     print(f"Last updated: {last_updated}")
 
@@ -118,7 +132,7 @@ def main():
         state = (r.get("Agency State") or "").strip()
         if state not in state_counts:
             continue
-        ref_dt = _to_dt(r.get("Bid Closing Date")) or _to_dt(r.get("Submission Date"))
+        ref_dt = _to_dt(r.get("Submission Date")) or _to_dt(r.get("Bid Closing Date"))
         if not ref_dt or ref_dt < OCT_2025:
             continue
         state_counts[state]["bids"] += 1

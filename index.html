@@ -211,7 +211,7 @@
       <div class="lp-stat">
         <div class="lp-stat__lbl">Total RFPs</div>
         <div class="lp-stat__val" id="stat-total">—</div>
-        <div class="lp-stat__sub">Oct 2025 onwards</div>
+        <div class="lp-stat__sub">by submission date, Oct 2025+</div>
       </div>
       <div class="lp-stat">
         <div class="lp-stat__lbl">Active Pipeline</div>
@@ -219,9 +219,9 @@
         <div class="lp-stat__sub">submitted / interview / IA</div>
       </div>
       <div class="lp-stat">
-        <div class="lp-stat__lbl">Intent to Award</div>
+        <div class="lp-stat__lbl">Deals Awarded</div>
         <div class="lp-stat__val" id="stat-ia">—</div>
-        <div class="lp-stat__sub">near-certain awards</div>
+        <div class="lp-stat__sub">awarded + intent to award</div>
       </div>
       <div class="lp-stat">
         <div class="lp-stat__lbl">Data as of</div>
@@ -315,14 +315,24 @@
   /* ── Populate hero stats from embedded data ── */
   (async () => {
     try {
-      const data = await CAPS.loadData();
+      const allData = await CAPS.loadData();
+      /* Filter to submission date Oct 2025+ (matches dashboard KPI logic) */
+      const OCT_2025 = '2025-10';
+      function subMonth(d) {
+        const dt = d.submissionDate || d.bidClosingDate || d.createdDate;
+        if (!dt) return null;
+        const date = dt instanceof Date ? dt : new Date(dt);
+        if (isNaN(date.getTime())) return null;
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+      }
+      const data   = allData.filter(d => { const m = subMonth(d); return m && m >= OCT_2025; });
       const active = data.filter(d => ['Submitted','Interview','Intent to Award'].includes(d.stage));
-      const ia     = data.filter(d => d.stage === 'Intent to Award');
+      const awarded = data.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award');
       const lu     = CAPS.getLastUpdated();
 
       document.getElementById('stat-total').textContent  = data.length.toLocaleString();
       document.getElementById('stat-active').textContent = active.length.toLocaleString();
-      document.getElementById('stat-ia').textContent     = ia.length.toLocaleString();
+      document.getElementById('stat-ia').textContent     = awarded.length.toLocaleString();
 
       if (lu) {
         // Show month + year only
