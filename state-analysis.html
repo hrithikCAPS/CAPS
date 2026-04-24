@@ -419,7 +419,7 @@
       <div class="ca-page-header">
         <div class="ca-page-header__text">
           <h1 class="ca-page-header__title">State Analysis</h1>
-          <p class="ca-page-header__subtitle">Geographic breakdown of bids, interviews, and awards by US state — Oct 2025 onwards</p>
+          <p class="ca-page-header__subtitle">Geographic breakdown of bids, interviews, and awards by US state — <strong>October 2025</strong> onwards</p>
         </div>
         <a href="target-states.html" class="cta-target-states" title="Deep-dive into our top target states">
           <span class="cta-target-states__pulse"></span>
@@ -473,12 +473,7 @@
         <span class="ca-global-filter__label" style="margin-left:12px">State:</span>
         <select id="gf-state">
           <option value="">All States</option>
-          <optgroup label="Target States">
-            ${targetOpts.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
-          </optgroup>
-          ${otherOpts.length ? `<optgroup label="Other States">
-            ${otherOpts.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
-          </optgroup>` : ''}
+          ${stateOptions.map(s => `<option value="${s.abbr}" ${activeStateFilter === s.abbr ? 'selected' : ''}>${s.name} (${s.cnt})</option>`).join('')}
         </select>
         <span class="ca-global-filter__count">
           ${activeStateFilter ? `<strong>${ABBR_TO_NAME[activeStateFilter] || activeStateFilter}</strong> — ` : ''}

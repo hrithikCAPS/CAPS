@@ -183,7 +183,9 @@
       const total = data.length;
       const withAmount = data.filter(d => d.amount !== null);
       const totalValue = withAmount.reduce((s, d) => s + d.amount, 0);
-      const avgDeal = withAmount.length > 0 ? totalValue / withAmount.length : 0;
+      const submittedCount = data.filter(d => d.stage === 'Submitted').length;
+      const inInterviewCount = data.filter(d => d.stage === 'Interview').length;
+      const resultsAwaitingCount = submittedCount + inInterviewCount;
       const interviewCount = data.filter(d => d.interviewFlag === 'Yes').length;
       const wonCount = data.filter(d => d.stage === 'Closed Won').length;
       const lostCount = data.filter(d => d.stage === 'Closed Lost').length;
@@ -233,7 +235,7 @@
       container.innerHTML = `
         <div class="ca-page-header">
           <h1 class="ca-page-header__title">RFP Overview Dashboard</h1>
-          <p class="ca-page-header__subtitle">Submissions, interviews, and awards — Oct 2025 to present</p>
+          <p class="ca-page-header__subtitle">Submissions, interviews, and awards — <strong>October 2025</strong> to present</p>
         </div>
 
         <!-- Global Filter -->
@@ -255,8 +257,8 @@
         <div class="ca-metrics-row">
           ${CAPS.metricCard('Total Submissions', CAPS.formatNumber(total), `${CAPS.formatNumber(withAmount.length)} with amount data`, '',
             'Total number of RFPs submitted with bid closing date from Oct 2025 onwards, across all stages.')}
-          ${CAPS.metricCard('Avg Deal Amount', CAPS.formatCurrency(avgDeal), `${CAPS.formatCurrency(totalValue)} total pipeline`, 'blue',
-            'Average dollar amount per deal, calculated only from deals that have an amount value. Total pipeline is the sum of all deal amounts.')}
+          ${CAPS.metricCard('Results Awaiting', CAPS.formatNumber(resultsAwaitingCount), `${submittedCount} submitted · ${inInterviewCount} in interview`, 'blue',
+            'Number of bids currently awaiting a result — deals still in Submitted or Interview stage in HubSpot.')}
           ${CAPS.metricCard('Win Rate', CAPS.formatPercent(winRate), `${wonCount} won / ${lostCount} lost`, 'green',
             'Percentage of decided deals that were won. Formula: Closed Won / (Closed Won + Closed Lost). Excludes deals still in progress.')}
           ${CAPS.metricCard('Interview Shortlists', CAPS.formatNumber(interviewCount), `${CAPS.formatPercent(total > 0 ? interviewCount / total : 0)} of submissions`, 'crimson',

@@ -1401,23 +1401,10 @@
     const awards = data.filter(d => d.stage === 'Closed Won');
     const stateActiveBidCount = allStateCounts[activeState] || 0;
 
-    /* Build dropdown <options> — target states first, then all other states with data */
-    const stateOptionsHtml = [
-      '<optgroup label="Target States">',
-      TARGET_STATES.map(s =>
-        `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.key} (${stateCounts[s.key] || 0})</option>`
-      ).join(''),
-      '</optgroup>',
-      otherStates.length ? '<optgroup label="Other States">' : '',
-      otherStates.map(st =>
-        `<option value="${escapeHTML(st)}" ${activeState === st ? 'selected' : ''}>${escapeHTML(st)} (${allStateCounts[st]})</option>`
-      ).join(''),
-      otherStates.length ? '</optgroup>' : '',
-      // If the active state is somehow not in target or other (e.g. no Oct-2025+ data), add it so the dropdown stays in sync
-      (!stateCounts.hasOwnProperty(activeState) && !allStateCounts[activeState])
-        ? `<option value="${escapeHTML(activeState)}" selected>${escapeHTML(activeState)} (0)</option>`
-        : ''
-    ].join('');
+    /* Build dropdown <options> — target states only */
+    const stateOptionsHtml = TARGET_STATES.map(s =>
+      `<option value="${s.key}" ${activeState === s.key ? 'selected' : ''}>${s.key} (${stateCounts[s.key] || 0})</option>`
+    ).join('');
 
     /* ── BUILD HTML ── */
     document.getElementById('dashboard').innerHTML = `
@@ -1425,7 +1412,7 @@
         <h1 class="ca-page-header__title">State Analysis</h1>
         <p class="ca-page-header__subtitle">
           Deep-dive into any state where we're bidding — pick a state from the filter below.
-          Target states (California, New York, Texas, Florida, Virginia, Oregon, South Carolina) get the full regional breakdown. Oct 2025 onwards.
+          Target states (California, New York, Texas, Florida, Virginia, Oregon, South Carolina) get the full regional breakdown. <strong>October 2025</strong> onwards.
         </p>
       </div>
 
@@ -1433,7 +1420,7 @@
       <div class="ca-metrics-row">
         ${CAPS.metricCard('Total Bids', CAPS.formatNumber(stateTotal.bids),
           hasRegions && activeRegionFilter ? activeRegionFilter : activeState, '',
-          `RFPs submitted in ${activeState} from Oct 2025 onwards.`)}
+          `RFPs submitted in ${activeState} from <strong>October 2025</strong> onwards.`)}
         ${CAPS.metricCard('Active Pipeline', CAPS.formatCurrency(stateTotal.activeValue),
           'Submitted + Interview + IA', 'blue',
           'Sum of deal $ still in flight — potential revenue if we close it.')}
@@ -2354,7 +2341,7 @@
           <th class="${activeSort==='category'?'sort-active':''}" data-sort="category">Category ${sortArrows('category')}</th>
           <th class="${activeSort==='awardedDate'?'sort-active':''}" data-sort="awardedDate">Awarded ${sortArrows('awardedDate')}</th>
           <th class="right ${activeSort==='amount'?'sort-active':''}" data-sort="amount">Amount ${sortArrows('amount')}</th>
-          <th class="${activeSort==='owner'?'sort-active':''}" data-sort="owner">Owner ${sortArrows('owner')}</th>
+          <th>HubSpot</th>
         </tr></thead>
         <tbody>${rows.map((d, i) => {
           const dealCell = d.hubspotLink
@@ -2369,7 +2356,7 @@
             <td>${escapeHTML(d.serviceCategory || '—')}</td>
             <td>${dt ? CAPS.formatDate(dt) : '—'}</td>
             <td class="right">${d.amount ? CAPS.formatCurrency(d.amount) : '—'}</td>
-            <td>${escapeHTML(d.owner || '—')}</td>
+            <td>${d.hubspotLink ? `<a href="${escapeHTML(d.hubspotLink)}" target="_blank" rel="noreferrer noopener" style="color:var(--ca-blue);font-weight:600;text-decoration:none">View ↗</a>` : '—'}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>`;
@@ -2383,8 +2370,7 @@
           (d.dealName || '').toLowerCase().includes(q) ||
           (d.agency || '').toLowerCase().includes(q) ||
           (d.serviceCategory || '').toLowerCase().includes(q) ||
-          (d._region || '').toLowerCase().includes(q) ||
-          (d.owner || '').toLowerCase().includes(q)
+          (d._region || '').toLowerCase().includes(q)
         );
       }
       rows.sort((a, b) => {
@@ -2403,7 +2389,6 @@
           vb = b.awardedDate || b.bidClosingDate || b.submissionDate || new Date(0);
         }
         else if (activeSort === 'amount') { va = a.amount || 0; vb = b.amount || 0; }
-        else if (activeSort === 'owner')  { va = a.owner;       vb = b.owner; }
         const c = cmp(va, vb);
         return activeSortDir === 'desc' ? -c : c;
       });
