@@ -311,10 +311,10 @@
       padding: 8px 14px; border-bottom: 1px solid var(--ca-gray-100);
       color: var(--ca-gray-700);
     }
-    .top-states-table tbody tr { cursor: pointer; }
-    .top-states-table tbody tr:hover { background: #F8FAFC; }
-    .top-states-table tbody tr.is-target { background: #FFFBEB; }
+    .top-states-table tbody tr.is-target { cursor: pointer; }
     .top-states-table tbody tr.is-target:hover { background: #FEF3C7; }
+    .top-states-table tbody tr.not-target { cursor: default; opacity: 0.7; }
+    .top-states-table tbody tr.is-target { background: #FFFBEB; }
     .top-states-table tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
     .top-states-table tbody td.state-name { font-weight: 600; color: var(--ca-navy); }
     .top-states-table tbody td .target-star { color: #F59E0B; margin-left: 4px; }
@@ -393,6 +393,7 @@
     { key: 'Virginia' },
     { key: 'Oregon' },
     { key: 'South Carolina' },
+    { key: 'Illinois' },
   ];
 
   /* Shared, on-brand region colour palette (three shades of blue, sampled from the
@@ -737,6 +738,40 @@
       agencyMap:  {},
       keywords:   SC_KEYWORDS,
       methodology: 'Upstate covers Greenville, Spartanburg, Anderson, Pickens and the northwestern SC counties. Midlands covers Columbia (Richland / Lexington) and the central belt. Coastal / Lowcountry covers Charleston, Beaufort, Berkeley, Dorchester, Hilton Head plus the Pee Dee region (Florence, Myrtle Beach / Horry, Georgetown).'
+    },
+    'Illinois': {
+      stateFips: '17',
+      regions:    ['Chicago Metro', 'Northern Illinois', 'Central / Southern Illinois'],
+      countyMap: (function(){
+        const m = { __default: 'Central / Southern Illinois', __state: '17' };
+        // Chicago Metro — Cook + 6 collar counties + Kendall
+        ['17031','17043','17089','17093','17097','17111','17197'].forEach(f => m[f] = 'Chicago Metro');
+        // Northern Illinois — Rockford / Quad Cities belt
+        ['17007','17015','17037','17085','17103','17141','17177','17195','17201'].forEach(f => m[f] = 'Northern Illinois');
+        return m;
+      })(),
+      agencyMap: {
+        'chicago public schools':                              'Chicago Metro',
+        'metropolitan water reclamation district of greater chicago': 'Chicago Metro',
+        'will county':                                         'Chicago Metro',
+        'kane county':                                         'Chicago Metro',
+        'dupage county':                                       'Chicago Metro',
+        'harper college':                                      'Chicago Metro',
+        'village of tinley park':                              'Chicago Metro',
+        'village of schaumburg':                               'Chicago Metro',
+        'fox waterway agency':                                 'Chicago Metro',
+        'illinois housing development authority':              'Chicago Metro',
+        'village of palantine':                                'Chicago Metro',
+        'county of union':                                     'Central / Southern Illinois',
+        'springfield housing authority':                       'Central / Southern Illinois',
+        'housing authority of henry county':                   'Central / Southern Illinois',
+        'illinois department of innovation and technology':    'Central / Southern Illinois',
+        'illinois department of public health':                'Central / Southern Illinois',
+        'peoria housing authority':                            'Central / Southern Illinois',
+        'illinois':                                            'Central / Southern Illinois',
+      },
+      keywords:   {},
+      methodology: 'Chicago Metro covers Cook County plus the six collar counties (DuPage, Kane, Kendall, Lake, McHenry, Will). Northern Illinois covers the Rockford and Quad Cities belt. Central / Southern Illinois covers Springfield, Peoria, Bloomington-Normal, Champaign-Urbana, the St. Louis Metro East side and all southern counties.'
     },
   };
 
@@ -1403,7 +1438,7 @@
         <h1 class="ca-page-header__title">State Analysis</h1>
         <p class="ca-page-header__subtitle">
           Deep-dive into any state where we're bidding — pick a state from the filter below.
-          Target states (California, New York, Texas, Florida, Virginia, Oregon, South Carolina) get the full regional breakdown. <strong>October 2025</strong> onwards.
+          Target states (California, New York, Texas, Florida, Virginia, Oregon, South Carolina, Illinois) get the full regional breakdown. <strong>October 2025</strong> onwards.
         </p>
       </div>
 
@@ -1998,7 +2033,7 @@
     'texas ':'Texas','kansas ':'Kansas','new york':'New York',
     'missouri':'Missouri','oregon':'Oregon'
   };
-  const TARGET_STATE_SET = new Set(['California','New York','Texas','Florida']);
+  const TARGET_STATE_SET = new Set(['California','New York','Texas','Florida','Virginia','Oregon','South Carolina','Illinois']);
 
   function normStateName(raw) {
     const s = String(raw || '').trim();
@@ -2204,11 +2239,12 @@
       tbody.innerHTML = filtered.map(r => {
         const isTarget = TARGET_STATE_SET.has(r.state);
         const isActive = r.state === activeState;
-        const cls = [isTarget ? 'is-target' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
+        const cls = [isTarget ? 'is-target' : 'not-target', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
         const star = isTarget ? '<span class="target-star" title="target state">★</span>' : '';
         const activeBadge = isActive ? ' <span style="font-size:0.65rem;font-weight:700;color:var(--ca-navy);background:#fff;padding:1px 6px;border-radius:10px;border:1px solid var(--ca-navy);margin-left:4px;vertical-align:middle">SELECTED</span>' : '';
+        const trTitle = isTarget ? `Click to drill into ${escapeHTML(r.state)}` : `${escapeHTML(r.state)} — not a target state`;
         return `
-          <tr class="${cls}" data-state-name="${escapeHTML(r.state)}" title="Click to drill into ${escapeHTML(r.state)}">
+          <tr class="${cls}" ${isTarget ? `data-state-name="${escapeHTML(r.state)}"` : ''} title="${trTitle}">
             <td class="state-name">${escapeHTML(r.state)}${star}${activeBadge}
               <div style="font-size:0.7rem;font-weight:500;color:var(--ca-gray-500);margin-top:2px">
                 ${r.won} won · ${r.ia} IA
@@ -2291,6 +2327,7 @@
     // Click any state row → switch the active state (target states get full regional view,
     // other states get the basic stats view)
     document.getElementById('top-states-tbody').addEventListener('click', (ev) => {
+      // Only target state rows have data-state-name set; non-target rows are not clickable
       const tr = ev.target.closest('tr[data-state-name]'); if (!tr) return;
       const nm = tr.dataset.stateName;
       if (nm && nm !== activeState) {

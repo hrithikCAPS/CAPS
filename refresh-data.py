@@ -111,7 +111,7 @@ def main():
     # with bidClosingDate / submissionDate on or after Oct 1 2025. Print a summary
     # so you can verify every target state has data after each refresh — and catch
     # typos in the Agency State column.
-    TARGET_STATES = ["California", "New York", "Texas", "Florida"]
+    TARGET_STATES = ["California", "New York", "Texas", "Florida", "Virginia", "Oregon", "South Carolina", "Illinois"]
     OCT_2025 = datetime(2025, 10, 1)
 
     def _to_dt(v):
