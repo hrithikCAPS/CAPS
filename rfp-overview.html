@@ -235,6 +235,18 @@
       const intentDeals = subData.filter(d => d.stage === 'Intent to Award').sort((a, b) => (b.intentToAwardDate || 0) - (a.intentToAwardDate || 0));
       const intentCount = intentDeals.length;
 
+      /* Monthly revenue — sum of amount for deals with intentToAwardDate in each month */
+      const monthRevenue = {};
+      months.forEach(m => { monthRevenue[m] = 0; });
+      subData.forEach(d => {
+        if (!d.intentToAwardDate || !d.amount) return;
+        const dt = d.intentToAwardDate instanceof Date ? d.intentToAwardDate : new Date(d.intentToAwardDate);
+        if (isNaN(dt.getTime())) return;
+        const m = dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0');
+        if (monthRevenue.hasOwnProperty(m)) monthRevenue[m] += d.amount;
+      });
+      const totalRevenue = Object.values(monthRevenue).reduce((s, v) => s + v, 0);
+
       /* ═══ BUILD HTML ═══ */
       container.innerHTML = `
         <div class="ca-page-header">
@@ -330,14 +342,25 @@
           </div>
         </div>
 
-        <!-- Section: Conversion Funnel -->
-        <div class="ca-section-label">Submission-to-Award Funnel</div>
-        <div class="ca-panel" style="margin-bottom:20px">
-          <div class="ca-panel__header">
-            <span class="ca-panel__title">Monthly Conversion: Submissions → Interviews → Awards</span>
+        <!-- Section: Conversion Funnel + Revenue -->
+        <div class="ca-section-label">Submission-to-Award Funnel &amp; Revenue</div>
+        <div class="ca-grid ca-grid--2">
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">Monthly Conversion: Submissions → Interviews → Awards</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h300"><canvas id="chart-funnel"></canvas></div>
+            </div>
           </div>
-          <div class="ca-panel__body">
-            <div class="chart-container h350"><canvas id="chart-funnel"></canvas></div>
+          <div class="ca-panel">
+            <div class="ca-panel__header">
+              <span class="ca-panel__title">Revenue Generated Month-on-Month</span>
+              <span class="ca-panel__badge">${CAPS.formatCurrency(totalRevenue)} total</span>
+            </div>
+            <div class="ca-panel__body">
+              <div class="chart-container h300"><canvas id="chart-revenue"></canvas></div>
+            </div>
           </div>
         </div>
 
@@ -570,6 +593,53 @@
             y: { beginAtZero: true, title: { display: true, text: 'Count', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } }, grid: { color: '#F2F4F7' }, ticks: { padding: 6 } },
             x: { title: { display: true, text: 'Submission Month', font: { weight: '600', size: 12 }, padding: { top: 6 } }, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false } }
           }
+        }
+      }));
+
+      /* ═══ CHART 7: Revenue Generated Month-on-Month ═══ */
+      allCharts.push(new Chart(document.getElementById('chart-revenue'), {
+        type: 'bar',
+        data: {
+          labels: mLabels,
+          datasets: [{
+            label: 'Revenue (Intent to Award)',
+            data: months.map(m => monthRevenue[m] || 0),
+            backgroundColor: COLORS.orangeAlpha,
+            borderColor: COLORS.orange,
+            borderWidth: 1,
+            borderRadius: 6,
+            barPercentage: 0.6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 32, right: 16, left: 8, bottom: 8 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => CAPS.formatCurrencyFull(ctx.parsed.y) } },
+            datalabels: {
+              display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
+              anchor: 'end', align: 'end',
+              font: { weight: '700', size: 11 },
+              color: COLORS.navy,
+              formatter: v => v > 0 ? CAPS.formatCurrency(v) : '',
+              clamp: true
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Revenue ($)', font: { weight: '600', size: 12 }, padding: { top: 4, bottom: 4 } },
+              grid: { color: '#F2F4F7' },
+              ticks: { callback: v => CAPS.formatCurrency(v), padding: 6 }
+            },
+            x: {
+              title: { display: true, text: 'Intent to Award Month', font: { weight: '600', size: 12 }, padding: { top: 6 } },
+              grid: { display: false },
+              ticks: { maxRotation: 45, minRotation: 0, padding: 4, autoSkip: false }
+            }
+          },
+          animation: { duration: 800 }
         }
       }));
 

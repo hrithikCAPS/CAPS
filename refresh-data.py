@@ -100,9 +100,30 @@ def main():
         if _sub_month_str(r) >= OCT_2025_STR
         and (r.get("Stage") or "").strip() in ("Closed Won", "Intent to Award")
     )
+
+    # Monthly revenue: sum of Amount for deals with Intent to Award Date in each month
+    # Matches the "Revenue Generated Month-on-Month" chart on the RFP Overview dashboard
+    from collections import defaultdict
+    monthly_revenue = defaultdict(float)
+    for r in records:
+        if _sub_month_str(r) < OCT_2025_STR:
+            continue
+        ia_date = str(r.get("Intent to Award Date") or "")[:7]
+        amount = r.get("Amount ($)")
+        if ia_date >= OCT_2025_STR and amount:
+            try:
+                monthly_revenue[ia_date] += float(str(amount).replace(",", "").replace("$", ""))
+            except (ValueError, TypeError):
+                pass
+    total_revenue = sum(monthly_revenue.values())
+
     print(f"Done! {len(records)} records written to js/data.js")
     print(f"  Submissions Oct 2025+          : {records_by_submission}  (matches dashboard KPI)")
     print(f"  Deals Awarded (CW + IA)        : {records_awarded}")
+    print(f"  Revenue Generated (IA date)    : ${total_revenue:,.0f}")
+    if monthly_revenue:
+        for m in sorted(monthly_revenue):
+            print(f"    {m}: ${monthly_revenue[m]:,.0f}")
     print(f"Awards sheet: {len(awards_records)} records written to CAPS_AWARDS_DATA")
     print(f"Last updated: {last_updated}")
 
