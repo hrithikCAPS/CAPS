@@ -235,15 +235,50 @@
       const intentDeals = subData.filter(d => d.stage === 'Intent to Award').sort((a, b) => (b.intentToAwardDate || 0) - (a.intentToAwardDate || 0));
       const intentCount = intentDeals.length;
 
-      /* Monthly revenue — sum of amount for deals with intentToAwardDate in each month */
+      /* Monthly revenue (booked) — sum of amount for ALL deals in Closed Won or Intent to Award
+         stage that have an intentToAwardDate in each month bucket.
+         Uses BOTH RFP Data (allData) AND Awards sheet (CAPS_AWARDS_DATA) so deals with
+         closedate before Oct 2025 (e.g. historical awards) are also captured.
+         Not restricted by submission date — we want all confirmed revenue. */
       const monthRevenue = {};
-      months.forEach(m => { monthRevenue[m] = 0; });
-      subData.forEach(d => {
+      const monthRevenueDeals = {}; // month → [{name, amount}] for tooltip
+      months.forEach(m => { monthRevenue[m] = 0; monthRevenueDeals[m] = []; });
+
+      // Build combined pool: allData + CAPS_AWARDS_DATA, deduplicated by HubSpot ID.
+      // CAPS_AWARDS_DATA uses the same column-name format as CAPS_EMBEDDED_DATA,
+      // so dashboard-common normalises it identically via loadData's normalizeRow path.
+      const _seenIds = new Set(allData.map(d => String(d.hubspotId || '')));
+      const awardsNorm = (window.CAPS_AWARDS_DATA || []).map(r => {
+        // CAPS_AWARDS_DATA records already use plain column name keys from the Excel sheet.
+        // Re-parse them the same way dashboard-common does for CAPS_EMBEDDED_DATA.
+        const row = {};
+        for (const [k, v] of Object.entries(r)) row[k.trim()] = v;
+        const parseD = v => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; };
+        const parseN = v => { if (v===''||v===null||v===undefined) return null; const n = parseFloat(String(v).replace(/[,$]/g,'')); return isNaN(n)?null:n; };
+        return {
+          hubspotId:        row['HubSpot ID'] || '',
+          dealName:         row['Deal Name'] || '',
+          stage:            row['Stage'] || '',
+          amount:           parseN(row['Amount ($)']),
+          intentToAwardDate: parseD(row['Intent to Award Date']),
+          submissionDate:   parseD(row['Submission Date']),
+        };
+      }).filter(d => {
+        if (!d.hubspotId || _seenIds.has(String(d.hubspotId))) return false;
+        _seenIds.add(String(d.hubspotId));
+        return true;
+      });
+      const revenuePool = [...allData, ...awardsNorm];
+
+      revenuePool.forEach(d => {
         if (!d.intentToAwardDate || !d.amount) return;
+        if (d.stage !== 'Closed Won' && d.stage !== 'Intent to Award') return;
         const dt = d.intentToAwardDate instanceof Date ? d.intentToAwardDate : new Date(d.intentToAwardDate);
         if (isNaN(dt.getTime())) return;
         const m = dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0');
-        if (monthRevenue.hasOwnProperty(m)) monthRevenue[m] += d.amount;
+        if (!monthRevenue.hasOwnProperty(m)) return;
+        monthRevenue[m] += d.amount;
+        monthRevenueDeals[m].push({ name: d.dealName || '(Unknown)', amount: d.amount });
       });
       const totalRevenue = Object.values(monthRevenue).reduce((s, v) => s + v, 0);
 
@@ -616,7 +651,25 @@
           layout: { padding: { top: 32, right: 16, left: 8, bottom: 8 } },
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => CAPS.formatCurrencyFull(ctx.parsed.y) } },
+            tooltip: {
+              callbacks: {
+                title: ctx => {
+                  const m = months[ctx[0].dataIndex];
+                  return monthLabel(m) + ' — ' + CAPS.formatCurrencyFull(monthRevenue[m] || 0);
+                },
+                label: () => null,
+                afterBody: ctx => {
+                  const m = months[ctx[0].dataIndex];
+                  const deals = (monthRevenueDeals[m] || []).sort((a,b) => b.amount - a.amount);
+                  if (!deals.length) return ['No deals'];
+                  return deals.map(d => `  • ${d.name.substring(0,45)}${d.name.length>45?'…':''}: ${CAPS.formatCurrencyFull(d.amount)}`);
+                }
+              },
+              displayColors: false,
+              padding: 12,
+              bodyFont: { size: 12 },
+              titleFont: { weight: '700', size: 13 }
+            },
             datalabels: {
               display: ctx => ctx.dataset.data[ctx.dataIndex] > 0,
               anchor: 'end', align: 'end',
