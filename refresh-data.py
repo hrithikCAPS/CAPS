@@ -8,6 +8,21 @@ import json, os, sys
 from datetime import datetime, date
 
 try:
+    from zoneinfo import ZoneInfo  # Python 3.9+
+    EASTERN = ZoneInfo("America/New_York")
+except ImportError:
+    # Fallback: use a fixed offset (no DST awareness). EST = UTC-5, EDT = UTC-4.
+    from datetime import timezone, timedelta
+    # Approximate — DST in 2026 starts March 8, ends Nov 1.
+    _now = datetime.utcnow()
+    EASTERN = timezone(timedelta(hours=-4 if 3 <= _now.month <= 10 else -5))
+
+
+def now_eastern():
+    """Returns the current time in US Eastern timezone (auto-handles EST/EDT)."""
+    return datetime.now(EASTERN)
+
+try:
     import openpyxl
 except ImportError:
     print("Installing openpyxl...")
@@ -51,7 +66,10 @@ def main():
         print(f"Copied to: {COPY_DEST}")
 
     # Stamp current run time as last updated (always fresh, never stale)
-    last_updated = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    # Use US Eastern timezone (EST/EDT auto-handled).
+    et_now = now_eastern()
+    tz_label = et_now.strftime("%Z") or ("EDT" if et_now.utcoffset().total_seconds() == -14400 else "EST")
+    last_updated = et_now.strftime(f"%B %d, %Y %I:%M %p {tz_label}")
 
     # Write the new timestamp back into the README sheet so Excel stays in sync
     if "README" in wb.sheetnames:
@@ -81,7 +99,7 @@ def main():
 
     data = {"lastUpdated": last_updated, "records": records}
     js = "/* Auto-generated from Excel — do not edit manually */\n"
-    js += f"/* Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} */\n"
+    js += f"/* Generated: {et_now.strftime('%Y-%m-%d %H:%M %Z')} */\n"
     js += "window.CAPS_EMBEDDED_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n"
     js += "window.CAPS_AWARDS_DATA = " + json.dumps(awards_records, separators=(",", ":")) + ";\n"
 
@@ -101,12 +119,13 @@ def main():
         and (r.get("Stage") or "").strip() in ("Closed Won", "Intent to Award")
     )
 
-    # Monthly revenue: sum of Amount for deals with Intent to Award Date in each month
-    # Matches the "Revenue Generated Month-on-Month" chart on the RFP Overview dashboard
+    # Monthly revenue booked: sum of Amount for ALL deals in Closed Won or Intent to Award stage
+    # with an Intent to Award Date in each month (no submission date restriction).
     from collections import defaultdict
     monthly_revenue = defaultdict(float)
     for r in records:
-        if _sub_month_str(r) < OCT_2025_STR:
+        stage = (r.get("Stage") or "").strip()
+        if stage not in ("Closed Won", "Intent to Award"):
             continue
         ia_date = str(r.get("Intent to Award Date") or "")[:7]
         amount = r.get("Amount ($)")
