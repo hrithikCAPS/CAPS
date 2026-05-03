@@ -82,6 +82,150 @@
     .sort-arrows  { display: inline-flex; flex-direction: column; margin-left: 5px; gap: 1px; vertical-align: middle; line-height: 1; position: relative; top: -1px; }
     .sort-arrows .arr     { font-size: 0.6rem; opacity: 0.3; line-height: 1; }
     .sort-arrows .arr.on  { opacity: 1; color: var(--ca-blue); }
+
+    /* ── Page header w/ CTA on the right ── */
+    .ca-page-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .ca-page-header__text { flex: 1; min-width: 280px; }
+
+    /* ── Reports CTA — same shape as Top Target States CTA ── */
+    .cta-reports {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 22px;
+      background: linear-gradient(135deg, var(--ca-navy) 0%, var(--ca-blue) 55%, #4F80E0 100%);
+      color: #fff; text-decoration: none;
+      font-family: var(--font-family); font-size: 0.92rem; font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 30px;
+      box-shadow: 0 6px 18px -4px rgba(27,47,94,0.45), 0 2px 4px rgba(45,96,196,0.25);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      white-space: nowrap; overflow: hidden;
+      border: none; cursor: pointer;
+    }
+    .cta-reports::before {
+      content: ''; position: absolute; top: 0; left: -60%;
+      width: 50%; height: 100%;
+      background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+      transform: skewX(-20deg);
+      animation: cta-sheen-r 3.2s ease-in-out infinite;
+    }
+    @keyframes cta-sheen-r { 0%,15% {left:-60%;} 55%,100% {left:140%;} }
+    .cta-reports:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px -4px rgba(27,47,94,0.55), 0 4px 8px rgba(45,96,196,0.3);
+    }
+    .cta-reports:active { transform: translateY(0); }
+    .cta-reports__icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      font-size: 0.95rem;
+    }
+    .cta-reports__arrow {
+      font-size: 1.05rem; line-height: 1;
+      transition: transform 0.18s ease;
+    }
+    .cta-reports:hover .cta-reports__arrow { transform: translateX(3px); }
+
+    /* ── Reports modal ── */
+    .reports-modal {
+      position: fixed; inset: 0; z-index: 1000;
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .reports-modal.is-open { display: flex; }
+    .reports-modal__backdrop {
+      position: absolute; inset: 0;
+      background: rgba(15,27,46,0.55);
+      backdrop-filter: blur(2px);
+    }
+    .reports-modal__panel {
+      position: relative; z-index: 1;
+      background: var(--ca-white);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 60px -10px rgba(0,0,0,0.35);
+      width: 100%; max-width: 480px;
+      padding: 28px;
+      animation: rm-pop 0.18s ease-out;
+    }
+    @keyframes rm-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0)     scale(1); }
+    }
+    .reports-modal__header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; margin-bottom: 20px;
+    }
+    .reports-modal__title {
+      font-size: 1.15rem; font-weight: 700; color: var(--ca-navy); margin: 0;
+    }
+    .reports-modal__sub {
+      font-size: 0.82rem; color: var(--ca-gray-500); margin: 4px 0 0; font-weight: 500;
+    }
+    .reports-modal__close {
+      background: none; border: none; cursor: pointer;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--ca-gray-500); font-size: 1.2rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .reports-modal__close:hover { background: var(--ca-gray-100); color: var(--ca-navy); }
+
+    .reports-form { display: grid; gap: 14px; }
+    .reports-form__field { display: flex; flex-direction: column; gap: 6px; }
+    .reports-form__label {
+      font-size: 0.78rem; font-weight: 600; color: var(--ca-gray-700);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .reports-form__select {
+      padding: 10px 14px; border: 1px solid var(--ca-gray-300);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.92rem; color: var(--ca-gray-700);
+      background: var(--ca-white); cursor: pointer;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .reports-form__select:focus {
+      border-color: var(--ca-blue);
+      box-shadow: 0 0 0 3px rgba(46,80,144,0.12); outline: none;
+    }
+    .reports-form__select:disabled {
+      background: var(--ca-gray-100); cursor: not-allowed; color: var(--ca-gray-400);
+    }
+    .reports-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .reports-form__hint {
+      font-size: 0.78rem; color: var(--ca-gray-500); margin-top: -4px;
+    }
+
+    .reports-modal__actions {
+      display: flex; gap: 10px; margin-top: 22px;
+      align-items: center; justify-content: flex-end;
+    }
+    .reports-modal__btn {
+      padding: 10px 20px; border: none; border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; transition: background 0.12s, transform 0.1s;
+    }
+    .reports-modal__btn--secondary {
+      background: var(--ca-gray-100); color: var(--ca-gray-700);
+    }
+    .reports-modal__btn--secondary:hover { background: var(--ca-gray-200); }
+    .reports-modal__btn--primary {
+      background: linear-gradient(135deg, var(--ca-navy) 0%, var(--ca-blue) 100%);
+      color: #fff;
+    }
+    .reports-modal__btn--primary:hover { transform: translateY(-1px); }
+    .reports-modal__btn--primary:disabled {
+      background: var(--ca-gray-300); cursor: not-allowed; transform: none;
+    }
+    .reports-modal__error {
+      font-size: 0.82rem; color: #c0322f; padding: 8px 12px;
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm);
+      margin-top: 8px; display: none;
+    }
+    .reports-modal__error.is-shown { display: block; }
   </style>
 </head>
 <body>
@@ -93,10 +237,56 @@
     </div>
   </main>
 
+  <!-- Reports modal — populated dynamically from manifest.json -->
+  <div class="reports-modal" id="reports-modal" aria-hidden="true" role="dialog" aria-labelledby="reports-modal-title">
+    <div class="reports-modal__backdrop" data-rm-close></div>
+    <div class="reports-modal__panel" role="document">
+      <div class="reports-modal__header">
+        <div>
+          <h2 class="reports-modal__title" id="reports-modal-title">View Team Reports</h2>
+          <p class="reports-modal__sub">Select report type, period, and team — only generated reports are shown.</p>
+        </div>
+        <button type="button" class="reports-modal__close" aria-label="Close" data-rm-close>×</button>
+      </div>
+
+      <form class="reports-form" id="reports-form" onsubmit="return false">
+        <div class="reports-form__field">
+          <label class="reports-form__label" for="rm-type">Report Type</label>
+          <select class="reports-form__select" id="rm-type">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </select>
+        </div>
+        <div class="reports-form__row">
+          <div class="reports-form__field">
+            <label class="reports-form__label" for="rm-year">Year</label>
+            <select class="reports-form__select" id="rm-year"></select>
+          </div>
+          <div class="reports-form__field">
+            <label class="reports-form__label" for="rm-period"><span id="rm-period-label">Month</span></label>
+            <select class="reports-form__select" id="rm-period"></select>
+          </div>
+        </div>
+        <div class="reports-form__field">
+          <label class="reports-form__label" for="rm-team">Team</label>
+          <select class="reports-form__select" id="rm-team"></select>
+        </div>
+        <div class="reports-modal__error" id="rm-error"></div>
+        <div class="reports-modal__actions">
+          <button type="button" class="reports-modal__btn reports-modal__btn--secondary" data-rm-close>Cancel</button>
+          <button type="button" class="reports-modal__btn reports-modal__btn--primary" id="rm-open">Open Report ↗</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/dashboard-common.js"></script>
+  <!-- Reports manifest — sets window.CAPS_REPORTS_MANIFEST. Loaded via <script>
+       so it works under file:// (no CORS) as well as on GitHub Pages. -->
+  <script src="monthly_reports/manifest.js"></script>
   <script>
     CAPS.renderHeader('RFP Overview');
 
@@ -285,8 +475,15 @@
       /* ═══ BUILD HTML ═══ */
       container.innerHTML = `
         <div class="ca-page-header">
-          <h1 class="ca-page-header__title">RFP Overview Dashboard</h1>
-          <p class="ca-page-header__subtitle">Submissions, interviews, and awards — <strong>October 2025</strong> to present</p>
+          <div class="ca-page-header__text">
+            <h1 class="ca-page-header__title">RFP Overview Dashboard</h1>
+            <p class="ca-page-header__subtitle">Submissions, interviews, and awards — <strong>October 2025</strong> to present</p>
+          </div>
+          <button type="button" class="cta-reports" id="open-reports-btn" title="View team monthly &amp; quarterly reports">
+            <span class="cta-reports__icon">📑</span>
+            <span>View Team Reports</span>
+            <span class="cta-reports__arrow">→</span>
+          </button>
         </div>
 
         <!-- Global Filter -->
@@ -759,6 +956,156 @@
     }
 
     renderDashboard(null, null);
+
+    /* ─────────── Reports modal: load manifest, populate dropdowns, open PDF ─────────── */
+    (function setupReportsModal() {
+      const modal = document.getElementById('reports-modal');
+      // Note: #open-reports-btn lives inside #dashboard which is rebuilt async by
+      // renderDashboard. We use document-level event delegation so the binding
+      // survives re-renders and works even before the button exists.
+      const typeSel = document.getElementById('rm-type');
+      const yearSel = document.getElementById('rm-year');
+      const periodSel = document.getElementById('rm-period');
+      const periodLabel = document.getElementById('rm-period-label');
+      const teamSel = document.getElementById('rm-team');
+      const openBtnAct = document.getElementById('rm-open');
+      const errBox = document.getElementById('rm-error');
+      let manifest = null;
+
+      const monthNames = ['January','February','March','April','May','June',
+                          'July','August','September','October','November','December'];
+
+      function showError(msg) {
+        errBox.textContent = msg;
+        errBox.classList.toggle('is-shown', !!msg);
+      }
+
+      function teamFromFilename(fn) {
+        // Filenames look like: Team_Alpha_Apr_2026.pdf or Company_Summary_Q1_2026.pdf
+        // Strip everything after the period tag (e.g. _Apr_ or _Q1_)
+        const stem = fn.replace(/\.pdf$/i, '');
+        return stem.replace(/_(?:Q[1-4]|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)_\d{4}$/i, '')
+                   .replace(/_/g, ' ');
+      }
+
+      function populateYears() {
+        const kind = typeSel.value;
+        const buckets = manifest[kind] || {};
+        const years = Object.keys(buckets).sort((a,b) => Number(b) - Number(a));
+        yearSel.innerHTML = years.length
+          ? years.map(y => `<option value="${y}">${y}</option>`).join('')
+          : `<option value="">No reports yet</option>`;
+        yearSel.disabled = years.length === 0;
+        populatePeriods();
+      }
+
+      function populatePeriods() {
+        const kind = typeSel.value;
+        const yr = yearSel.value;
+        const buckets = (manifest[kind] || {})[yr] || {};
+        // Sort descending by `sort` field — newest first
+        const periods = Object.entries(buckets)
+          .sort((a, b) => (b[1].sort || 0) - (a[1].sort || 0));
+        periodLabel.textContent = kind === 'quarterly' ? 'Quarter' : 'Month';
+        periodSel.innerHTML = periods.length
+          ? periods.map(([key, info]) =>
+              `<option value="${key}">${info.label}</option>`).join('')
+          : `<option value="">No periods generated</option>`;
+        periodSel.disabled = periods.length === 0;
+        populateTeams();
+      }
+
+      function populateTeams() {
+        const kind = typeSel.value;
+        const yr = yearSel.value;
+        const periodKey = periodSel.value;
+        const info = (((manifest[kind] || {})[yr]) || {})[periodKey];
+        const files = (info && info.files) || [];
+        const teams = files.map(fn => ({ filename: fn, team: teamFromFilename(fn) }));
+        teamSel.innerHTML = teams.length
+          ? teams.map(t => `<option value="${t.filename}">${t.team}</option>`).join('')
+          : `<option value="">No reports for this period</option>`;
+        teamSel.disabled = teams.length === 0;
+        openBtnAct.disabled = teams.length === 0;
+      }
+
+      function openReport() {
+        showError('');
+        const periodKey = periodSel.value;
+        const filename  = teamSel.value;
+        if (!periodKey || !filename) {
+          showError('Select a period and team to continue.'); return;
+        }
+        const url = `monthly_reports/${encodeURIComponent(periodKey)}/${encodeURIComponent(filename)}`;
+        // Open in a new tab via a synthetic anchor click. This is the most
+        // reliable approach — no popup-blocker quirks, never navigates the
+        // current page.
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        closeModal();
+      }
+
+      async function loadManifest() {
+        if (manifest) return manifest;
+        // 1) Prefer the global set by monthly_reports/manifest.js (no CORS issues
+        //    under file:// — works locally without a server).
+        if (window.CAPS_REPORTS_MANIFEST) {
+          manifest = window.CAPS_REPORTS_MANIFEST;
+          return manifest;
+        }
+        // 2) Fall back to fetching the JSON (works on real HTTP origins).
+        try {
+          const resp = await fetch('monthly_reports/manifest.json', { cache: 'no-store' });
+          if (!resp.ok) throw new Error('manifest fetch failed');
+          manifest = await resp.json();
+          return manifest;
+        } catch (e) {
+          showError('Could not load report manifest. Make sure monthly_reports/manifest.js exists (run generate_monthly_reports.py).');
+          manifest = { monthly: {}, quarterly: {}, teams: [] };
+          return manifest;
+        }
+      }
+
+      async function openModal() {
+        showError('');
+        await loadManifest();
+        populateYears();
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+      function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      // Delegated click — works whether the button exists at bind time or not
+      document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!t) return;
+        // Open button (rebuilt by renderDashboard each run)
+        if (t.closest && t.closest('#open-reports-btn')) {
+          e.preventDefault();
+          openModal();
+          return;
+        }
+        // Any close affordance (backdrop, X, Cancel)
+        if (t.closest && t.closest('[data-rm-close]')) {
+          closeModal();
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+      });
+      typeSel.addEventListener('change', populateYears);
+      yearSel.addEventListener('change', populatePeriods);
+      periodSel.addEventListener('change', populateTeams);
+      openBtnAct.addEventListener('click', openReport);
+    })();
   </script>
 </body>
 </html>
