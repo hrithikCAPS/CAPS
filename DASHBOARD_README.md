@@ -496,8 +496,9 @@ Both `state-analysis.html` and `target-states.html` use `d.agencyState` (from th
 This is the **canonical daily refresh procedure**. It uses ~6 small MCP calls (well under 10% of session token budget) instead of the full 24-page RFP re-pull.
 
 ### Strategy
-- **RFP sheet (~700 deals):** check NEW added + REMOVED only. Do NOT diff fields on existing deals.
+- **RFP sheet (~700 deals):** check NEW added + REMOVED + STAGE EVENTS only. Do NOT diff fields on existing deals.
 - **Awards sheet (~84 deals):** check NEW added + REMOVED only.
+- **Stage events** (Interview, BAFO, Intent to Award, Awarded): one MCP call with OR'd date filters catches every deal that moved into one of these stages today. Updates each affected deal's full properties (since its stage + dates may have just changed). Critical for keeping the Interview KPI fresh.
 - **Once every 10 days:** do a full Awards field-level diff (cheap, 3 small calls + diff) to catch amount/intent-date edits on existing won/IA deals.
 - **Once every 10 days:** also do a full RFP field-level diff (more expensive — use parallel subagents pulling 30 records each).
 
@@ -521,6 +522,35 @@ search_crm_objects(
 
 **Step 2 — Find NEW Awards**
 Pull deals with `createdate >= snapshot_date` filtered to `closedwon` + `2485737153`. Usually 0–2 records.
+
+**Step 2b — Stage-event check (catches Interview / BAFO / IA / Awarded transitions, including backdated entries)**
+
+The naive filter `interview_date_time >= today` MISSES deals where the user backdates the interview record (e.g. logs an interview that happened last week). The fix: also pull every active-stage deal that was actually edited today (after the morning automation, which only touches closed-stage deals). Single MCP call:
+
+```
+search_crm_objects(
+  objectType="deals",
+  filterGroups=[
+    # Group 1: ANY active-stage deal modified after morning automation today
+    {filters:[
+      {propertyName:"hs_lastmodifieddate", operator:"GTE", value:"<today>T08:00:00Z"},
+      {propertyName:"dealstage", operator:"IN",
+        values:["presentationscheduled","1620129473","2485737153"]},
+    ]},
+    # Groups 2-5: future-dated stage events (catch advance scheduling)
+    {filters:[{propertyName:"interview_date_time",   operator:"GTE", value:"<snapshot_date>"}]},
+    {filters:[{propertyName:"bafo_date",             operator:"GTE", value:"<snapshot_date>"}]},
+    {filters:[{propertyName:"intent_to_awarded_date",operator:"GTE", value:"<snapshot_date>"}]},
+    {filters:[{propertyName:"awarded_date",          operator:"GTE", value:"<snapshot_date>"}]},
+  ],
+  properties=[<full 22>], limit=30)
+```
+
+`<today>T08:00:00Z` = 4 AM EDT, after HubSpot's nightly automation. Result is usually 5–15 deals.
+
+For each returned deal, OVERWRITE its row in `rfp_deals_all.json` (and `awards_deals_all.json` if it's now in CW/IA stage). This keeps the Interview / BAFO / Awards counts accurate — without this step, a deal that moved Submitted → Interview today (or had a backdated interview added) would still show as Submitted in the dashboard.
+
+**Real example caught by this filter:** Scott County's "Information Technology Service Desk Managed Services" was moved from Submitted to Interview on 2026-05-04 with `interview_date_time = 2026-04-23` (backdated). The naive filter missed it; the active-stage `hs_lastmodifieddate` filter catches it.
 
 **Step 3 — Detect REMOVED deals (RFP + Awards combined)**
 Get total counts: `search_crm_objects(... limit=1)` for RFP filter and Awards filter. Compare to snapshot counts.
