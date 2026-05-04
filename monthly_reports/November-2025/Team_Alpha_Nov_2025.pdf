@@ -128,8 +128,8 @@ endobj
 endobj
 19 0 obj
 <<
-/Author (\(anonymous\)) /CreationDate (D:20260504074921+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20260504074921+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
-  /Subject (\(unspecified\)) /Title (\(anonymous\)) /Trapped /False
+/Author (CAPS) /CreationDate (D:20260504080654+00'00') /Creator (CAPS Dashboard \204 generate_monthly_reports.py) /Keywords () /ModDate (D:20260504080654+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (CAPS Monthly Performance Report \204 November 2025) /Title (Team Alpha \204 Monthly Performance Report \204 November 2025) /Trapped /False
 >>
 endobj
 20 0 obj
@@ -173,13 +173,13 @@ xref
 0000053448 00000 n 
 0000053687 00000 n 
 0000053757 00000 n 
-0000054038 00000 n 
-0000054106 00000 n 
-0000081886 00000 n 
+0000054144 00000 n 
+0000054212 00000 n 
+0000081992 00000 n 
 trailer
 <<
 /ID 
-[<3924dc6239aa8fae328777033b858379><3924dc6239aa8fae328777033b858379>]
+[<b48e87df9400e0089c209548439391bd><b48e87df9400e0089c209548439391bd>]
 % ReportLab generated PDF document -- digest (opensource)
 
 /Info 19 0 R
@@ -187,5 +187,5 @@ trailer
 /Size 23
 >>
 startxref
-83318
+83424
 %%EOF

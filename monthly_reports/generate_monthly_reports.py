@@ -631,10 +631,18 @@ def build(out_path, team_name, team_deals, period, period_label):
     M  = 1.4 * cm
     UW = A4[0] - 2 * M
 
+    # PDF metadata — drives the Chrome / browser tab title (replaces "anonymous")
+    kind_word = 'Quarterly' if period['kind'] == 'quarter' else 'Monthly'
+    pdf_title = f'{team_name} — {kind_word} Performance Report — {period_label}'
+
     doc = SimpleDocTemplate(
         out_path, pagesize=A4,
         leftMargin=M, rightMargin=M,
         topMargin=M, bottomMargin=1.0 * cm,
+        title=pdf_title,
+        author='CAPS',
+        subject=f'CAPS {kind_word} Performance Report — {period_label}',
+        creator='CAPS Dashboard — generate_monthly_reports.py',
     )
     story = []
 
