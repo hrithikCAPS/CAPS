@@ -1,7 +1,37 @@
 {
-  "generated_at_utc": "2026-05-03T07:48:38Z",
+  "generated_at_utc": "2026-05-04T07:49:31Z",
   "monthly": {
     "2026": {
+      "March-2026": {
+        "label": "March 2026",
+        "sort": 202603,
+        "files": [
+          "Company_Summary_Mar_2026.pdf",
+          "Team_Alpha_Mar_2026.pdf",
+          "Team_D_Mar_2026.pdf",
+          "Team_Kairoz_Mar_2026.pdf"
+        ]
+      },
+      "January-2026": {
+        "label": "January 2026",
+        "sort": 202601,
+        "files": [
+          "Company_Summary_Jan_2026.pdf",
+          "Team_Alpha_Jan_2026.pdf",
+          "Team_D_Jan_2026.pdf",
+          "Team_Kairoz_Jan_2026.pdf"
+        ]
+      },
+      "February-2026": {
+        "label": "February 2026",
+        "sort": 202602,
+        "files": [
+          "Company_Summary_Feb_2026.pdf",
+          "Team_Alpha_Feb_2026.pdf",
+          "Team_D_Feb_2026.pdf",
+          "Team_Kairoz_Feb_2026.pdf"
+        ]
+      },
       "April-2026": {
         "label": "April 2026",
         "sort": 202604,
@@ -10,6 +40,38 @@
           "Team_Alpha_Apr_2026.pdf",
           "Team_D_Apr_2026.pdf",
           "Team_Kairoz_Apr_2026.pdf"
+        ]
+      }
+    },
+    "2025": {
+      "October-2025": {
+        "label": "October 2025",
+        "sort": 202510,
+        "files": [
+          "Company_Summary_Oct_2025.pdf",
+          "Team_Alpha_Oct_2025.pdf",
+          "Team_D_Oct_2025.pdf",
+          "Team_Kairoz_Oct_2025.pdf"
+        ]
+      },
+      "December-2025": {
+        "label": "December 2025",
+        "sort": 202512,
+        "files": [
+          "Company_Summary_Dec_2025.pdf",
+          "Team_Alpha_Dec_2025.pdf",
+          "Team_D_Dec_2025.pdf",
+          "Team_Kairoz_Dec_2025.pdf"
+        ]
+      },
+      "November-2025": {
+        "label": "November 2025",
+        "sort": 202511,
+        "files": [
+          "Company_Summary_Nov_2025.pdf",
+          "Team_Alpha_Nov_2025.pdf",
+          "Team_D_Nov_2025.pdf",
+          "Team_Kairoz_Nov_2025.pdf"
         ]
       }
     }
@@ -24,6 +86,18 @@
           "Team_Alpha_Q1_2026.pdf",
           "Team_D_Q1_2026.pdf",
           "Team_Kairoz_Q1_2026.pdf"
+        ]
+      }
+    },
+    "2025": {
+      "Q4-2025": {
+        "label": "Q4 2025",
+        "sort": 20254,
+        "files": [
+          "Company_Summary_Q4_2025.pdf",
+          "Team_Alpha_Q4_2025.pdf",
+          "Team_D_Q4_2025.pdf",
+          "Team_Kairoz_Q4_2025.pdf"
         ]
       }
     }

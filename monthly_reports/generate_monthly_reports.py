@@ -682,23 +682,16 @@ def build(out_path, team_name, team_deals, period, period_label):
     story += header_block(team_name, period_label, UW,
                           subtitle=period_subtitle, kind=kind_label)
 
-    # ── KPI strip — 4 boxes ────────────────────────────────────
-    # Monthly: Submitted · Interview · Revenue · Awards
-    # Quarterly: Submitted · Interview · BAFO · Awards
-    if period['kind'] == 'month':
-        third_kpi = (
-            money(revenue) if revenue else '—',
-            'Revenue Generated',
-            'Sum of $ on ITA-dated deals',
-        )
-        award_sub = f'Intent to Award this month'
-    else:
-        third_kpi = (
-            str(bafo_count),
-            'BAFO',
-            'Best & Final Offer stage',
-        )
-        award_sub = (f'{money(revenue) if revenue else "—"} revenue (ITA date)')
+    # ── KPI strip — 4 boxes (same shape for monthly + quarterly) ──
+    #   Submitted · Interview · Revenue Generated · Awards
+    third_kpi = (
+        money(revenue) if revenue else '—',
+        'Revenue Generated',
+        'Sum of $ on ITA-dated deals',
+    )
+    award_sub = ('Intent to Award this month'
+                 if period['kind'] == 'month'
+                 else 'Intent to Award this quarter')
 
     story += kpi_strip([
         (str(sub_count),
