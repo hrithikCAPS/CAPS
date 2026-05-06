@@ -297,11 +297,16 @@
     const decided      = wonAfterIV.length + lostAfterIV.length;
     const ivWinRate    = decided > 0 ? wonAfterIV.length / decided : 0;
     const iaAfterIV    = shortlisted.filter(d => ['Intent to Award','Closed Won'].includes(d.stage));
+    // Interview-stage funnel: deals that actually had an oral presentation AND ended in ITA/Award
+    const itaFromInterviews = interviews.filter(d => ['Intent to Award','Closed Won'].includes(d.stage));
 
     /* Funnel rates */
     const slRate   = pool.length > 0 ? shortlisted.length / pool.length : 0;
     const iaRate   = shortlisted.length > 0 ? iaAfterIV.length / shortlisted.length : 0;
     const wonRateIA= iaAfterIV.length > 0 ? wonAfterIV.length / iaAfterIV.length : 0;
+    // New funnel rates — Submitted → Shortlisted → Interview → ITA/Award
+    const ivRateOfShort = shortlisted.length > 0 ? interviews.length / shortlisted.length : 0;
+    const itaRateOfIV   = interviews.length > 0  ? itaFromInterviews.length / interviews.length : 0;
 
     /* ── UPCOMING: interviewDate > today ── */
     const upcoming = pool.filter(d => {
@@ -464,7 +469,7 @@
       <div class="ca-section-label">Submission-to-Award Funnel</div>
       <div class="iv-funnel-row">
         <div class="iv-funnel-step">
-          <div class="iv-funnel-lbl">Total Submitted</div>
+          <div class="iv-funnel-lbl">Submitted</div>
           <div class="iv-funnel-val">${pool.length}</div>
           <div class="iv-funnel-sub">In scope</div>
         </div>
@@ -475,16 +480,16 @@
           <div class="iv-funnel-pct ${slRate>=0.3?'good':slRate>=0.15?'amber':'red'}">${CAPS.formatPercent(slRate)}</div>
         </div>
         <div class="iv-funnel-step">
-          <div class="iv-funnel-lbl">Intent to Award</div>
-          <div class="iv-funnel-val">${iaAfterIV.length}</div>
-          <div class="iv-funnel-sub">IA or Won after interview</div>
-          <div class="iv-funnel-pct ${iaRate>=0.5?'good':iaRate>=0.25?'amber':'red'}">${CAPS.formatPercent(iaRate)}</div>
+          <div class="iv-funnel-lbl">Interview</div>
+          <div class="iv-funnel-val">${interviews.length}</div>
+          <div class="iv-funnel-sub">Oral presentation (non-BAFO)</div>
+          <div class="iv-funnel-pct ${ivRateOfShort>=0.7?'good':ivRateOfShort>=0.4?'amber':'red'}">${CAPS.formatPercent(ivRateOfShort)}</div>
         </div>
         <div class="iv-funnel-step">
-          <div class="iv-funnel-lbl">Closed Won</div>
-          <div class="iv-funnel-val">${wonAfterIV.length}</div>
-          <div class="iv-funnel-sub">Won after interview</div>
-          <div class="iv-funnel-pct ${wonRateIA>=0.6?'good':wonRateIA>=0.35?'amber':'red'}">${CAPS.formatPercent(wonRateIA)}</div>
+          <div class="iv-funnel-lbl">ITA / Award</div>
+          <div class="iv-funnel-val">${itaFromInterviews.length}</div>
+          <div class="iv-funnel-sub">Intent to Award + Closed Won</div>
+          <div class="iv-funnel-pct ${itaRateOfIV>=0.5?'good':itaRateOfIV>=0.25?'amber':'red'}">${CAPS.formatPercent(itaRateOfIV)}</div>
         </div>
       </div>
 
