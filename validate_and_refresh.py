@@ -340,6 +340,70 @@ def cmd_validate():
                     issues.append(f"{sheet_name}: {len(in_excel_only)} IDs in Excel but not in JSON")
                     print(f"      {sheet_name:<10} {RED('mismatch')} — {len(in_excel_only)} in Excel only, {len(in_snap_only)} in JSON only")
 
+    # 7. Interview-map readiness (drives interviews.html US map)
+    print()
+    print(BOLD("  [7] Interview-map readiness (Oct 2025+)"))
+    if os.path.exists(EXCEL_PATH):
+        wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
+        if 'RFP Data' in wb.sheetnames:
+            ws = wb['RFP Data']
+            h  = [c.value for c in ws[1]]
+            def _ix(n): return h.index(n) if n in h else None
+            ix_iv  = _ix('Interview Flag')
+            ix_sub = _ix('Interview Subcategory')
+            ix_st  = _ix('Agency State')
+            ix_bid = _ix('Bid Closing Date')
+            ix_stg = _ix('Stage')
+            from datetime import datetime as _dt
+            OCT = _dt(2025, 10, 1)
+
+            shortlisted = 0; iv_ct = 0; bafo_ct = 0
+            with_state  = 0; states_seen = set()
+            won = lost = awaiting = 0
+
+            if all(v is not None for v in (ix_iv, ix_sub, ix_st, ix_bid, ix_stg)):
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    if row[ix_iv] != 'Yes':
+                        continue
+                    bid = row[ix_bid]
+                    if isinstance(bid, str):
+                        try: bid = _dt.fromisoformat(bid)
+                        except Exception: bid = None
+                    if not bid or bid < OCT:
+                        continue
+                    shortlisted += 1
+                    if (row[ix_sub] or '') == 'BAFO':
+                        bafo_ct += 1
+                    else:
+                        iv_ct += 1
+                    state = (row[ix_st] or '').strip()
+                    if state:
+                        with_state += 1
+                        states_seen.add(state)
+                    stg = row[ix_stg]
+                    if   stg == 'Closed Won':  won += 1
+                    elif stg == 'Closed Lost': lost += 1
+                    elif stg in ('Interview', 'Intent to Award'): awaiting += 1
+
+                pct = (with_state / shortlisted * 100) if shortlisted else 0
+                color = GREEN if pct >= 95 else (YELLOW if pct >= 90 else RED)
+                print(f"      Shortlisted (Oct 2025+) : {shortlisted}  "
+                      f"({iv_ct} oral · {bafo_ct} BAFO)")
+                print(f"      Outcome split           : {GREEN(str(won)+' won')} · "
+                      f"{RED(str(lost)+' lost')} · {YELLOW(str(awaiting)+' awaiting')}")
+                print(f"      State coverage          : {with_state}/{shortlisted} "
+                      f"({color(f'{pct:.1f}%')}) across {len(states_seen)} states")
+                if shortlisted == 0:
+                    issues.append("Interview map: no shortlisted deals found")
+                if pct < 90 and shortlisted > 0:
+                    issues.append(f"Interview map: state coverage below 90% ({pct:.1f}%)")
+            else:
+                missing = [n for n,v in [('Interview Flag',ix_iv),('Interview Subcategory',ix_sub),
+                                          ('Agency State',ix_st),('Bid Closing Date',ix_bid),
+                                          ('Stage',ix_stg)] if v is None]
+                issues.append("Interview map: missing columns " + ', '.join(missing))
+                print(f"      {RED('missing columns:')} {', '.join(missing)}")
+
     # Summary
     print()
     print("  " + "─" * 70)

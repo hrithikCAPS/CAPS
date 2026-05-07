@@ -172,9 +172,38 @@
 
     /* ── Controls row ── */
     .ca-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 4px 2px 10px; }
+
+    /* ── Map (matches awards/target-states theme) ── */
+    .ca-map-svg { width: 100%; height: auto; display: block; }
+    .ca-map-state { stroke: #fff; stroke-width: 0.5; cursor: default; }
+    .ca-map-state.has-data { cursor: pointer; }
+    .ca-map-state.has-data:hover { stroke: var(--ca-navy); stroke-width: 1.5; opacity: 0.85; }
+    #map-tooltip {
+      position: fixed; pointer-events: none; display: none;
+      background: var(--ca-navy); color: #fff;
+      padding: 9px 13px; border-radius: 8px; font-size: 0.82rem;
+      font-family: var(--font-family); line-height: 1.55;
+      box-shadow: var(--shadow-lg); z-index: 9999;
+    }
+    #map-tooltip strong { display: block; font-weight: 700; }
+    .ca-map-legend {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; padding: 10px 20px 4px;
+      font-size: 0.78rem; color: var(--ca-gray-500);
+    }
+    .ca-undefined-note {
+      padding: 6px 20px 16px;
+      font-size: 0.78rem; color: var(--ca-gray-400); text-align: center;
+    }
+    .iv-tip-stat { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; margin-right: 5px; }
+    .iv-tip-stat.tot   { background: rgba(255,255,255,0.18); color: #fff; }
+    .iv-tip-stat.won   { background: rgba(16,185,129,0.32); color: #BBF7D0; }
+    .iv-tip-stat.lost  { background: rgba(239,68,68,0.30);  color: #FECACA; }
+    .iv-tip-stat.awt   { background: rgba(217,119,6,0.32);  color: #FED7AA; }
   </style>
 </head>
 <body>
+<div id="map-tooltip"></div>
 
 <main class="ca-main" id="dashboard">
   <div class="ca-loading">
@@ -185,6 +214,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/dashboard-common.js"></script>
 <script>
@@ -383,6 +414,27 @@
       ? [...decidedCats].sort((a,b) => (b.winRate||0) - (a.winRate||0) || b.won - a.won)[0]
       : null;
 
+    /* ══════════ STATE AGGREGATION (for map) — split by Interview vs BAFO ══════════ */
+    // Each state has separate { total, won, lost, awaiting } for interviews and bafos.
+    const blank   = () => ({ total:0, won:0, lost:0, awaiting:0 });
+    const stateStats    = {};   // key: state → { iv: {...}, bafo: {...} }
+    const stateAgencies = {};   // key: state → { iv: Set, bafo: Set }
+    let noStateCount = 0;
+    shortlisted.forEach(d => {
+      const st = (d.agencyState || '').trim();
+      if (!st) { noStateCount++; return; }
+      if (!stateStats[st]) stateStats[st] = { iv: blank(), bafo: blank() };
+      if (!stateAgencies[st]) stateAgencies[st] = { iv: new Set(), bafo: new Set() };
+      const isBafo = d.interviewSubcategory === 'BAFO';
+      const bucket = isBafo ? stateStats[st].bafo : stateStats[st].iv;
+      const aBkt   = isBafo ? stateAgencies[st].bafo : stateAgencies[st].iv;
+      bucket.total++;
+      if (d.stage === 'Closed Won')                              bucket.won++;
+      else if (d.stage === 'Closed Lost')                        bucket.lost++;
+      else if (d.stage === 'Interview' || d.stage === 'Intent to Award') bucket.awaiting++;
+      if (d.agency) aBkt.add(d.agency.trim());
+    });
+
     /* ══════════ BUILD HTML ══════════ */
     const container = document.getElementById('dashboard');
     container.innerHTML = `
@@ -576,6 +628,27 @@
         <div class="ca-panel__body ca-panel__body--no-pad">
           <div class="ca-table-scroll" id="cat-table"></div>
         </div>
+      </div>
+
+      <!-- ── Geographic Distribution ── -->
+      <div class="ca-section-label">
+        Geographic Distribution
+        <span class="ca-section-badge">${Object.keys(stateStats).length} state${Object.keys(stateStats).length!==1?'s':''}</span>
+      </div>
+      <div class="ca-panel" style="margin-bottom:20px">
+        <div class="ca-panel__header">
+          <span class="ca-panel__title" id="map-title">Oral Presentations by State</span>
+          <span class="ca-panel__badge" id="map-badge">${interviews.length} oral · ${bafos.length} BAFO</span>
+        </div>
+        <div class="ca-panel__body" style="padding:14px 18px 0">
+          <div class="iv-tabs" id="map-type-tabs">
+            <button class="iv-tab t-interview active" data-mtype="interview">🎤 Oral Presentations (${interviews.length})</button>
+            <button class="iv-tab t-bafo"            data-mtype="bafo">📝 BAFOs (${bafos.length})</button>
+          </div>
+        </div>
+        <div id="map-wrap"></div>
+        <div class="ca-map-legend" id="map-legend"></div>
+        <div class="ca-undefined-note" id="map-undef"></div>
       </div>
 
       <!-- ── All Shortlisted ── -->
@@ -1035,6 +1108,232 @@
     });
 
     /* Info tooltips handled by window._capsToggleTip in dashboard-common.js */
+
+    /* ══════════ BUILD MAP ══════════ */
+    let mapType = 'interview';   // 'interview' | 'bafo'
+    buildMap(stateStats, stateAgencies, noStateCount, mapType);
+
+    document.getElementById('map-type-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('[data-mtype]');
+      if (!btn) return;
+      mapType = btn.dataset.mtype;
+      document.querySelectorAll('#map-type-tabs .iv-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.mtype === mapType);
+      });
+      const title = document.getElementById('map-title');
+      if (title) title.textContent = mapType === 'bafo' ? 'BAFOs by State' : 'Oral Presentations by State';
+      buildMap(stateStats, stateAgencies, noStateCount, mapType);
+    });
+  }
+
+  /* ══════════ US Map (choropleth, bifurcated by Interview vs BAFO) ══════════ */
+  let _usAtlasCache = null;
+  async function buildMap(stateStats, stateAgencies, noState, mapType) {
+    const wrap = document.getElementById('map-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    mapType = mapType || 'interview';
+    const primaryKey   = mapType === 'bafo' ? 'bafo' : 'iv';
+    const secondaryKey = mapType === 'bafo' ? 'iv'   : 'bafo';
+    const primaryLbl   = mapType === 'bafo' ? 'BAFO' : 'Interview';
+    const secondaryLbl = mapType === 'bafo' ? 'Interview' : 'BAFO';
+
+    let us = _usAtlasCache;
+    if (!us) {
+      try { us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'); _usAtlasCache = us; }
+      catch(e) { wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ca-gray-400)">Map unavailable</div>'; return; }
+    }
+
+    const FIPS = {
+      '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+      '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+      '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+      '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+      '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+      '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+      '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+      '55':'WI','56':'WY'
+    };
+    const NAME_TO_ABBR = {
+      'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+      'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+      'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+      'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD',
+      'massachusetts':'MA','michigan':'MI','minnesota':'MN','mississippi':'MS',
+      'missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+      'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+      'north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA',
+      'rhode island':'RI','south carolina':'SC','south dakota':'SD','tennessee':'TN',
+      'texas':'TX','utah':'UT','vermont':'VT','virginia':'VA','washington':'WA',
+      'west virginia':'WV','wisconsin':'WI','wyoming':'WY','district of columbia':'DC',
+      'washington dc':'DC','washington d.c.':'DC'
+    };
+    const ABBR_TO_NAME = {};
+    Object.entries(NAME_TO_ABBR).forEach(([n,a]) => { ABBR_TO_NAME[a] = n.replace(/\b\w/g,c=>c.toUpperCase()); });
+
+    // Normalise state keys to two-letter abbreviations — keep iv & bafo split
+    const blank = () => ({ total:0, won:0, lost:0, awaiting:0 });
+    const abbrStats = {};       // abbr → { iv:{...}, bafo:{...} }
+    const abbrAgencies = {};    // abbr → { iv:Set, bafo:Set }
+    Object.entries(stateStats).forEach(([st, stats]) => {
+      const key = st.trim().toLowerCase();
+      const abbr = NAME_TO_ABBR[key] || (key.length === 2 ? key.toUpperCase() : null);
+      if (!abbr) return;
+      if (!abbrStats[abbr]) abbrStats[abbr] = { iv: blank(), bafo: blank() };
+      ['iv','bafo'].forEach(k => {
+        abbrStats[abbr][k].total    += stats[k].total;
+        abbrStats[abbr][k].won      += stats[k].won;
+        abbrStats[abbr][k].lost     += stats[k].lost;
+        abbrStats[abbr][k].awaiting += stats[k].awaiting;
+      });
+    });
+    Object.entries(stateAgencies).forEach(([st, ag]) => {
+      const key = st.trim().toLowerCase();
+      const abbr = NAME_TO_ABBR[key] || (key.length === 2 ? key.toUpperCase() : null);
+      if (!abbr) return;
+      if (!abbrAgencies[abbr]) abbrAgencies[abbr] = { iv: new Set(), bafo: new Set() };
+      ag.iv.forEach(a => abbrAgencies[abbr].iv.add(a));
+      ag.bafo.forEach(a => abbrAgencies[abbr].bafo.add(a));
+    });
+
+    const primaryCount = (s) => s ? s[primaryKey].total : 0;
+    const maxCount = Math.max(...Object.values(abbrStats).map(s => primaryCount(s)), 1);
+    const colorScale = d3.scaleSequential().domain([0, maxCount]).interpolator(d3.interpolate('#DBEAFE','#1B2F5E'));
+    const states = topojson.feature(us, us.objects.states).features;
+    const tooltip = document.getElementById('map-tooltip');
+    const W = 960, H = 580;
+    const proj = d3.geoAlbersUsa().scale(1280).translate([W/2, H/2]);
+    const path = d3.geoPath().projection(proj);
+
+    const svg = d3.select('#map-wrap').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('class','ca-map-svg');
+
+    svg.selectAll('path')
+      .data(states)
+      .enter().append('path')
+      .attr('class', d => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        return 'ca-map-state' + (abbrStats[abbr] && primaryCount(abbrStats[abbr]) > 0 ? ' has-data' : '');
+      })
+      .attr('fill', d => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        const c = abbrStats[abbr] ? primaryCount(abbrStats[abbr]) : 0;
+        return c > 0 ? colorScale(c) : '#E4E7EC';
+      })
+      .attr('d', path)
+      .on('mousemove', (event, d) => {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        const sObj = abbrStats[abbr];
+        if (!sObj) return;
+        const p = sObj[primaryKey];
+        const o = sObj[secondaryKey];
+        if (p.total === 0 && o.total === 0) return;
+        const name = ABBR_TO_NAME[abbr] || abbr;
+        const agSet = (abbrAgencies[abbr] && abbrAgencies[abbr][primaryKey]) || new Set();
+        const agencies = [...agSet].sort();
+        const agencyHtml = agencies.length
+          ? '<div style="margin-top:7px;border-top:1px solid rgba(255,255,255,0.2);padding-top:6px;font-size:0.78rem">'
+            + agencies.slice(0, 8).map(a => `<div style="display:flex;align-items:flex-start;gap:5px;margin-bottom:2px"><span style="opacity:0.6;flex-shrink:0">•</span><span>${a}</span></div>`).join('')
+            + (agencies.length > 8 ? `<div style="opacity:0.6;font-style:italic;margin-top:3px">+ ${agencies.length-8} more</div>` : '')
+            + '</div>'
+          : '';
+        const otherHtml = o.total > 0
+          ? `<div style="margin-top:6px;font-size:0.74rem;opacity:0.75">
+               Also: <strong>${o.total}</strong> ${secondaryLbl}${o.total!==1?'s':''}
+               · ${o.won}W / ${o.lost}L / ${o.awaiting} awaiting
+             </div>` : '';
+        tooltip.style.display = 'block';
+        tooltip.style.left    = (event.clientX + 14) + 'px';
+        tooltip.style.top     = (event.clientY - 10) + 'px';
+        tooltip.style.maxWidth = '280px';
+        tooltip.innerHTML =
+          `<strong style="font-size:0.92rem;margin-bottom:5px">${name}</strong>` +
+          `<div style="margin-bottom:4px"><span class="iv-tip-stat tot">${p.total} ${primaryLbl}${p.total!==1?'s':''}</span></div>` +
+          `<div style="display:flex;flex-wrap:wrap;gap:4px">` +
+            `<span class="iv-tip-stat won">Won ${p.won}</span>` +
+            `<span class="iv-tip-stat lost">Lost ${p.lost}</span>` +
+            `<span class="iv-tip-stat awt">Awaiting ${p.awaiting}</span>` +
+          `</div>` +
+          otherHtml +
+          agencyHtml;
+      })
+      .on('mouseleave', () => { tooltip.style.display = 'none'; });
+
+    // Labels: state abbr on all states + total count on data states
+    const tiny = ['RI','DE','CT','NJ','NH','VT','MD','DC'];
+    svg.selectAll('text.state-count-label')
+      .data(states)
+      .enter().append('text')
+      .attr('class', 'state-count-label')
+      .attr('pointer-events', 'none')
+      .each(function(d) {
+        const abbr = FIPS[String(d.id).padStart(2,'0')];
+        if (!abbr) return;
+        const c = path.centroid(d);
+        if (!c || isNaN(c[0]) || isNaN(c[1])) return;
+        const isTiny   = tiny.includes(abbr);
+        const s        = abbrStats[abbr];
+        const count    = s ? primaryCount(s) : 0;
+        const hasData  = count > 0;
+        const darkFill = count >= maxCount * 0.45;
+        const textCol  = hasData ? (darkFill ? '#ffffff' : '#1B2F5E') : '#94A3B8';
+        const haloCol  = darkFill ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.85)';
+        const abbrSz   = isTiny ? '7' : '9';
+        const valSz    = isTiny ? '6' : '7.5';
+        const lineH    = isTiny ? 7 : 9;
+        const el = d3.select(this);
+        el.attr('x', c[0]).attr('y', hasData ? c[1] - 4 : c[1])
+          .attr('text-anchor', 'middle')
+          .attr('font-family', 'Inter, sans-serif')
+          .attr('font-weight', '700')
+          .attr('paint-order', 'stroke fill')
+          .attr('stroke', haloCol)
+          .attr('stroke-width', '2')
+          .attr('stroke-linejoin', 'round');
+        el.append('tspan')
+          .attr('x', c[0]).attr('dy', '0')
+          .attr('font-size', abbrSz)
+          .attr('fill', textCol)
+          .text(abbr);
+        if (hasData) {
+          el.append('tspan')
+            .attr('x', c[0]).attr('dy', lineH)
+            .attr('font-size', valSz)
+            .attr('fill', textCol)
+            .text(count);
+        }
+      });
+
+    svg.append('path')
+      .datum(topojson.mesh(us, us.objects.states, (a,b) => a!==b))
+      .attr('fill','none').attr('stroke','#fff').attr('stroke-width',0.8).attr('d',path);
+
+    // Legend
+    const lblNoun = primaryLbl + (maxCount !== 1 ? 's' : '');
+    const legendEl = document.getElementById('map-legend');
+    // Use a unique gradient id per render so multiple invocations don't collide
+    const gradId = 'lg-' + primaryKey;
+    legendEl.innerHTML = `
+      <span>0</span>
+      <svg width="140" height="10" style="border-radius:4px;overflow:hidden">
+        <defs><linearGradient id="${gradId}" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="#DBEAFE"/>
+          <stop offset="100%" stop-color="#1B2F5E"/>
+        </linearGradient></defs>
+        <rect width="140" height="10" fill="url(#${gradId})"/>
+      </svg>
+      <span>${maxCount} ${lblNoun}</span>
+      <span style="margin-left:12px;color:var(--ca-gray-300)">▪</span>
+      <svg width="12" height="12" style="margin-left:2px"><rect width="12" height="12" rx="2" fill="#E4E7EC"/></svg>
+      <span>No data</span>
+    `;
+
+    // Undefined-state note
+    const undef = document.getElementById('map-undef');
+    if (undef) {
+      undef.textContent = noState > 0
+        ? `${noState} shortlisted deal${noState!==1?'s':''} could not be mapped (Agency State not set in HubSpot)`
+        : '';
+    }
   }
 
   render();
