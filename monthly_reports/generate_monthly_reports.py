@@ -20,7 +20,15 @@ Usage:
 """
 
 import os, sys, io, argparse, json, re
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
+
+# Eastern Time helper (auto-handles EST/EDT)
+try:
+    from zoneinfo import ZoneInfo
+    EASTERN = ZoneInfo("America/New_York")
+except ImportError:
+    _now = datetime.utcnow()
+    EASTERN = timezone(timedelta(hours=-4 if 3 <= _now.month <= 10 else -5))
 from dateutil.relativedelta import relativedelta
 from collections import defaultdict, OrderedDict
 
@@ -786,7 +794,7 @@ def build(out_path, team_name, team_deals, period, period_label):
     story.append(Spacer(1, 4))
     story.append(Paragraph(
         f'CAPS  ·  {team_name}  ·  {period_label}  ·  '
-        f'Generated {date.today().strftime("%d %B %Y")}  ·  Internal & Confidential',
+        f'Generated {datetime.now(EASTERN).strftime("%d %B %Y, %I:%M %p %Z")}  ·  Internal & Confidential',
         ST['foot']))
 
     doc.build(story)
