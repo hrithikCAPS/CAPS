@@ -221,7 +221,7 @@
       <div class="lp-stat">
         <div class="lp-stat__lbl">Deals Awarded</div>
         <div class="lp-stat__val" id="stat-ia">—</div>
-        <div class="lp-stat__sub">awarded + intent to award</div>
+        <div class="lp-stat__sub">awarded + intent to award · all-time</div>
       </div>
       <div class="lp-stat">
         <div class="lp-stat__lbl">Data as of</div>
@@ -327,7 +327,11 @@
       }
       const data   = allData.filter(d => { const m = subMonth(d); return m && m >= OCT_2025; });
       const active = data.filter(d => ['Submitted','Interview','Intent to Award'].includes(d.stage));
-      const awarded = data.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award');
+      // Awards: pull from the dedicated all-time Awards dataset (matches the Awards dashboard).
+      // Falls back to filtering the main pool if CAPS_AWARDS_DATA isn't loaded yet.
+      const awarded = (window.CAPS_AWARDS_DATA && window.CAPS_AWARDS_DATA.length)
+        ? window.CAPS_AWARDS_DATA
+        : allData.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award');
       const lu     = CAPS.getLastUpdated();
 
       document.getElementById('stat-total').textContent  = data.length.toLocaleString();
