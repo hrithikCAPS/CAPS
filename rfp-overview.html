@@ -385,7 +385,66 @@
       const wonCount          = subData.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award').length;
       const lostCount         = subData.filter(d => d.stage === 'Closed Lost').length;
       const winRate = (wonCount + lostCount) > 0 ? wonCount / (wonCount + lostCount) : 0;
-      const awardedCount      = subData.filter(d => d.stage === 'Closed Won' || d.stage === 'Intent to Award').length;
+
+      /* ── Awarded KPI ──
+         Counts deals at Closed Won OR Intent to Award stage, where EITHER
+         submission date OR intent-to-award date is after 30 Sept 2025.
+         Uses the COMBINED pool (RFP Data ∪ Awards sheet) so award-stage
+         deals not present in the RFP Data sheet still count.
+         No requirement on awarded_date being set.
+
+         The hard floor of Oct 2025 is applied on top of any year filter, so
+         selecting "Year = 2025" cannot pull in awarded deals from before
+         Oct 2025 (which would otherwise leak in via cutoff '2025-01'). */
+      const _AWARD_FLOOR = '2025-10';
+      const _awardCutoff = submissionCutoff > _AWARD_FLOOR ? submissionCutoff : _AWARD_FLOOR;
+      function _monthOf(dt) {
+        if (!dt) return null;
+        const d = dt instanceof Date ? dt : new Date(dt);
+        if (isNaN(d.getTime())) return null;
+        return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+      }
+      function _inAwardWindow(d) {
+        const subM = _monthOf(d.submissionDate);
+        const itaM = _monthOf(d.intentToAwardDate);
+        return (subM && subM >= _awardCutoff) || (itaM && itaM >= _awardCutoff);
+      }
+
+      const _awSeenIds = new Set(allData.map(d => String(d.hubspotId || '')));
+      const _parseD = v => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; };
+      const _parseN = v => { if (v===''||v===null||v===undefined) return null; const n = parseFloat(String(v).replace(/[,$]/g,'')); return isNaN(n)?null:n; };
+      const _awardsExtras = (window.CAPS_AWARDS_DATA || []).map(r => {
+        const row = {};
+        for (const [k, v] of Object.entries(r)) row[k.trim()] = v;
+        return {
+          hubspotId:         row['HubSpot ID'] || '',
+          dealName:          row['Deal Name'] || '',
+          stage:             row['Stage'] || '',
+          amount:            _parseN(row['Amount ($)']),
+          intentToAwardDate: _parseD(row['Intent to Award Date']),
+          submissionDate:    _parseD(row['Submission Date']),
+          serviceCategory:   row['Service Category'] || '',
+        };
+      }).filter(d => {
+        if (!d.hubspotId || _awSeenIds.has(String(d.hubspotId))) return false;
+        _awSeenIds.add(String(d.hubspotId));
+        return true;
+      });
+      // Re-apply category filter (if any) to the Awards extras
+      const _awExtrasFiltered = categoryFilter
+        ? _awardsExtras.filter(d => d.serviceCategory && d.serviceCategory.includes(categoryFilter))
+        : _awardsExtras;
+      // Build awarded pool: union of RFP Data and Awards extras, filtered to
+      // (stage in CW/ITA) AND (sub OR ITA date >= awardCutoff). Note: we filter
+      // RFP rows from `data` (category-applied) directly — NOT `subData` —
+      // because subData uses a looser submissionCutoff for 2025.
+      const _awardedFromRfp = data.filter(d =>
+        (d.stage === 'Closed Won' || d.stage === 'Intent to Award') && _inAwardWindow(d));
+      const _awardedFromExtras = _awExtrasFiltered.filter(d =>
+        (d.stage === 'Closed Won' || d.stage === 'Intent to Award') && _inAwardWindow(d));
+      const _awardedPool = [..._awardedFromRfp, ..._awardedFromExtras];
+      const awardedCount = _awardedPool.length;
+      const awardedValue = _awardedPool.filter(d => d.amount).reduce((s, d) => s + d.amount, 0);
 
       /* Compute categories from year-filtered base (before category filter) */
       const allCats = {};
@@ -511,8 +570,8 @@
             'Percentage of decided deals that were won. Formula: (Closed Won + Intent to Award) / (Closed Won + Intent to Award + Closed Lost).')}
           ${CAPS.metricCard('Interview Shortlists', CAPS.formatNumber(interviewCount), `${CAPS.formatPercent(totalBySubmission > 0 ? interviewCount / totalBySubmission : 0)} of submissions`, 'crimson',
             'Number of RFPs where the Interview Flag is Yes — meaning we were shortlisted for an interview or BAFO at any point.')}
-          ${CAPS.metricCard('Deals Awarded', CAPS.formatNumber(awardedCount), `${CAPS.formatCurrency(subData.filter(d => (d.stage === 'Closed Won' || d.stage === 'Intent to Award') && d.amount).reduce((s,d) => s + d.amount, 0))} total value`, '',
-            'Deals with an Awarded Date or currently at Intent to Award stage, among RFPs submitted from October 2025 onwards.')}
+          ${CAPS.metricCard('Deals Awarded', CAPS.formatNumber(awardedCount), `${CAPS.formatCurrency(awardedValue)} total value`, '',
+            'Deals at Closed Won or Intent to Award stage where the submission date OR intent-to-award date is after 30 Sept 2025. Pulled from the combined RFP Data + Awards sheet — awarded_date is not required. The Sep-30 floor is enforced even when "Year = 2025" is selected.')}
         </div>
 
         <!-- Section: Monthly Trends -->
