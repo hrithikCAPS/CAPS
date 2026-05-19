@@ -431,13 +431,21 @@
         return true;
       });
       // Re-apply category filter (if any) to the Awards extras
-      const _awExtrasFiltered = categoryFilter
+      const _awExtrasFiltered0 = categoryFilter
         ? _awardsExtras.filter(d => d.serviceCategory && d.serviceCategory.includes(categoryFilter))
         : _awardsExtras;
+      // Apply the SAME year filter to extras that baseData uses, so year-2025
+      // and year-2026 partitions add up to "all years" (no double-counting).
+      // Without this, an awards-extras deal with sub in 2025 and ITA in 2026
+      // satisfies BOTH year cutoffs and gets counted twice.
+      const _awExtrasFiltered = yearFilter
+        ? _awExtrasFiltered0.filter(d => {
+            const ref = d.submissionDate;
+            return ref && new Date(ref).getUTCFullYear() == yearFilter;
+          })
+        : _awExtrasFiltered0;
       // Build awarded pool: union of RFP Data and Awards extras, filtered to
-      // (stage in CW/ITA) AND (sub OR ITA date >= awardCutoff). Note: we filter
-      // RFP rows from `data` (category-applied) directly — NOT `subData` —
-      // because subData uses a looser submissionCutoff for 2025.
+      // (stage in CW/ITA) AND (sub OR ITA date >= awardCutoff).
       const _awardedFromRfp = data.filter(d =>
         (d.stage === 'Closed Won' || d.stage === 'Intent to Award') && _inAwardWindow(d));
       const _awardedFromExtras = _awExtrasFiltered.filter(d =>
