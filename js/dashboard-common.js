@@ -24,6 +24,7 @@ const CAPS = (() => {
       { label: 'Predictions',     href: 'predictions.html' },
       { label: 'Interviews',      href: 'interviews.html' },
       { label: 'State Analysis',  href: 'state-analysis.html' },
+      { label: 'Partnerships',    href: 'https://umeshd1010.github.io/partnership-dashboard/', external: true },
     ]
   };
 
@@ -48,10 +49,24 @@ const CAPS = (() => {
   function renderHeader(activeLabel) {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
-    const navHTML = CONFIG.navItems.map(item => {
-      const isActive = (item.label === activeLabel) || (item.href === currentPage);
-      return `<a class="ca-header__nav-item${isActive ? ' active' : ''}" href="${item.href}">${item.label}</a>`;
-    }).join('');
+    function renderItem(item) {
+      const isActive = !item.disabled && !item.external &&
+        ((item.label === activeLabel) || (item.href === currentPage));
+      const badge = item.badge
+        ? ` <span class="ca-header__nav-badge">${item.badge}</span>`
+        : '';
+      if (item.disabled) {
+        return `<span class="ca-header__nav-item ca-header__nav-item--disabled" aria-disabled="true" title="Coming soon">${item.label}${badge}</span>`;
+      }
+      if (item.external) {
+        // External portal link — styled distinctly (outlined pill), opens in
+        // a new tab, lives on the right side of the header.
+        return `<a class="ca-header__nav-item ca-header__nav-item--external" href="${item.href}" target="_blank" rel="noopener noreferrer" title="Opens in a new tab">${item.label}<span class="ca-header__nav-arrow">↗</span></a>`;
+      }
+      return `<a class="ca-header__nav-item${isActive ? ' active' : ''}" href="${item.href}">${item.label}${badge}</a>`;
+    }
+    const internalNav = CONFIG.navItems.filter(i => !i.external).map(renderItem).join('');
+    const externalNav = CONFIG.navItems.filter(i =>  i.external).map(renderItem).join('');
 
     const header = document.createElement('header');
     header.className = 'ca-header';
@@ -60,9 +75,10 @@ const CAPS = (() => {
         <a href="index.html"><img src="${CONFIG.logoPath}" alt="ConsultAdd" class="ca-header__logo"></a>
         <div class="ca-header__divider"></div>
         <span class="ca-header__title"></span>
-        <nav class="ca-header__nav">${navHTML}</nav>
+        <nav class="ca-header__nav">${internalNav}</nav>
       </div>
       <div class="ca-header__right">
+        ${externalNav ? `<nav class="ca-header__nav ca-header__nav--external">${externalNav}</nav>` : ''}
         <div class="ca-header__data-status" id="ca-data-status">
           <span class="dot"></span>
           <span class="label">Last data fetch:</span>
@@ -170,6 +186,16 @@ const CAPS = (() => {
   function parseDate(val) {
     if (!val) return null;
     if (val instanceof Date) return val;
+    // Date-only strings like "2026-05-18" are parsed by JS as UTC midnight,
+    // which then shifts BACKWARD a day when displayed in any timezone west
+    // of UTC (e.g. May 18 → May 17 in EDT). Force local-midnight parsing
+    // so the displayed date matches what the user typed in HubSpot.
+    const s = String(val);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y, m, day] = s.split('-').map(Number);
+      const d = new Date(y, m - 1, day);  // local midnight
+      return isNaN(d.getTime()) ? null : d;
+    }
     const d = new Date(val);
     return isNaN(d.getTime()) ? null : d;
   }
