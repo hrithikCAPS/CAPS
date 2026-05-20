@@ -319,7 +319,10 @@
       /* Filter to submission date Oct 2025+ (matches dashboard KPI logic) */
       const OCT_2025 = '2025-10';
       function subMonth(d) {
-        const dt = d.submissionDate || d.bidClosingDate || d.createdDate;
+        // Match RFP Overview's baseData logic — require a real submission or
+        // bid-closing date. Don't fall back to createdDate (would pull in
+        // test/placeholder deals with no actual submission info).
+        const dt = d.submissionDate || d.bidClosingDate;
         if (!dt) return null;
         const date = dt instanceof Date ? dt : new Date(dt);
         if (isNaN(date.getTime())) return null;
