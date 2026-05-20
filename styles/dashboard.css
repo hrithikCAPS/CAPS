@@ -146,6 +146,60 @@ body {
   background: rgba(255,255,255,0.15);
 }
 
+/* Disabled nav item (placeholder for upcoming pages — non-clickable, muted) */
+.ca-header__nav-item--disabled {
+  color: rgba(255,255,255,0.42);
+  cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ca-header__nav-item--disabled:hover {
+  color: rgba(255,255,255,0.42);
+  background: transparent;
+}
+.ca-header__nav-badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.55);
+  line-height: 1.4;
+}
+
+/* External-portal nav lives on the right side of the header, visually
+   separated from the in-app nav (which sits on the left). */
+.ca-header__nav--external {
+  display: flex;
+  align-items: center;
+}
+
+/* External-portal link — subtly outlined pill so it reads as a different
+   destination from the in-app nav items. Kept low-key on purpose. */
+.ca-header__nav-item--external {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.78);
+}
+.ca-header__nav-item--external:hover {
+  border-color: rgba(255,255,255,0.40);
+  color: var(--ca-white);
+  background: rgba(255,255,255,0.06);
+}
+.ca-header__nav-arrow {
+  font-size: 0.78rem;
+  opacity: 0.65;
+  line-height: 1;
+}
+.ca-header__nav-item--external:hover .ca-header__nav-arrow {
+  opacity: 0.95;
+}
+
 .ca-header__right {
   display: flex;
   align-items: center;
