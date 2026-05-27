@@ -404,66 +404,6 @@ def cmd_validate():
                 issues.append("Interview map: missing columns " + ', '.join(missing))
                 print(f"      {RED('missing columns:')} {', '.join(missing)}")
 
-    # 8. Monthly submission drift sentinel — flags suspiciously low current-month
-    #    counts that may indicate the daily refresh's modified-since pull skipped
-    #    deals (see PROMPTS.md step 5 — membership audit). This is a heuristic;
-    #    does not call HubSpot, only looks at the local snapshot.
-    print()
-    print(BOLD("  [8] Monthly submission drift sentinel"))
-    if os.path.exists(EXCEL_PATH):
-        from datetime import datetime as _dt, timedelta as _td
-        wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
-        if 'RFP Data' in wb.sheetnames:
-            ws = wb['RFP Data']
-            h = [c.value for c in ws[1]]
-            ix_sd = h.index('Submission Date') if 'Submission Date' in h else None
-            ix_bc = h.index('Bid Closing Date') if 'Bid Closing Date' in h else None
-            if ix_sd is not None and ix_bc is not None:
-                monthly = {}
-                for row in ws.iter_rows(min_row=2, values_only=True):
-                    sd = row[ix_sd]
-                    bc = row[ix_bc]
-                    if isinstance(sd, str):
-                        try: sd = _dt.fromisoformat(sd)
-                        except: sd = None
-                    if isinstance(bc, str):
-                        try: bc = _dt.fromisoformat(bc)
-                        except: bc = None
-                    ref = sd or bc
-                    if not ref: continue
-                    key = f"{ref.year:04d}-{ref.month:02d}"
-                    monthly[key] = monthly.get(key, 0) + 1
-
-                # Compute trailing 6-month average (excluding current month)
-                today = _dt.now()
-                cur_key = f"{today.year:04d}-{today.month:02d}"
-                trailing_keys = []
-                d = today.replace(day=1)
-                for _ in range(6):
-                    d = (d - _td(days=1)).replace(day=1)
-                    trailing_keys.append(f"{d.year:04d}-{d.month:02d}")
-                trailing_keys = [k for k in trailing_keys if k >= '2025-10']
-                trailing_vals = [monthly.get(k, 0) for k in trailing_keys]
-                avg = sum(trailing_vals) / len(trailing_vals) if trailing_vals else 0
-                cur_count = monthly.get(cur_key, 0)
-
-                # Days elapsed in current month, vs trailing-month average
-                days_elapsed = today.day
-                # Assume previous months averaged ~30 days; current count proportional to elapsed
-                expected = avg * (days_elapsed / 30)
-                gap_pct = ((expected - cur_count) / expected * 100) if expected > 0 else 0
-
-                print(f"      Trailing-6mo average    : {avg:.0f} submissions/month")
-                print(f"      Current month ({cur_key}) : {cur_count} so far  (day {days_elapsed}/30)")
-                print(f"      Expected by today       : ~{expected:.0f}  ·  gap: {gap_pct:+.0f}%")
-
-                if cur_count > 0 and gap_pct > 30:
-                    issues.append(f"Current month ({cur_key}) submissions {gap_pct:.0f}% below expected — "
-                                  f"run the membership audit (PROMPTS.md §1 step 5) to recover missing deals")
-                    print(f"      {RED('⚠ Drift detected')} — run the membership-audit step in the next refresh.")
-                else:
-                    print(f"      {GREEN('within normal range')}")
-
     # Summary
     print()
     print("  " + "─" * 70)

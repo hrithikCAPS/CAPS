@@ -72,30 +72,29 @@ The single canonical refresh — modified-since strategy. Typically runs in **3�
 >
 >    **Inline the apply logic in a single bash heredoc.** For small deltas (≤5 deals), do not write a separate `_apply_*.py` helper file — just put the dict-merge logic inside `python3 - <<'PY' ... PY` directly.
 >
-> 5. **MEMBERSHIP AUDIT — catch deals the modified-since query missed.** This step exists because the modified-since pull only processes the most-recently-touched results; a deal that has only ever been touched by HubSpot's nightly automation (never edited by a human since creation) drops further down the result set each day and can be permanently skipped. One audit call per refresh closes that gap.
+> 5. **COUNT CHECK — verify snapshot matches HubSpot, dig deeper only if it doesn't.** This catches the failure mode where the modified-since pull's pagination cutoff silently drops a deal. One cheap call per refresh.
 >
->    Query HubSpot for **just the IDs** of every in-scope deal whose submission_date falls in the current month or the previous month:
+>    a. **One MCP call to get the HubSpot total** (returns just the count + 1 record):
 >    ```
 >    search_crm_objects(
 >      objectType="deals",
 >      filterGroups=[{filters:[
->        {propertyName:"submission_date", operator:"GTE", value:"<first day of previous month>"},
+>        {propertyName:"closedate", operator:"GTE", value:"2025-10-01"},
 >        {propertyName:"dealstage", operator:"IN",
 >          values:["presentationscheduled","1620129473","2485737153",
 >                  "closedwon","closedlost","2203296493","2766010076"]},
 >      ]}],
 >      properties=["hs_object_id"],
->      sorts=[{propertyName:"submission_date", direction:"DESCENDING"}],
->      limit=200
+>      limit=1
 >    )
 >    ```
->    Diff the returned IDs against `rfp_deals_all.json`. For any **HubSpot-but-not-snapshot** IDs:
->    - Batch `get_crm_objects(objectIds=[…], properties=[<full 22>])` (up to 100 per call) to pull full property records.
->    - Batch company-association lookups (`search_crm_objects` on `companies` with `associatedWith` filter, 5 filterGroups per call).
->    - Add the deals to `rfp_deals_all.json` and `deal_state_lookup.json`. If a deal's stage is `closedwon` or `2485737153`, also add to `awards_deals_all.json`.
->    - Flag this clearly in the final report ("audit recovered N deals that the modified-since pull missed").
+>    Read the `total` field from the response.
 >
->    Also flag (but don't auto-remove) any **snapshot-but-not-HubSpot** IDs in that window — usually means the deal's closedate or stage moved out of scope, not that it was deleted.
+>    b. **Compare to snapshot count.** Locally: `len(rfp_deals_all.json)`. If `hubspot_total == snapshot_total`, the snapshot is complete — move on. Note this in the report ("count check: ✓ N == N").
+>
+>    c. **If counts differ, dig deeper.** Pull all IDs from HubSpot in the same filter (paginate `limit=200` until total reached, `properties=["hs_object_id"]` — no other properties so it stays cheap). Diff against snapshot IDs:
+>    - **HubSpot-but-not-snapshot:** `get_crm_objects(objectIds=[…], properties=[<full 22>])` (batched up to 100), then batched company-association lookups (5 filterGroups per call). Add to `rfp_deals_all.json` + `deal_state_lookup.json`; add to `awards_deals_all.json` if stage is `closedwon`/`2485737153`. Report as "audit recovered N missing deals".
+>    - **Snapshot-but-not-HubSpot:** the deal's closedate or stage moved out of scope (or it was deleted in HubSpot). List them in the report; don't auto-remove unless you confirm with the user.
 >
 > 6. **Skip the script run if 0 changes were applied.** If the diff produced `added=0, modified=0, fields=0` AND the membership audit found zero missing deals, do NOT execute `update_excel_v2.py` / `refresh-data.py` / `validate_and_refresh.py` — the data is already current. Just report "no changes" and stop.
 >
