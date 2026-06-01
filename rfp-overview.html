@@ -326,7 +326,9 @@
     /* Uses UTC methods to avoid timezone shift — e.g. midnight UTC Oct 1 must
        not appear as September in a US timezone browser. */
     function getSubMonth(d) {
-      const dt = d.submissionDate || d.bidClosingDate || d.createdDate;
+      // Filter by submission_date ONLY. Deals without a submission_date set
+      // are excluded from all month-bucketed views.
+      const dt = d.submissionDate;
       if (!dt) return null;
       const date = dt instanceof Date ? dt : new Date(dt);
       if (isNaN(date.getTime())) return null;
@@ -348,21 +350,21 @@
       const OCT_2025_FOR_YEARS = new Date('2025-10-01');
       const yearSet = new Set();
       allData.forEach(d => {
-        const ref = d.submissionDate || d.bidClosingDate;
+        const ref = d.submissionDate;          // submission date only
         if (!ref) return;
         const dt = ref instanceof Date ? ref : new Date(ref);
         if (dt >= OCT_2025_FOR_YEARS) { const y = dt.getUTCFullYear(); if (!isNaN(y)) yearSet.add(y); }
       });
       const allYears = [...yearSet].sort((a,b) => b - a);
 
-      /* Apply filters — base set is always submission date Oct 2025+ */
+      /* Apply filters — base set is always submission date Oct 2025+ (submission date only) */
       let baseData = allData.filter(d => {
-        const ref = d.submissionDate || d.bidClosingDate;
+        const ref = d.submissionDate;          // submission date only
         return ref && (ref instanceof Date ? ref : new Date(ref)) >= OCT_2025_FOR_YEARS;
       });
       if (yearFilter) {
         baseData = baseData.filter(d => {
-          const ref = d.submissionDate || d.bidClosingDate || d.createdDate;
+          const ref = d.submissionDate;        // submission date only
           return ref && new Date(ref).getUTCFullYear() == yearFilter;
         });
       }

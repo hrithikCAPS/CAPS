@@ -269,19 +269,19 @@
     const allData = await CAPS.loadData();
     const OCT_2025 = new Date('2025-10-01');
 
-    /* Year options — by submission date */
+    /* Year options — by submission date only */
     const yearSet = new Set();
     allData.forEach(d => {
-      const ref = d.submissionDate || d.bidClosingDate;
+      const ref = d.submissionDate;
       if (!ref) return;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (dt >= OCT_2025) yearSet.add(dt.getUTCFullYear());
     });
     const allYears = [...yearSet].sort((a,b) => b - a);
 
-    /* Base = submission date Oct 2025+ — use UTC month string to match getSubMonth logic */
+    /* Base = submission date Oct 2025+ — submission date only */
     function subMonthUTC(d) {
-      const ref = d.submissionDate || d.bidClosingDate;
+      const ref = d.submissionDate;
       if (!ref) return null;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (isNaN(dt.getTime())) return null;

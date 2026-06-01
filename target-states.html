@@ -1299,9 +1299,10 @@
     const allData = await CAPS.loadData();
     const OCT_2025 = new Date('2025-10-01');
 
-    /* UTC-safe helper — matches rfp-overview getSubMonth logic exactly */
+    /* UTC-safe helper — matches rfp-overview getSubMonth logic exactly.
+       Submission date only — deals without submission_date are excluded. */
     function subMonthUTC(d) {
-      const ref = d.submissionDate || d.bidClosingDate;
+      const ref = d.submissionDate;
       if (!ref) return null;
       const dt = ref instanceof Date ? ref : new Date(ref);
       if (isNaN(dt.getTime())) return null;
