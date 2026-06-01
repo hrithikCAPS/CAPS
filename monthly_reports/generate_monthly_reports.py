@@ -73,7 +73,7 @@ LOGO_PATH   = os.path.join(PROJECT_DIR, 'image.png')
 TEAMS = {
     'Team Alpha'  : ['Ashutosh Chauhan', 'Madhav Mitruka'],
     'Team Kairoz' : ['Jyothsna Nanda kishore'],
-    'Team D'      : ['Savya Atrey', 'Abhishek Zalani', 'Srikrishnadeva D'],
+    'Team Delta'  : ['Savya Atrey', 'Abhishek Zalani', 'Srikrishnadeva D', 'Arshdeep Kaur'],
 }
 
 def owner_to_team(owner):
@@ -144,6 +144,13 @@ def load_data():
     rows = []
     for row in ws.iter_rows(min_row=2, values_only=True):
         g = lambda k: row[ix[k]] if ix.get(k) is not None else None
+        ita_raw     = parse_date(g('ita'))
+        awarded_raw = parse_date(g('awarded'))
+        # Awards bucketing falls back to awarded_date when intent_to_award_date
+        # is blank in HubSpot. This keeps closed-won deals from disappearing
+        # from the monthly awards section just because the ITA field was left
+        # empty by the deal owner.
+        ita_effective = ita_raw or awarded_raw
         rows.append({
             'id'     : str(g('id')      or ''),
             'rfp_no' : str(g('rfp_no')  or ''),
@@ -157,8 +164,9 @@ def load_data():
             'owner'  : str(g('owner')   or ''),
             'iv_date': parse_date(g('iv_date')),
             'bafo'   : parse_date(g('bafo')),
-            'ita'    : parse_date(g('ita')),
-            'awarded': parse_date(g('awarded')),
+            'ita'    : ita_effective,
+            'ita_raw': ita_raw,         # preserved for diagnostics if needed
+            'awarded': awarded_raw,
             'link'   : str(g('link')    or ''),
             'team'   : owner_to_team(g('owner')),
         })

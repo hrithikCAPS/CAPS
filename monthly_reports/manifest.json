@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-06T20:37:05Z",
+  "generated_at_utc": "2026-06-01T20:29:38Z",
   "monthly": {
     "2026": {
       "March-2026": {
@@ -10,6 +10,16 @@
           "Team_Alpha_Mar_2026.pdf",
           "Team_D_Mar_2026.pdf",
           "Team_Kairoz_Mar_2026.pdf"
+        ]
+      },
+      "May-2026": {
+        "label": "May 2026",
+        "sort": 202605,
+        "files": [
+          "Company_Summary_May_2026.pdf",
+          "Team_Alpha_May_2026.pdf",
+          "Team_Delta_May_2026.pdf",
+          "Team_Kairoz_May_2026.pdf"
         ]
       },
       "January-2026": {
@@ -105,7 +115,7 @@
   "teams": [
     "Team Alpha",
     "Team Kairoz",
-    "Team D",
+    "Team Delta",
     "Company Summary"
   ]
 }
