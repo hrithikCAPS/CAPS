@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-01T16:01:42Z",
+  "generated_at_utc": "2026-08-05T14:04:00Z",
   "monthly": {
     "2026": {
       "March-2026": {
@@ -30,6 +30,16 @@
           "Team_Alpha_Jan_2026.pdf",
           "Team_Delta_Jan_2026.pdf",
           "Team_Kairoz_Jan_2026.pdf"
+        ]
+      },
+      "July-2026": {
+        "label": "July 2026",
+        "sort": 202607,
+        "files": [
+          "Company_Summary_Jul_2026.pdf",
+          "Team_Alpha_Jul_2026.pdf",
+          "Team_Delta_Jul_2026.pdf",
+          "Team_Kairoz_Jul_2026.pdf"
         ]
       },
       "June-2026": {
