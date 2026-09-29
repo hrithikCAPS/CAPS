@@ -106,6 +106,31 @@ def main():
     with open(OUTPUT_PATH, "w") as f:
         f.write(js)
 
+    # ─── Cache-buster: stamp every HTML file's data.js/dashboard-common.js src
+    # with the generation timestamp so browsers always fetch the fresh copy.
+    import re as _re
+    cb = et_now.strftime("%Y%m%d%H%M")
+    dashboard_dir = os.path.dirname(OUTPUT_PATH).rsplit("/", 1)[0] if "/js" in OUTPUT_PATH else os.path.dirname(os.path.dirname(OUTPUT_PATH))
+    if not os.path.isdir(dashboard_dir):
+        dashboard_dir = os.path.join(os.path.dirname(__file__))
+    for fn in os.listdir(dashboard_dir):
+        if not fn.endswith(".html"): continue
+        path = os.path.join(dashboard_dir, fn)
+        with open(path, "r") as f: html = f.read()
+        new_html = _re.sub(
+            r'(src="js/(?:data|dashboard-common)\.js)(?:\?v=[^"]*)?(")',
+            rf'\1?v={cb}\2',
+            html,
+        )
+        new_html = _re.sub(
+            r"(src='js/(?:data|dashboard-common)\.js)(?:\?v=[^']*)?(')",
+            rf'\1?v={cb}\2',
+            new_html,
+        )
+        if new_html != html:
+            with open(path, "w") as f: f.write(new_html)
+    print(f"  Cache-buster v={cb} stamped on dashboard HTML files")
+
     # Count records by submission date >= Oct 2025 (matches dashboard KPI)
     OCT_2025_STR = "2025-10"
     def _sub_month_str(r):
