@@ -69,8 +69,8 @@ OWNER_MAP = OVR.get("owner_map", {})
 PROPS = [
     "hs_object_id","dealname","agency","submission_date","submission_mode",
     "closedate","createdate","dealstage","hubspot_owner_id","amount",
-    "service_category__cloned_","rfp_number","intent_to_award_date",
-    "awarded_date","interview_date"
+    "service_category__cloned_","rfp_number","intent_to_awarded_date",
+    "awarded_date","interview_date_time","bafo_date","interview_type"
 ]
  
 API = "https://api.hubapi.com"
@@ -207,12 +207,12 @@ def apply_to_excel(fresh):
             if p.get("service_category__cloned_"):
                 ws.cell(r, col["Service Category"]).value = p["service_category__cloned_"]
             if p.get("submission_mode"): ws.cell(r, col["Submission Mode"]).value = p["submission_mode"]
-            if p.get("intent_to_award_date"):
-                ws.cell(r, col["Intent to Award Date"]).value = to_date(p["intent_to_award_date"])
+            if p.get("intent_to_awarded_date"):
+                ws.cell(r, col["Intent to Award Date"]).value = to_date(p["intent_to_awarded_date"])
             if p.get("awarded_date"):
                 ws.cell(r, col["Awarded Date"]).value = to_date(p["awarded_date"])
-            if p.get("interview_date"):
-                ws.cell(r, col["Interview Date"]).value = to_date(p["interview_date"])
+            if p.get("interview_date_time"):
+                ws.cell(r, col["Interview Date"]).value = to_date(p["interview_date_time"])
             if stage in ("Closed Lost", "Terminated", "RFx Cancelled"):
                 ws.cell(r, col["Intent to Award Date"]).value = None
                 ws.cell(r, col["Awarded Date"]).value = None
@@ -230,9 +230,9 @@ def apply_to_excel(fresh):
                 "Submission Mode": p.get("submission_mode", ""), "Owner": owner,
                 "Created Date": to_date(p.get("createdate")),
                 "HubSpot Link": f"https://app.hubspot.com/contacts/243046792/record/0-3/{did}",
-                "Intent to Award Date": to_date(p.get("intent_to_award_date")),
+                "Intent to Award Date": to_date(p.get("intent_to_awarded_date")),
                 "Awarded Date": to_date(p.get("awarded_date")),
-                "Interview Date": to_date(p.get("interview_date")),
+                "Interview Date": to_date(p.get("interview_date_time")),
             }
             for k, v in rec.items():
                 if k in col: ws.cell(next_row, col[k]).value = v
@@ -278,8 +278,8 @@ def apply_to_excel(fresh):
             aws.cell(r, acol["Service Category"]).value = p["service_category__cloned_"]
         own = OWNER_MAP.get(p.get("hubspot_owner_id",""), p.get("hubspot_owner_id",""))
         if own: aws.cell(r, acol["Owner"]).value = own
-        if p.get("intent_to_award_date"):
-            aws.cell(r, acol["Intent to Award Date"]).value = to_date(p["intent_to_award_date"])
+        if p.get("intent_to_awarded_date"):
+            aws.cell(r, acol["Intent to Award Date"]).value = to_date(p["intent_to_awarded_date"])
         if p.get("awarded_date"):
             aws.cell(r, acol["Awarded Date"]).value = to_date(p["awarded_date"])
  
@@ -305,7 +305,7 @@ def apply_to_excel(fresh):
             "Amount ($)": amt, "Service Category": p.get("service_category__cloned_", ""),
             "Owner": own, "Created Date": to_date(p.get("createdate")),
             "HubSpot Link": f"https://app.hubspot.com/contacts/243046792/record/0-3/{did}",
-            "Intent to Award Date": to_date(p.get("intent_to_award_date")),
+            "Intent to Award Date": to_date(p.get("intent_to_awarded_date")),
             "Awarded Date": to_date(p.get("awarded_date")),
         }
         for k, v in rec.items():
