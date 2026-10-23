@@ -1,48 +1,49 @@
 name: Daily HubSpot Refresh
- 
+
 on:
   schedule:
-    - cron: '0 11 * * *'       # 11:00 UTC = 7:00 AM Eastern (6 AM in winter)
-  workflow_dispatch:            # lets you also trigger it manually from the Actions tab
+    - cron: '0 11 * * 0,2,3,4,5,6'  # Sun, Tue-Sat 11:00 UTC (7am ET) — delta refresh
+    - cron: '0 11 * * 1'            # Monday 11:00 UTC (7am ET) — full refresh
+  workflow_dispatch:                 # lets you also trigger it manually from the Actions tab
     inputs:
       full_refresh:
         description: 'Full clean rebuild from HubSpot (overwrites every row). Only tick this when you want to resync from scratch.'
         type: boolean
         default: false
- 
+
 permissions:
   contents: write
- 
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
- 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
- 
+
       - name: Install dependencies
         run: pip install openpyxl requests reportlab
- 
+
       - name: Pull HubSpot delta into Excel
         env:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
-          FULL_REFRESH: ${{ inputs.full_refresh }}
+          # Full refresh if: user ticked the manual box, OR the Monday cron fired this run.
+          FULL_REFRESH: ${{ inputs.full_refresh || github.event.schedule == '0 11 * * 1' }}
         run: python .refresh_work/auto_refresh.py
- 
+
       - name: Regenerate dashboard data.js
         run: python refresh-data.py
- 
+
       - name: Run scheduled monthly / quarterly reports if due
         run: python monthly_reports/scheduled_runner.py
- 
+
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto refresh"
           file_pattern: 'data/CAPS_RFP_Dashboard_Dataset.xlsx js/data.js *.html monthly_reports/**/*.pdf monthly_reports/manifest.* .refresh_work/.last_pull'
- 
