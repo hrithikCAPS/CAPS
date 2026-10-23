@@ -69,9 +69,15 @@ OWNER_MAP = OVR.get("owner_map", {})
 PROPS = [
     "hs_object_id","dealname","agency","submission_date","submission_mode",
     "closedate","createdate","dealstage","hubspot_owner_id","amount",
-    "service_category__cloned_","rfp_number","intent_to_award_date",
-    "awarded_date","interview_date"
+    "service_category__cloned_","rfp_number","intent_to_awarded_date",
+    "awarded_date","interview_date_time"
 ]
+# Alias HubSpot's real property names to the keys the apply() code expects.
+# This lets the rest of the file keep using the shorter names.
+def alias_props(p):
+    if "intent_to_awarded_date" in p: p["intent_to_award_date"] = p["intent_to_awarded_date"]
+    if "interview_date_time" in p:    p["interview_date"]       = p["interview_date_time"]
+    return p
  
 API = "https://api.hubapi.com"
 HEAD = {"Authorization": f"Bearer {TOKEN}", "Content-Type":"application/json"}
@@ -163,14 +169,24 @@ def pull_window(window_start_dt):
     merged = {}
     for d in subs + stages + edits:
         did = str(d["id"])
-        if did not in merged: merged[did] = d["properties"]
+        if did not in merged: merged[did] = alias_props(d["properties"])
     return merged
+ 
+def pull_everything():
+    """FULL REFRESH mode: pull every deal in every tracked stage, no date filter.
+    Use when the local Excel has drifted and you want to resync from scratch."""
+    pipe = {"propertyName":"pipeline","operator":"EQ","value":"default"}
+    tracked = {"propertyName":"dealstage","operator":"IN","values":TRACKED_STAGES}
+    print(f"  FULL REFRESH: pulling every tracked-stage deal (no date filter)...")
+    all_deals = search_all([{"filters":[pipe, tracked]}])
+    print(f"    {len(all_deals)} deals pulled")
+    return {str(d["id"]): alias_props(d["properties"]) for d in all_deals}
  
 def refresh_award_rows_from_hubspot(award_ids):
     print(f"  Re-pulling {len(award_ids)} current Award IDs for full refresh...")
     out = hubspot_batch_read(award_ids)
     print(f"    got {len(out)} back")
-    return {str(d["id"]): d["properties"] for d in out}
+    return {str(d["id"]): alias_props(d["properties"]) for d in out}
  
 def apply_to_excel(fresh):
     wb = openpyxl.load_workbook(EXCEL)
@@ -360,16 +376,21 @@ def write_last_pull(dt):
  
 def main():
     now = datetime.now(timezone.utc)
-    last = read_last_pull()
-    window_start = min(last, now - timedelta(days=LOOKBACK_DAYS))
-    print(f"Window: {window_start.isoformat()} -> {now.isoformat()}")
+    full = os.environ.get("FULL_REFRESH", "").strip().lower() in ("1","true","yes")
+    print(f"Mode  : {'FULL REFRESH' if full else 'DELTA'}")
     print(f"Excel : {EXCEL}")
  
-    fresh = pull_window(window_start)
-    aw_ids = get_award_ids()
-    aw_fresh = refresh_award_rows_from_hubspot(aw_ids)
-    for did, p in aw_fresh.items():
-        if did not in fresh: fresh[did] = p
+    if full:
+        fresh = pull_everything()
+    else:
+        last = read_last_pull()
+        window_start = min(last, now - timedelta(days=LOOKBACK_DAYS))
+        print(f"Window: {window_start.isoformat()} -> {now.isoformat()}")
+        fresh = pull_window(window_start)
+        aw_ids = get_award_ids()
+        aw_fresh = refresh_award_rows_from_hubspot(aw_ids)
+        for did, p in aw_fresh.items():
+            if did not in fresh: fresh[did] = p
  
     apply_to_excel(fresh)
     write_last_pull(now)
