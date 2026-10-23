@@ -1,0 +1,36 @@
+{
+  "_comment": "Special-case rules the auto-refresh must honor. Edit this file to add new rules; the script reads it on every run.",
+  "exclude_ids": [
+    "322527283932",
+    "325178884841"
+  ],
+  "_exclude_ids_note": "HubSpot IDs to drop entirely (test deals, duplicates, deals marked 'please ignore'). The refresh will neither insert nor update these.",
+  "dealname_prefix": {
+    "159501546182": "[Shared Award] "
+  },
+  "_dealname_prefix_note": "HubSpot ID -> prefix always kept on the Deal Name. Example: El Paso County stays prefixed [Shared Award].",
+  "force_remove_from_awards": [],
+  "_force_remove_from_awards_note": "HubSpot IDs that should never appear in the Awards sheet even if their stage says Closed Won / Intent to Award.",
+  "owner_map": {
+    "159334184": "Hrithik Srivastava",
+    "159334186": "Savya Atrey",
+    "159334187": "Jyothsna Nanda kishore",
+    "159334188": "Ashutosh Chauhan",
+    "159334190": "Ashutosh Chauhan",
+    "159334194": "Madhav Mitruka",
+    "159334195": "Arshdeep Kaur",
+    "159334197": "Yashaswini Gautam",
+    "159334198": "Ritoban Maitra",
+    "159334199": "Amber Soni",
+    "159334201": "Vinay Srinivasan",
+    "159334202": "Abhishek Zalani",
+    "159334203": "Ashley Lamaniya",
+    "159334316": "Ashley Lamaniya",
+    "159334422": "Yashaswini Gautam",
+    "159335378": "Darshan Tiwari",
+    "159547664": "Akshat Tripathi",
+    "159562810": "Srikrishnadeva D",
+    "164696928": "Yash More",
+    "165322739": "Soumya Sharma"
+  }
+}
