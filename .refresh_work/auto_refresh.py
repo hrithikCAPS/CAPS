@@ -1,4 +1,3 @@
-
 """
 auto_refresh.py — fully automated HubSpot → Excel refresh.
  
@@ -70,8 +69,8 @@ OWNER_MAP = OVR.get("owner_map", {})
 PROPS = [
     "hs_object_id","dealname","agency","submission_date","submission_mode",
     "closedate","createdate","dealstage","hubspot_owner_id","amount",
-    "service_category__cloned_","rfp_number","intent_to_awarded_date",
-    "awarded_date","interview_date_time","bafo_date","interview_type"
+    "service_category__cloned_","rfp_number","intent_to_award_date",
+    "awarded_date","interview_date"
 ]
  
 API = "https://api.hubapi.com"
@@ -126,31 +125,38 @@ def hubspot_batch_read(ids):
         time.sleep(0.2)
     return out
  
-def pull_window(since_iso):
+def pull_window(window_start_dt):
+    """window_start_dt is a timezone-aware datetime. HubSpot's search API expects
+    date/datetime filter values as epoch milliseconds, not YYYY-MM-DD strings."""
+    epoch_ms = int(window_start_dt.timestamp() * 1000)
+    # For `submission_date` (a date property, not datetime), midnight UTC of that day:
+    day_only = window_start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_epoch_ms = int(day_only.timestamp() * 1000)
+ 
     pipe = {"propertyName":"pipeline","operator":"EQ","value":"default"}
     tracked = {"propertyName":"dealstage","operator":"IN","values":TRACKED_STAGES}
  
-    print(f"  Pulling submissions since {since_iso[:10]}...")
+    print(f"  Pulling submissions since {window_start_dt.date()}...")
     subs = search_all([{"filters":[
         pipe, tracked,
-        {"propertyName":"submission_date","operator":"GTE","value":since_iso[:10]},
+        {"propertyName":"submission_date","operator":"GTE","value":day_epoch_ms},
     ]}])
     print(f"    {len(subs)} submissions")
  
-    print(f"  Pulling stage changes since {since_iso}...")
+    print(f"  Pulling stage changes since {window_start_dt.isoformat()}...")
     stages = search_all([{"filters":[
         pipe,
         {"propertyName":"dealstage","operator":"IN","values":[
             "1620129473","2485737153","closedwon","closedlost","2203296493","2766010076"
         ]},
-        {"propertyName":"hs_v2_date_entered_current_stage","operator":"GTE","value":since_iso},
+        {"propertyName":"hs_v2_date_entered_current_stage","operator":"GTE","value":epoch_ms},
     ]}])
     print(f"    {len(stages)} stage changes")
  
-    print(f"  Pulling general field edits since {since_iso}...")
+    print(f"  Pulling general field edits since {window_start_dt.isoformat()}...")
     edits = search_all([{"filters":[
         pipe, tracked,
-        {"propertyName":"hs_lastmodifieddate","operator":"GTE","value":since_iso},
+        {"propertyName":"hs_lastmodifieddate","operator":"GTE","value":epoch_ms},
     ]}])
     print(f"    {len(edits)} modified deals")
  
@@ -211,12 +217,12 @@ def apply_to_excel(fresh):
             if p.get("service_category__cloned_"):
                 ws.cell(r, col["Service Category"]).value = p["service_category__cloned_"]
             if p.get("submission_mode"): ws.cell(r, col["Submission Mode"]).value = p["submission_mode"]
-            if p.get("intent_to_awarded_date"):
-                ws.cell(r, col["Intent to Award Date"]).value = to_date(p["intent_to_awarded_date"])
+            if p.get("intent_to_award_date"):
+                ws.cell(r, col["Intent to Award Date"]).value = to_date(p["intent_to_award_date"])
             if p.get("awarded_date"):
                 ws.cell(r, col["Awarded Date"]).value = to_date(p["awarded_date"])
-            if p.get("interview_date_time"):
-                ws.cell(r, col["Interview Date"]).value = to_date(p["interview_date_time"])
+            if p.get("interview_date"):
+                ws.cell(r, col["Interview Date"]).value = to_date(p["interview_date"])
             if stage in ("Closed Lost", "Terminated", "RFx Cancelled"):
                 ws.cell(r, col["Intent to Award Date"]).value = None
                 ws.cell(r, col["Awarded Date"]).value = None
@@ -234,9 +240,9 @@ def apply_to_excel(fresh):
                 "Submission Mode": p.get("submission_mode", ""), "Owner": owner,
                 "Created Date": to_date(p.get("createdate")),
                 "HubSpot Link": f"https://app.hubspot.com/contacts/243046792/record/0-3/{did}",
-                "Intent to Award Date": to_date(p.get("intent_to_awarded_date")),
+                "Intent to Award Date": to_date(p.get("intent_to_award_date")),
                 "Awarded Date": to_date(p.get("awarded_date")),
-                "Interview Date": to_date(p.get("interview_date_time")),
+                "Interview Date": to_date(p.get("interview_date")),
             }
             for k, v in rec.items():
                 if k in col: ws.cell(next_row, col[k]).value = v
@@ -282,8 +288,8 @@ def apply_to_excel(fresh):
             aws.cell(r, acol["Service Category"]).value = p["service_category__cloned_"]
         own = OWNER_MAP.get(p.get("hubspot_owner_id",""), p.get("hubspot_owner_id",""))
         if own: aws.cell(r, acol["Owner"]).value = own
-        if p.get("intent_to_awarded_date"):
-            aws.cell(r, acol["Intent to Award Date"]).value = to_date(p["intent_to_awarded_date"])
+        if p.get("intent_to_award_date"):
+            aws.cell(r, acol["Intent to Award Date"]).value = to_date(p["intent_to_award_date"])
         if p.get("awarded_date"):
             aws.cell(r, acol["Awarded Date"]).value = to_date(p["awarded_date"])
  
@@ -309,7 +315,7 @@ def apply_to_excel(fresh):
             "Amount ($)": amt, "Service Category": p.get("service_category__cloned_", ""),
             "Owner": own, "Created Date": to_date(p.get("createdate")),
             "HubSpot Link": f"https://app.hubspot.com/contacts/243046792/record/0-3/{did}",
-            "Intent to Award Date": to_date(p.get("intent_to_awarded_date")),
+            "Intent to Award Date": to_date(p.get("intent_to_award_date")),
             "Awarded Date": to_date(p.get("awarded_date")),
         }
         for k, v in rec.items():
@@ -359,7 +365,7 @@ def main():
     print(f"Window: {window_start.isoformat()} -> {now.isoformat()}")
     print(f"Excel : {EXCEL}")
  
-    fresh = pull_window(window_start.isoformat())
+    fresh = pull_window(window_start)
     aw_ids = get_award_ids()
     aw_fresh = refresh_award_rows_from_hubspot(aw_ids)
     for did, p in aw_fresh.items():
