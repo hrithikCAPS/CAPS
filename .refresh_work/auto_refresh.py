@@ -1,3 +1,4 @@
+Auto refresh · PY
 """
 auto_refresh.py — fully automated HubSpot → Excel refresh.
  
@@ -91,6 +92,9 @@ def hubspot_search(filter_groups, after=None):
                       headers=HEAD, json=body, timeout=30)
     if r.status_code == 429:
         time.sleep(10); return hubspot_search(filter_groups, after)
+    if r.status_code >= 400:
+        print(f"\n  HubSpot error {r.status_code}: {r.text[:2000]}")
+        print(f"  Request body was: {json.dumps(body)[:1500]}")
     r.raise_for_status()
     return r.json()
  
