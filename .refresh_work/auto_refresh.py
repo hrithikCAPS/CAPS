@@ -53,7 +53,12 @@ STAGE_MAP = {
     "1617217262":"Not Qualified",
 }
 AWARD_STAGES = {"closedwon", "2485737153"}
-TRACKED_STAGES = list(STAGE_MAP.keys())
+# Only stage IDs confirmed to exist on the default pipeline. Extra IDs in
+# STAGE_MAP are display-only labels for stages that may appear via other paths.
+TRACKED_STAGES = [
+    "presentationscheduled", "1620129473", "2485737153",
+    "closedwon", "closedlost", "2203296493", "2766010076",
+]
  
 OVR = json.loads(OVR_PATH.read_text()) if OVR_PATH.exists() else {}
 EXCLUDE = set(OVR.get("exclude_ids", []))
