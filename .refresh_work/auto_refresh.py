@@ -1,4 +1,4 @@
-Auto refresh · PY
+
 """
 auto_refresh.py — fully automated HubSpot → Excel refresh.
  
