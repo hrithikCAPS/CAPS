@@ -131,6 +131,40 @@ def hubspot_batch_read(ids):
         time.sleep(0.2)
     return out
  
+def pull_company_states():
+    """Fetch every company that has agency_state populated, return a dict
+    normalized_name -> state. Called once per run; refreshes the whole map so
+    new agencies and updated state values both flow through."""
+    print("  Pulling company agency_state values...")
+    out, after = {}, None
+    while True:
+        body = {
+            "filterGroups": [{"filters": [
+                {"propertyName": "agency_state", "operator": "HAS_PROPERTY"},
+            ]}],
+            "properties": ["name", "agency_state"],
+            "limit": 100,
+        }
+        if after: body["after"] = after
+        r = requests.post(f"{API}/crm/v3/objects/companies/search",
+                          headers=HEAD, json=body, timeout=30)
+        if r.status_code == 429:
+            time.sleep(10); continue
+        if r.status_code >= 400:
+            print(f"    companies search error {r.status_code}: {r.text[:500]}")
+            break
+        data = r.json()
+        for c in data.get("results", []):
+            n = (c.get("properties", {}).get("name") or "").strip()
+            s = (c.get("properties", {}).get("agency_state") or "").strip()
+            if n and s: out[norm(n)] = s
+        nxt = data.get("paging", {}).get("next", {}).get("after")
+        if not nxt: break
+        after = nxt
+        time.sleep(0.2)
+    print(f"    {len(out)} companies with agency_state set")
+    return out
+ 
 def pull_window(window_start_dt):
     """window_start_dt is a timezone-aware datetime. HubSpot's search API expects
     date/datetime filter values as epoch milliseconds, not YYYY-MM-DD strings."""
@@ -188,12 +222,13 @@ def refresh_award_rows_from_hubspot(award_ids):
     print(f"    got {len(out)} back")
     return {str(d["id"]): alias_props(d["properties"]) for d in out}
  
-def apply_to_excel(fresh):
+def apply_to_excel(fresh, hubspot_states=None):
     wb = openpyxl.load_workbook(EXCEL)
     ws = wb["RFP Data"]
     hdr = [c.value for c in ws[1]]; col = {h:i+1 for i,h in enumerate(hdr)}
  
     xl_row, ag2state, max_sno = {}, {}, 0
+    # Seed ag2state from existing rows first (fallback).
     for r in range(2, ws.max_row + 1):
         rid = ws.cell(r, col["HubSpot ID"]).value
         if rid: xl_row[str(rid).strip()] = r
@@ -201,6 +236,20 @@ def apply_to_excel(fresh):
         if ag and st: ag2state.setdefault(norm(ag), str(st).strip())
         sn = ws.cell(r, col["S.No."]).value
         if isinstance(sn, (int, float)) and sn > max_sno: max_sno = sn
+ 
+    # HubSpot's company-level agency_state is authoritative — overwrite row's
+    # Agency State whenever HubSpot provides one.
+    if hubspot_states:
+        updated_states = 0
+        for r in range(2, ws.max_row + 1):
+            ag = ws.cell(r, col["Agency"]).value
+            if not ag: continue
+            hs_state = hubspot_states.get(norm(ag))
+            if hs_state and (ws.cell(r, col["Agency State"]).value or "").strip() != hs_state:
+                ws.cell(r, col["Agency State"]).value = hs_state
+                updated_states += 1
+        print(f"    Updated {updated_states} Agency State cells from HubSpot company data.")
+        ag2state.update(hubspot_states)  # HubSpot wins over seeded fallback
  
     next_row, next_sno = ws.max_row + 1, max_sno + 1
     updated, inserted, cw_moves = 0, 0, []
@@ -273,6 +322,19 @@ def apply_to_excel(fresh):
         rid = str(aws.cell(r, acol["HubSpot ID"]).value or "").strip()
         if rid: awards_rows[rid] = r
     a_max = max([aws.cell(r, acol["S.No."]).value or 0 for r in range(2, aws.max_row+1)] + [0])
+ 
+    # Sync Agency State on Awards rows too.
+    if hubspot_states and "Agency State" in acol:
+        aw_state_fixes = 0
+        for r in range(2, aws.max_row + 1):
+            ag = aws.cell(r, acol["Agency"]).value
+            if not ag: continue
+            hs_state = hubspot_states.get(norm(ag))
+            if hs_state and (aws.cell(r, acol["Agency State"]).value or "").strip() != hs_state:
+                aws.cell(r, acol["Agency State"]).value = hs_state
+                aw_state_fixes += 1
+        if aw_state_fixes:
+            print(f"    Updated {aw_state_fixes} Agency State cells on Awards sheet.")
  
     # Remove rows that no longer qualify
     remove_rows = []
@@ -392,9 +454,13 @@ def main():
         for did, p in aw_fresh.items():
             if did not in fresh: fresh[did] = p
  
-    apply_to_excel(fresh)
+    # Pull company agency_state values (authoritative source for Agency State).
+    hubspot_states = pull_company_states()
+ 
+    apply_to_excel(fresh, hubspot_states=hubspot_states)
     write_last_pull(now)
     print(f"\nSaved {EXCEL.name}. Last pull marker updated.")
  
 if __name__ == "__main__":
     main()
+ 
