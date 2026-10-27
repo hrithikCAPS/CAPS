@@ -1,5 +1,5 @@
 name: Daily HubSpot Refresh
-
+ 
 on:
   schedule:
     - cron: '0 11 * * 0,2,3,4,5,6'  # Sun, Tue-Sat 11:00 UTC (7am ET) — delta refresh
@@ -18,48 +18,49 @@ on:
         description: 'Generate quarterly report (Q1-2026, Q2-2026, Q3-2026, Q4-2026). Leave blank for normal daily behavior.'
         type: string
         default: ''
-
+ 
 permissions:
   contents: write
-
+ 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
-
+ 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
+ 
       - name: Install dependencies
-        run: pip install openpyxl requests reportlab
-
+        run: pip install openpyxl requests reportlab python-dateutil
+ 
       - name: Pull HubSpot delta into Excel
         env:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           # Full refresh if: user ticked the manual box, OR the Monday cron fired this run.
           FULL_REFRESH: ${{ inputs.full_refresh || github.event.schedule == '0 11 * * 1' }}
         run: python .refresh_work/auto_refresh.py
-
+ 
       - name: Regenerate dashboard data.js
         run: python refresh-data.py
-
+ 
       - name: Run scheduled monthly / quarterly reports if due
         run: python monthly_reports/scheduled_runner.py
-
+ 
       - name: Backfill specific monthly report (manual)
         if: ${{ inputs.backfill_month != '' }}
         run: python monthly_reports/generate_monthly_reports.py --month "${{ inputs.backfill_month }}"
-
+ 
       - name: Backfill specific quarterly report (manual)
         if: ${{ inputs.backfill_quarter != '' }}
         run: python monthly_reports/generate_monthly_reports.py --quarter "${{ inputs.backfill_quarter }}"
-
+ 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto refresh"
           file_pattern: 'data/CAPS_RFP_Dashboard_Dataset.xlsx js/data.js *.html monthly_reports/**/*.pdf monthly_reports/manifest.* .refresh_work/.last_pull'
+ 
