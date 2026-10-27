@@ -10,6 +10,14 @@ on:
         description: 'Full clean rebuild from HubSpot (overwrites every row). Only tick this when you want to resync from scratch.'
         type: boolean
         default: false
+      backfill_month:
+        description: 'Generate monthly reports for this month (YYYY-MM, e.g. 2026-09). Leave blank for normal daily behavior.'
+        type: string
+        default: ''
+      backfill_quarter:
+        description: 'Generate quarterly report (Q1-2026, Q2-2026, Q3-2026, Q4-2026). Leave blank for normal daily behavior.'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -41,6 +49,14 @@ jobs:
 
       - name: Run scheduled monthly / quarterly reports if due
         run: python monthly_reports/scheduled_runner.py
+
+      - name: Backfill specific monthly report (manual)
+        if: ${{ inputs.backfill_month != '' }}
+        run: python monthly_reports/generate_monthly_reports.py --month "${{ inputs.backfill_month }}"
+
+      - name: Backfill specific quarterly report (manual)
+        if: ${{ inputs.backfill_quarter != '' }}
+        run: python monthly_reports/generate_monthly_reports.py --quarter "${{ inputs.backfill_quarter }}"
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
