@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-08T16:20:51Z",
+  "generated_at_utc": "2026-10-27T13:19:05Z",
   "monthly": {
     "2026": {
       "March-2026": {
@@ -8,28 +8,20 @@
         "files": [
           "Company_Summary_Mar_2026.pdf",
           "Team_Alpha_Mar_2026.pdf",
+          "Team_D_Mar_2026.pdf",
           "Team_Delta_Mar_2026.pdf",
           "Team_Kairoz_Mar_2026.pdf"
         ]
       },
-      "May-2026": {
-        "label": "May 2026",
-        "sort": 202605,
+      "April-2026": {
+        "label": "April 2026",
+        "sort": 202604,
         "files": [
-          "Company_Summary_May_2026.pdf",
-          "Team_Alpha_May_2026.pdf",
-          "Team_Delta_May_2026.pdf",
-          "Team_Kairoz_May_2026.pdf"
-        ]
-      },
-      "January-2026": {
-        "label": "January 2026",
-        "sort": 202601,
-        "files": [
-          "Company_Summary_Jan_2026.pdf",
-          "Team_Alpha_Jan_2026.pdf",
-          "Team_Delta_Jan_2026.pdf",
-          "Team_Kairoz_Jan_2026.pdf"
+          "Company_Summary_Apr_2026.pdf",
+          "Team_Alpha_Apr_2026.pdf",
+          "Team_D_Apr_2026.pdf",
+          "Team_Delta_Apr_2026.pdf",
+          "Team_Kairoz_Apr_2026.pdf"
         ]
       },
       "July-2026": {
@@ -42,14 +34,15 @@
           "Team_Kairoz_Jul_2026.pdf"
         ]
       },
-      "June-2026": {
-        "label": "June 2026",
-        "sort": 202606,
+      "January-2026": {
+        "label": "January 2026",
+        "sort": 202601,
         "files": [
-          "Company_Summary_Jun_2026.pdf",
-          "Team_Alpha_Jun_2026.pdf",
-          "Team_Delta_Jun_2026.pdf",
-          "Team_Kairoz_Jun_2026.pdf"
+          "Company_Summary_Jan_2026.pdf",
+          "Team_Alpha_Jan_2026.pdf",
+          "Team_D_Jan_2026.pdf",
+          "Team_Delta_Jan_2026.pdf",
+          "Team_Kairoz_Jan_2026.pdf"
         ]
       },
       "February-2026": {
@@ -58,8 +51,29 @@
         "files": [
           "Company_Summary_Feb_2026.pdf",
           "Team_Alpha_Feb_2026.pdf",
+          "Team_D_Feb_2026.pdf",
           "Team_Delta_Feb_2026.pdf",
           "Team_Kairoz_Feb_2026.pdf"
+        ]
+      },
+      "September-2026": {
+        "label": "September 2026",
+        "sort": 202609,
+        "files": [
+          "Company_Summary_Sep_2026.pdf",
+          "Team_Alpha_Sep_2026.pdf",
+          "Team_Delta_Sep_2026.pdf",
+          "Team_Kairoz_Sep_2026.pdf"
+        ]
+      },
+      "June-2026": {
+        "label": "June 2026",
+        "sort": 202606,
+        "files": [
+          "Company_Summary_Jun_2026.pdf",
+          "Team_Alpha_Jun_2026.pdf",
+          "Team_Delta_Jun_2026.pdf",
+          "Team_Kairoz_Jun_2026.pdf"
         ]
       },
       "August-2026": {
@@ -72,36 +86,38 @@
           "Team_Kairoz_Aug_2026.pdf"
         ]
       },
-      "April-2026": {
-        "label": "April 2026",
-        "sort": 202604,
+      "May-2026": {
+        "label": "May 2026",
+        "sort": 202605,
         "files": [
-          "Company_Summary_Apr_2026.pdf",
-          "Team_Alpha_Apr_2026.pdf",
-          "Team_Delta_Apr_2026.pdf",
-          "Team_Kairoz_Apr_2026.pdf"
+          "Company_Summary_May_2026.pdf",
+          "Team_Alpha_May_2026.pdf",
+          "Team_Delta_May_2026.pdf",
+          "Team_Kairoz_May_2026.pdf"
         ]
       }
     },
     "2025": {
-      "October-2025": {
-        "label": "October 2025",
-        "sort": 202510,
-        "files": [
-          "Company_Summary_Oct_2025.pdf",
-          "Team_Alpha_Oct_2025.pdf",
-          "Team_Delta_Oct_2025.pdf",
-          "Team_Kairoz_Oct_2025.pdf"
-        ]
-      },
       "December-2025": {
         "label": "December 2025",
         "sort": 202512,
         "files": [
           "Company_Summary_Dec_2025.pdf",
           "Team_Alpha_Dec_2025.pdf",
+          "Team_D_Dec_2025.pdf",
           "Team_Delta_Dec_2025.pdf",
           "Team_Kairoz_Dec_2025.pdf"
+        ]
+      },
+      "October-2025": {
+        "label": "October 2025",
+        "sort": 202510,
+        "files": [
+          "Company_Summary_Oct_2025.pdf",
+          "Team_Alpha_Oct_2025.pdf",
+          "Team_D_Oct_2025.pdf",
+          "Team_Delta_Oct_2025.pdf",
+          "Team_Kairoz_Oct_2025.pdf"
         ]
       },
       "November-2025": {
@@ -110,6 +126,7 @@
         "files": [
           "Company_Summary_Nov_2025.pdf",
           "Team_Alpha_Nov_2025.pdf",
+          "Team_D_Nov_2025.pdf",
           "Team_Delta_Nov_2025.pdf",
           "Team_Kairoz_Nov_2025.pdf"
         ]
@@ -117,17 +134,20 @@
     }
   },
   "quarterly": {
-    "2026": {
-      "Q1-2026": {
-        "label": "Q1 2026",
-        "sort": 20261,
+    "2025": {
+      "Q4-2025": {
+        "label": "Q4 2025",
+        "sort": 20254,
         "files": [
-          "Company_Summary_Q1_2026.pdf",
-          "Team_Alpha_Q1_2026.pdf",
-          "Team_Delta_Q1_2026.pdf",
-          "Team_Kairoz_Q1_2026.pdf"
+          "Company_Summary_Q4_2025.pdf",
+          "Team_Alpha_Q4_2025.pdf",
+          "Team_D_Q4_2025.pdf",
+          "Team_Delta_Q4_2025.pdf",
+          "Team_Kairoz_Q4_2025.pdf"
         ]
-      },
+      }
+    },
+    "2026": {
       "Q2-2026": {
         "label": "Q2 2026",
         "sort": 20262,
@@ -137,17 +157,26 @@
           "Team_Delta_Q2_2026.pdf",
           "Team_Kairoz_Q2_2026.pdf"
         ]
-      }
-    },
-    "2025": {
-      "Q4-2025": {
-        "label": "Q4 2025",
-        "sort": 20254,
+      },
+      "Q1-2026": {
+        "label": "Q1 2026",
+        "sort": 20261,
         "files": [
-          "Company_Summary_Q4_2025.pdf",
-          "Team_Alpha_Q4_2025.pdf",
-          "Team_Delta_Q4_2025.pdf",
-          "Team_Kairoz_Q4_2025.pdf"
+          "Company_Summary_Q1_2026.pdf",
+          "Team_Alpha_Q1_2026.pdf",
+          "Team_D_Q1_2026.pdf",
+          "Team_Delta_Q1_2026.pdf",
+          "Team_Kairoz_Q1_2026.pdf"
+        ]
+      },
+      "Q3-2026": {
+        "label": "Q3 2026",
+        "sort": 20263,
+        "files": [
+          "Company_Summary_Q3_2026.pdf",
+          "Team_Alpha_Q3_2026.pdf",
+          "Team_Delta_Q3_2026.pdf",
+          "Team_Kairoz_Q3_2026.pdf"
         ]
       }
     }
