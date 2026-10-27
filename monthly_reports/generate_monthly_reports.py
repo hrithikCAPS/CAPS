@@ -67,7 +67,14 @@ def rl(h): return colors.HexColor(h)
 # ─────────────────────────────────────────────
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(os.path.dirname(SCRIPT_DIR))
-EXCEL_FILE  = os.path.join(PROJECT_DIR, 'CAPS_RFP_Dashboard_Dataset.xlsx')
+   # Try the local path first (Excel in parent folder); fall back to the GitHub
+   # layout (Excel in <repo-root>/data/).
+_DASHBOARD_DIR = os.path.dirname(SCRIPT_DIR)
+_CANDIDATES = [
+    os.path.join(PROJECT_DIR, 'CAPS_RFP_Dashboard_Dataset.xlsx'),
+    os.path.join(_DASHBOARD_DIR, 'data', 'CAPS_RFP_Dashboard_Dataset.xlsx'),
+   ]
+EXCEL_FILE  = next((p for p in _CANDIDATES if os.path.exists(p)), _CANDIDATES[0])
 LOGO_PATH   = os.path.join(PROJECT_DIR, 'image.png')
 
 TEAMS = {
