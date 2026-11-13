@@ -79,8 +79,8 @@ LOGO_PATH   = os.path.join(PROJECT_DIR, 'image.png')
 
 TEAMS = {
     'Team Alpha'  : ['Ashutosh Chauhan', 'Madhav Mitruka'],
-    'Team Kairoz' : ['Jyothsna Nanda kishore'],
-    'Team Delta'  : ['Savya Atrey', 'Abhishek Zalani', 'Srikrishnadeva D', 'Arshdeep Kaur'],
+    'Team Kairoz' : ['Jyothsna Nanda kishore', 'Hrithik Srivastava'],
+    'Team Delta'  : [],
 }
 
 def owner_to_team(owner):
