@@ -885,6 +885,18 @@ def generate_for_period(period, period_label, folder, tag, all_deals):
     out_dir = os.path.join(SCRIPT_DIR, folder)
     os.makedirs(out_dir, exist_ok=True)
     print(f'  Output: {out_dir}\n')
+  
+    # DEBUG: dump team-mapping and owner info to logs
+    from collections import Counter
+    print(f'  DEBUG: total deals loaded = {len(all_deals)}')
+    team_counts = Counter(d['team'] for d in all_deals)
+    print(f'  DEBUG: deals per team = {dict(team_counts)}')
+    unmatched = Counter(d['owner'] for d in all_deals if not d['team'] and d['owner'])
+    print(f'  DEBUG: top unmatched owner strings = {dict(unmatched.most_common(15))}')
+    sub_filter = lambda d: d['sub'] and d['sub'].year == period['year'] and (d['sub'].month in period.get('months', [period.get('month')]))
+    oct_by_team = Counter(d['team'] for d in all_deals if sub_filter(d))
+    print(f'  DEBUG: {period_label} submissions per team = {dict(oct_by_team)}\n')
+
     for team_name in TEAMS:
         team_deals = [d for d in all_deals if d['team'] == team_name]
         build(os.path.join(out_dir, f'{team_name.replace(" ","_")}_{tag}.pdf'),
